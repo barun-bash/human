@@ -103,6 +103,20 @@ func (l *Lexer) processLineStart() {
 		return
 	}
 
+	// Emit DEDENT tokens before comments and section headers if they are
+	// at a lower indentation level than the current block. Without this,
+	// section headers and comments between blocks would be consumed as
+	// body statements of the preceding indented block.
+	if r == '#' || r == '\u2500' || (r == '-' && l.peekRuneAt(l.current+1) == '-') {
+		currentIndent := l.indentStack[len(l.indentStack)-1]
+		if indent < currentIndent {
+			for len(l.indentStack) > 1 && l.indentStack[len(l.indentStack)-1] > indent {
+				l.indentStack = l.indentStack[:len(l.indentStack)-1]
+				l.emit(TOKEN_DEDENT, "")
+			}
+		}
+	}
+
 	// Comment-only line: emit comment, skip to next line
 	if r == '#' {
 		// Check if it's a color literal (unlikely at line start, but be safe)
