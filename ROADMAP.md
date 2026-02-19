@@ -1,0 +1,284 @@
+# Human Language — Development Roadmap
+
+## Vision
+
+Build the first programming language designed for humans, not computers.
+English in → production-ready applications out.
+
+---
+
+## Phase 1: Foundation (Weeks 1-4)
+**Goal: Parse a .human file and prove the grammar works**
+
+### Week 1-2: Lexer + Token System
+- [ ] Define all token types
+- [ ] Build lexer that tokenizes .human files
+- [ ] Handle indentation-based scoping
+- [ ] Handle section headers (── name ──)
+- [ ] Handle strings, numbers, identifiers
+- [ ] Handle keywords (case-insensitive)
+- [ ] Handle comments (#)
+- [ ] Write comprehensive lexer tests
+- [ ] Test with sample .human files
+
+### Week 3-4: Parser + AST
+- [ ] Define all AST node types
+- [ ] Build recursive descent parser
+- [ ] Parse: app declaration
+- [ ] Parse: data declarations (fields, types, relationships)
+- [ ] Parse: page declarations (display, interaction, conditions)
+- [ ] Parse: api declarations (input, validation, logic, response)
+- [ ] Parse: theme declaration
+- [ ] Parse: security declaration
+- [ ] Parse: database declaration
+- [ ] Error recovery (skip to next declaration on error)
+- [ ] Human-readable error messages
+- [ ] Write comprehensive parser tests
+
+### Milestone: Can parse a complete .human file into an AST
+
+---
+
+## Phase 2: Intent IR (Weeks 5-6)
+**Goal: Transform AST into framework-agnostic representation**
+
+- [ ] Define IR node types (Application, Data, Page, API, etc.)
+- [ ] Build AST → IR transformer
+- [ ] Serialize IR to YAML
+- [ ] Serialize IR to JSON
+- [ ] Deserialize IR from YAML/JSON
+- [ ] Validate IR completeness (every reference resolves)
+- [ ] Write IR tests
+- [ ] Document IR schema
+
+### Milestone: .human file → AST → Intent IR (YAML) works end-to-end
+
+---
+
+## Phase 3: First Code Generator — React + TypeScript (Weeks 7-10)
+**Goal: Generate a working React project from Intent IR**
+
+### Week 7-8: Project Scaffolding
+- [ ] Generate package.json with correct dependencies
+- [ ] Generate tsconfig.json
+- [ ] Generate project structure (src/, pages/, components/, etc.)
+- [ ] Generate routing from page declarations
+- [ ] Generate data types from data declarations
+- [ ] Generate theme/styling from theme declaration (Tailwind)
+
+### Week 9-10: Component + Page Generation
+- [ ] Generate React components from component declarations
+- [ ] Generate pages from page declarations
+- [ ] Generate data fetching (hooks, API calls)
+- [ ] Generate forms from input statements
+- [ ] Generate lists, cards, tables from display statements
+- [ ] Generate event handlers from interaction statements
+- [ ] Generate conditional rendering from condition statements
+- [ ] Generate loading and error states
+
+### Milestone: .human file → working React + TypeScript project
+
+---
+
+## Phase 4: First Backend Generator — Node + Express (Weeks 11-14)
+**Goal: Generate a working backend from Intent IR**
+
+- [ ] Generate Express server setup
+- [ ] Generate API routes from api declarations
+- [ ] Generate input validation from check statements
+- [ ] Generate data models (Prisma or TypeORM)
+- [ ] Generate database migrations
+- [ ] Generate authentication middleware (JWT)
+- [ ] Generate authorization middleware (from policies)
+- [ ] Generate error handling
+- [ ] Connect frontend to backend (API client generation)
+
+### Milestone: Full-stack app from .human files
+
+---
+
+## Phase 5: Quality Engine (Weeks 15-18)
+**Goal: Mandatory quality guarantees**
+
+### Week 15-16: Auto Test Generation
+- [ ] Generate unit tests for every API (Jest/Vitest)
+- [ ] Generate unit tests for every component (React Testing Library)
+- [ ] Generate edge case tests from field types
+- [ ] Generate integration tests for API flows
+- [ ] Coverage tracking and threshold enforcement
+
+### Week 17: Security Audit
+- [ ] Dependency vulnerability scanning
+- [ ] Input sanitization verification
+- [ ] Auth/authz coverage check
+- [ ] Secret detection in generated code
+- [ ] Security report generation
+
+### Week 18: Code Quality + QA Trail
+- [ ] Linting of generated code (ESLint config)
+- [ ] Duplication detection
+- [ ] Performance pattern detection
+- [ ] QA test plan generation
+- [ ] Traceability matrix generation
+
+### Milestone: Nothing builds without passing all quality checks
+
+---
+
+## Phase 6: CLI + Developer Experience (Weeks 19-20)
+**Goal: Polished command-line interface**
+
+- [ ] `human init` — interactive project creation
+- [ ] `human build` — compile to target
+- [ ] `human run` — development server
+- [ ] `human check` — validate .human files
+- [ ] `human test` — run generated tests
+- [ ] `human audit` — run security audit
+- [ ] `human deploy` — deploy to target
+- [ ] `human eject` — export as standalone project
+- [ ] Colored terminal output
+- [ ] Progress indicators
+- [ ] Watch mode (rebuild on file change)
+
+### Milestone: Complete developer experience from init to deploy
+
+---
+
+## Phase 7: Design Import (Weeks 21-24)
+**Goal: Figma and image files as input**
+
+- [ ] Figma API integration (extract layers, styles, components)
+- [ ] Image analysis for screenshots/JPEGs (requires LLM vision)
+- [ ] Visual → component mapping
+- [ ] Style extraction (colors, fonts, spacing)
+- [ ] Asset extraction (images, icons)
+- [ ] Component map caching (deterministic after first import)
+- [ ] Design enrichment via English statements
+
+### Milestone: Figma file + English → working React components
+
+---
+
+## Phase 8: Second Frontend Target (Weeks 25-26)
+**Goal: Prove the IR is truly framework-agnostic**
+
+- [ ] Build Angular or Vue code generator
+- [ ] Same .human file produces both React and Angular/Vue
+- [ ] All quality checks work for new target
+- [ ] Document how to build a code generator plugin
+
+### Milestone: One .human source → multiple framework outputs
+
+---
+
+## Phase 9: DevOps Generation (Weeks 27-30)
+**Goal: CI/CD, Docker, deployment from English**
+
+- [ ] Generate GitHub Actions workflows from pipeline declarations
+- [ ] Generate Dockerfiles and docker-compose
+- [ ] Generate Terraform for cloud deployment
+- [ ] Generate environment configurations
+- [ ] Git workflow commands (human feature, human release, etc.)
+- [ ] Monitoring configuration generation
+
+### Milestone: Complete application lifecycle from .human files
+
+---
+
+## Phase 10: Architecture Support (Weeks 31-34)
+**Goal: Monolith, microservices, serverless from one keyword**
+
+- [ ] Monolith output (single project)
+- [ ] Microservices output (multiple projects, gateway, docker-compose)
+- [ ] Serverless output (Lambda/Cloud Functions)
+- [ ] Event-driven output (with message broker config)
+- [ ] Service-to-service communication generation
+
+### Milestone: Architecture as a first-class language feature
+
+---
+
+## Phase 11: LLM Connector (Weeks 35-38)
+**Goal: Optional AI enhancement**
+
+- [ ] LLM connector interface (provider-agnostic)
+- [ ] Anthropic Claude integration
+- [ ] OpenAI integration
+- [ ] Ollama (local) integration
+- [ ] Smart interpretation (freeform → structured .human)
+- [ ] Conversational editing mode
+- [ ] Context building (project-wide understanding)
+- [ ] Pattern suggestions
+
+### Milestone: AI-enhanced editing while maintaining deterministic compilation
+
+---
+
+## Phase 12: Third-Party Integrations (Weeks 39-42)
+**Goal: First-class integration support**
+
+- [ ] Integration declaration parser
+- [ ] Built-in: Stripe
+- [ ] Built-in: SendGrid / email
+- [ ] Built-in: AWS S3 / file storage
+- [ ] Built-in: OAuth providers (Google, GitHub, etc.)
+- [ ] Custom API integration from declarations
+- [ ] OpenAPI/Swagger spec import
+- [ ] Integration test generation (mocked)
+
+### Milestone: Third-party APIs usable in English
+
+---
+
+## Phase 13: Plugin Ecosystem (Weeks 43-46)
+**Goal: Community can extend the language**
+
+- [ ] Plugin interface specification
+- [ ] Plugin loading system
+- [ ] Plugin discovery and installation
+- [ ] Plugin template / generator
+- [ ] Documentation for plugin authors
+- [ ] First community plugin examples
+
+### Milestone: Open ecosystem for new targets and integrations
+
+---
+
+## Phase 14: Polish + Launch (Weeks 47-52)
+**Goal: Ready for public release**
+
+- [ ] Comprehensive documentation website
+- [ ] Tutorial: "Build your first app in Human"
+- [ ] 5+ complete example applications
+- [ ] Performance optimization
+- [ ] Error message review (every error is helpful)
+- [ ] Installation scripts (brew, apt, scoop, etc.)
+- [ ] VS Code extension (syntax highlighting, autocomplete)
+- [ ] Landing page and branding
+- [ ] Open source release
+
+### Milestone: v1.0 public launch
+
+---
+
+## Success Metrics
+
+| Metric | Target |
+|---|---|
+| Parse a .human file | Phase 1 |
+| Generate a running React app | Phase 3 |
+| Full-stack app from English | Phase 4 |
+| Quality guarantees enforced | Phase 5 |
+| Design-to-code pipeline | Phase 7 |
+| Multi-framework output | Phase 8 |
+| Public launch | Phase 14 |
+
+---
+
+## Principles Throughout
+
+1. **Every phase produces something that works.** No phase is "just infrastructure."
+2. **Test everything.** The compiler for a quality-enforced language must itself be well-tested.
+3. **Error messages are a feature.** Every error helps the developer fix the problem.
+4. **Determinism is sacred.** Same input, same output, always.
+5. **Ship examples.** Every feature comes with a .human example that demonstrates it.
