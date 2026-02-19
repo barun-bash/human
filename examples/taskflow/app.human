@@ -1,9 +1,8 @@
 app TaskFlow is a web application
 
-# This is a complete task management application
-# It exercises every feature of the Human language
-
-── frontend ──
+# ─────────────────────────────────────────────────────────────
+── theme ──
+# ─────────────────────────────────────────────────────────────
 
 theme:
   primary color is #6C5CE7
@@ -14,33 +13,62 @@ theme:
   dark mode is supported and toggles from the header
   spacing is comfortable
 
+# ─────────────────────────────────────────────────────────────
+── frontend ──
+# ─────────────────────────────────────────────────────────────
+
 page Home:
   show a hero section with the app name and tagline
-  show a call to action button with "Get Started"
-  clicking the button navigates to Dashboard
-  if user is logged in, show "Welcome back" with their name
-  if user is not logged in, show the signup form
+  show a "Get Started" button
+  clicking the "Get Started" button navigates to Dashboard
+  if user is not logged in, show login and signup buttons
+  if user is logged in, show "Go to Dashboard" button
 
 page Dashboard:
   show a greeting with the user's name
-  show a summary card with total tasks and completed tasks
+  show a summary card with total tasks, completed tasks, and overdue tasks
+
   show a list of tasks sorted by due date
-  each task shows its title, status, and due date
-  clicking a task navigates to the task detail
+  each task shows its title, status, priority, and due date
+  each task shows the status as a colored badge
+  clicking a task opens a detail panel on the right
+  dragging a task reorders the list
+
   there is a search bar that filters tasks by title
   there is a dropdown to filter by status
-  if no tasks match, show "No tasks found"
-  while loading, show a spinner
+  there is a dropdown to filter by priority
+  there is a date range picker to filter by due date
+
+  if no tasks match, show "No tasks found. Create your first task!"
+  while loading, show a skeleton screen
+
   there is a floating button to add a new task
   clicking the add button opens a form to create a Task
+  scrolling to bottom loads more tasks
 
 page Profile:
-  show the user's name and email
-  show a form to update the user's name and bio
-  show the user's task statistics
-  clicking "Delete Account" shows a confirmation dialog
+  show the user's name, email, and avatar
+  show the user's role as a badge
+  show account creation date in relative format like "joined 3 months ago"
+  there is a form to update name and bio
+  there is a file upload for avatar
+  clicking "Save" updates the user profile
+  clicking "Change Password" opens a password change form
+  if the update succeeds, show "Profile updated successfully"
+  if there is an error, show the error message
 
+component TaskCard:
+  accepts task as Task
+  show the task title in bold
+  show the status as a colored badge
+  show the priority with an icon
+  show the due date in relative format like "due in 2 days"
+  if task is overdue, show the due date in red
+  clicking the card triggers on_click
+
+# ─────────────────────────────────────────────────────────────
 ── backend ──
+# ─────────────────────────────────────────────────────────────
 
 data User:
   has a name which is text
@@ -48,6 +76,7 @@ data User:
   has a password which is encrypted text
   has a role which is either "user" or "admin"
   has an optional bio which is text
+  has an optional avatar which is image
   has a created datetime
   has many Task
 
@@ -55,9 +84,9 @@ data Task:
   belongs to a User
   has a title which is text
   has an optional description which is text
-  has a status which is either "todo" or "in_progress" or "done"
+  has a status which is either "pending" or "in_progress" or "done"
   has a priority which is either "low" or "medium" or "high"
-  has an optional due date
+  has a due date
   has a created datetime
   has many Tag through TaskTag
 
@@ -75,41 +104,49 @@ api SignUp:
   check that name is not empty
   check that email is a valid email
   check that password is at least 8 characters
+  check that email is not already taken
   create a User with the given fields
-  assign role to "user"
-  respond with the created user and a token
+  assign "user" role
+  send welcome email to the user
+  respond with the created user and auth token
 
 api Login:
   accepts email and password
+  check that email is not empty
+  check that password is not empty
   fetch the user by email
   if user does not exist, respond with "invalid credentials"
-  check that password matches the stored password
-  respond with the user and a token
+  check that password matches the stored hash
+  if password does not match, respond with "invalid credentials"
+  respond with the user and auth token
+
+api GetTasks:
+  requires authentication
+  fetch all tasks for the current user
+  sort by due date
+  support filtering by status
+  support filtering by priority
+  support searching by title
+  paginate with 20 per page
+  respond with tasks and pagination info
 
 api CreateTask:
   requires authentication
   accepts title, description, status, priority, and due date
   check that title is not empty
   check that title is less than 200 characters
+  check that due date is in the future
   create a Task with the given fields and current user as owner
-  set status to "todo" if not provided
+  set status to "pending" if not provided
+  set priority to "medium" if not provided
   respond with the created task
-
-api ListTasks:
-  requires authentication
-  return all tasks where user is current user
-  sort by due date
-  support filtering by status
-  support searching by title
-  paginate with 20 per page
-  respond with tasks and pagination info
 
 api UpdateTask:
   requires authentication
   accepts task_id, title, description, status, priority, and due date
   fetch the task by task_id
   if task does not exist, respond with "task not found"
-  check that current user is the owner
+  check that current user is the owner or an admin
   update the task with the given fields
   respond with the updated task
 
@@ -122,18 +159,34 @@ api DeleteTask:
   delete the task
   respond with "task deleted"
 
+api GetProfile:
+  requires authentication
+  fetch the current user
+  respond with the user profile
+
+api UpdateProfile:
+  requires authentication
+  accepts name, bio, and avatar
+  check that name is not empty
+  update the current user with the given fields
+  respond with the updated profile
+
+# ─────────────────────────────────────────────────────────────
 ── security ──
+# ─────────────────────────────────────────────────────────────
 
 authentication:
   method JWT tokens that expire in 7 days
-  method Google OAuth with redirect to "/auth/google/callback"
+  method Google OAuth with redirect to /auth/google/callback
   passwords are hashed with bcrypt using 12 rounds
   all api requests require a valid token except SignUp and Login
   rate limit all endpoints to 100 requests per minute per user
   sanitize all text inputs against XSS
   enable CORS only for our frontend domain
 
+# ─────────────────────────────────────────────────────────────
 ── policies ──
+# ─────────────────────────────────────────────────────────────
 
 policy FreeUser:
   can create up to 50 tasks per month
@@ -146,8 +199,8 @@ policy ProUser:
   can create unlimited tasks
   can view only their own tasks
   can edit only their own tasks
+  can delete any of their own tasks
   can export data
-  can use advanced filters
 
 policy Admin:
   can view all users and their data
@@ -156,25 +209,34 @@ policy Admin:
   can export data
   can view system analytics
 
+# ─────────────────────────────────────────────────────────────
 ── workflows ──
+# ─────────────────────────────────────────────────────────────
 
 when a user signs up:
   create their account
   assign FreeUser policy
   send welcome email with template "welcome"
   after 3 days, send email with template "getting-started"
+  after 14 days, if they have fewer than 5 tasks,
+    send email with template "need-help"
 
 when a task becomes overdue:
   send notification to the task owner
-  update task status to "overdue"
-  if task is high priority, alert the admin
+  update task priority to "high"
+  if task is still overdue after 3 days,
+    send reminder email to the task owner
+  alert the admin via Slack
 
-when a task is completed:
-  update the completion count for the user
-  if all tasks are done, send "all done" notification
-  track completion time for analytics
+when a task is marked done:
+  update the user's completed task count
+  if all tasks for today are done,
+    send congratulations notification
+  log the completion for analytics
 
-── error handling ──
+# ─────────────────────────────────────────────────────────────
+── logic ──
+# ─────────────────────────────────────────────────────────────
 
 if database is unreachable:
   retry 3 times with 1 second delay
@@ -186,18 +248,23 @@ if an api request fails validation:
   log the attempt for analytics
   do not reveal internal details
 
+# ─────────────────────────────────────────────────────────────
 ── database ──
+# ─────────────────────────────────────────────────────────────
 
 database:
   use PostgreSQL
   when the app starts, create tables if they don't exist
   index User by email
   index Task by user and due date
-  index Task by status
+  index Task by user and status
+  index Tag by name
   backup daily at 3am
   keep backups for 30 days
 
+# ─────────────────────────────────────────────────────────────
 ── integrations ──
+# ─────────────────────────────────────────────────────────────
 
 integrate with SendGrid:
   api key from environment variable SENDGRID_API_KEY
@@ -205,53 +272,75 @@ integrate with SendGrid:
 
 integrate with AWS S3:
   api key from environment variable AWS_ACCESS_KEY
-  use for file storage and backups
+  secret from environment variable AWS_SECRET_KEY
+  use for storing user avatars and file attachments
 
 integrate with Slack:
   api key from environment variable SLACK_WEBHOOK_URL
   use for team notifications and alerts
 
+# ─────────────────────────────────────────────────────────────
 ── devops ──
+# ─────────────────────────────────────────────────────────────
+
+architecture: monolith
 
 source control using Git on GitHub
-repository: "https://github.com/taskflow/taskflow"
+repository: https://github.com/example/taskflow
 
 branches:
   main is the production branch
-  develop is the staging branch
-  feature branches from develop with prefix "feature/"
+  staging is the pre-release branch
+  feature branches from main with prefix "feat/"
+  bugfix branches from main with prefix "fix/"
 
-when code is pushed to develop:
+when code is pushed to a feature branch:
   run all tests
   check code formatting
   check for security vulnerabilities
-  deploy to staging
+  report results back to the pull request
+
+when code is merged to staging:
+  run all tests
+  build the application
+  deploy to staging environment
+  run smoke tests against staging
   notify the team on Slack
 
 when code is merged to main:
   run all tests
   build the application
-  deploy to production
-  run smoke tests against production
-  if any check fails, rollback automatically
+  deploy to production environment
+  run health checks
+  if health checks fail, rollback automatically
+  notify the team on Slack
 
 environment staging:
-  url is "staging.taskflow.app"
+  url is staging.taskflow.example.com
   uses staging database
+  seeds with test data
+  resets weekly
 
 environment production:
-  url is "taskflow.app"
+  url is taskflow.example.com
   uses production database
+  requires manual approval for deployment
+  has auto-scaling enabled
 
-track response time for all api endpoints
-alert on Slack if response time exceeds 500ms
-log all errors to CloudWatch
+track response times for all api endpoints
+track error rates per endpoint
+track active users daily and monthly
+alert on Slack if error rate exceeds 5 percent
+alert on Slack if response time exceeds 2 seconds
+log all api requests to CloudWatch
 keep logs for 90 days
 
+# ─────────────────────────────────────────────────────────────
 ── build ──
+# ─────────────────────────────────────────────────────────────
 
 build with:
   frontend using React with TypeScript
   backend using Node with Express
   database using PostgreSQL
-  deploy to Vercel
+  deploy to Docker
