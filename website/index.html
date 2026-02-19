@@ -13,57 +13,48 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230D0D0D'/><text x='4' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23F5F5F3'>h</text><text x='18' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23E85D3A'>_</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;1,400&family=Source+Serif+4:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <style>
-    /* ── Reset & Base ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
     :root {
-      --ink: #1A1A1A;
-      --paper: #FAFAF8;
+      --bg: #0D0D0D;
+      --bg-raised: #141414;
+      --bg-surface: #1A1A1A;
+      --text: #E8E8E4;
+      --text-muted: #7A7A7A;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.15);
       --accent: #E85D3A;
-      --accent-light: #FFF0EC;
       --accent-dark: #C44A2D;
-      --soft-gray: #F0F0EC;
-      --medium-gray: #8C8C8C;
-      --dark: #0D0D0D;
       --success: #2D8C5A;
       --font-logo: 'Nunito', sans-serif;
-      --font-heading: 'Source Serif 4', Georgia, serif;
-      --font-body: 'Nunito Sans', system-ui, sans-serif;
+      --font: 'Nunito Sans', system-ui, sans-serif;
       --font-code: 'JetBrains Mono', monospace;
     }
 
     body {
-      font-family: var(--font-body);
+      font-family: var(--font);
       font-size: 17px;
       line-height: 1.65;
-      color: var(--ink);
-      background: var(--paper);
+      color: var(--text);
+      background: var(--bg);
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Utility ── */
-    .container {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 
     a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
-    a:hover { color: var(--accent-dark); }
+    a:hover { color: #F5F5F3; }
 
-    /* ── Scroll Animations ── */
+    /* ── Animations ── */
     .reveal {
       opacity: 0;
-      transform: translateY(24px);
+      transform: translateY(20px);
       transition: opacity 0.6s ease, transform 0.6s ease;
     }
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
     .reveal-delay-1 { transition-delay: 0.1s; }
     .reveal-delay-2 { transition-delay: 0.2s; }
     .reveal-delay-3 { transition-delay: 0.3s; }
@@ -76,24 +67,23 @@
        1. HERO
        ══════════════════════════════════════════════ */
     .hero {
-      background: var(--dark);
-      color: #F5F5F3;
-      padding: 120px 24px 96px;
+      padding: 140px 24px 120px;
       text-align: center;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .hero-inner { max-width: 720px; }
+    .hero-inner { max-width: 700px; }
 
     .hero-logo {
       font-family: var(--font-logo);
       font-weight: 700;
-      font-size: clamp(48px, 10vw, 80px);
+      font-size: clamp(52px, 10vw, 84px);
       letter-spacing: -2px;
-      margin-bottom: 32px;
+      margin-bottom: 36px;
       line-height: 1.1;
+      color: #F5F5F3;
     }
     .hero-cursor {
       color: var(--accent);
@@ -105,19 +95,16 @@
     }
 
     .hero-tagline {
-      font-family: var(--font-heading);
-      font-weight: 600;
+      font-weight: 700;
       font-size: clamp(24px, 4vw, 36px);
-      line-height: 1.25;
+      line-height: 1.3;
       margin-bottom: 16px;
       color: #F5F5F3;
     }
-
     .hero-subtitle {
       font-size: 20px;
-      color: var(--medium-gray);
+      color: var(--text-muted);
       margin-bottom: 48px;
-      line-height: 1.5;
     }
 
     .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
@@ -128,7 +115,7 @@
       gap: 8px;
       padding: 14px 28px;
       border-radius: 8px;
-      font-family: var(--font-body);
+      font-family: var(--font);
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
@@ -139,22 +126,19 @@
     .btn-primary {
       background: var(--accent);
       color: #fff;
-      box-shadow: 0 2px 8px rgba(232, 93, 58, 0.25);
     }
     .btn-primary:hover { background: var(--accent-dark); color: #fff; transform: translateY(-1px); }
     .btn-secondary {
       background: transparent;
-      color: #F5F5F3;
-      border: 1.5px solid rgba(245, 245, 243, 0.3);
+      color: var(--text);
+      border: 1.5px solid var(--border-hover);
     }
-    .btn-secondary:hover { border-color: #F5F5F3; color: #fff; transform: translateY(-1px); }
+    .btn-secondary:hover { border-color: var(--text); color: #fff; transform: translateY(-1px); }
 
     /* ══════════════════════════════════════════════
        2. THE EXAMPLE
        ══════════════════════════════════════════════ */
-    .example {
-      padding: 96px 24px;
-    }
+    .example { padding: 96px 24px; }
     .example-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -163,77 +147,65 @@
     }
 
     .code-window {
-      background: var(--ink);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     }
     .code-titlebar {
       display: flex;
       align-items: center;
       gap: 8px;
       padding: 14px 20px;
-      background: rgba(255, 255, 255, 0.04);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid var(--border);
     }
-    .code-dot {
-      width: 12px; height: 12px; border-radius: 50%;
-    }
-    .code-dot-red { background: var(--accent); opacity: 0.8; }
-    .code-dot-dim { background: var(--medium-gray); opacity: 0.3; }
+    .code-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .code-dot-accent { background: var(--accent); opacity: 0.8; }
+    .code-dot-dim { background: var(--text-muted); opacity: 0.25; }
     .code-filename {
       font-family: var(--font-code);
       font-size: 13px;
-      color: var(--medium-gray);
+      color: var(--text-muted);
       margin-left: 8px;
     }
 
-    .code-body {
-      padding: 24px;
-      overflow-x: auto;
-    }
+    .code-body { padding: 24px; overflow-x: auto; }
     .code-body pre {
       font-family: var(--font-code);
       font-size: 14px;
       line-height: 1.7;
-      color: #E8E8E4;
+      color: var(--text);
       margin: 0;
       white-space: pre;
     }
     .code-body .kw { color: var(--accent); }
     .code-body .str { color: var(--success); }
-    .code-body .cm { color: var(--medium-gray); }
 
     .example-text h2 {
-      font-family: var(--font-heading);
-      font-weight: 600;
+      font-weight: 700;
       font-size: 32px;
       line-height: 1.25;
       margin-bottom: 20px;
-      color: var(--ink);
+      color: #F5F5F3;
     }
     .example-text p {
       font-size: 18px;
-      color: var(--medium-gray);
+      color: var(--text-muted);
       margin-bottom: 24px;
       line-height: 1.6;
     }
-    .example-text .produces {
-      list-style: none;
-      padding: 0;
-    }
+    .example-text .produces { list-style: none; padding: 0; }
     .example-text .produces li {
       padding: 8px 0;
-      font-size: 17px;
-      color: var(--ink);
+      font-size: 16px;
+      color: var(--text);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
     .produces li::before {
       content: '';
-      display: inline-block;
-      width: 8px; height: 8px;
+      width: 6px; height: 6px;
       background: var(--accent);
       border-radius: 50%;
       flex-shrink: 0;
@@ -244,67 +216,119 @@
        ══════════════════════════════════════════════ */
     .how-it-works {
       padding: 96px 24px;
-      border-top: 1px solid var(--soft-gray);
+      border-top: 1px solid var(--border);
     }
     .how-it-works h2 {
-      font-family: var(--font-heading);
-      font-weight: 600;
+      font-weight: 700;
       font-size: 32px;
       text-align: center;
       margin-bottom: 64px;
+      color: #F5F5F3;
     }
 
-    .pipeline {
-      display: flex;
-      align-items: flex-start;
-      gap: 0;
-      overflow-x: auto;
-      padding-bottom: 16px;
-      -webkit-overflow-scrolling: touch;
+    .how-it-works-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1.3fr auto 1fr;
+      align-items: stretch;
     }
-    .pipeline-step {
-      display: flex;
-      align-items: flex-start;
-      flex-shrink: 0;
-    }
-    .pipeline-card {
-      text-align: center;
-      min-width: 130px;
-      max-width: 150px;
-    }
-    .pipeline-box {
-      background: var(--paper);
-      border: 1.5px solid var(--soft-gray);
+
+    .flow-card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 16px 14px;
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 14px;
-      color: var(--ink);
-      transition: border-color 0.2s, box-shadow 0.2s;
+      padding: 28px 24px;
     }
-    .pipeline-box:hover {
-      border-color: var(--accent);
-      box-shadow: 0 2px 12px rgba(232, 93, 58, 0.1);
+    .flow-card-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      font-weight: 700;
     }
-    .pipeline-card.highlight .pipeline-box {
-      border-color: var(--accent);
-      background: var(--accent-light);
-    }
-    .pipeline-desc {
-      font-size: 13px;
-      color: var(--medium-gray);
-      margin-top: 10px;
-      line-height: 1.4;
-    }
-    .pipeline-arrow {
+
+    .flow-arrow {
       display: flex;
       align-items: center;
-      padding-top: 14px;
-      color: var(--medium-gray);
-      font-size: 20px;
+      justify-content: center;
+      padding: 0 12px;
+    }
+    .flow-arrow svg { width: 24px; height: 24px; }
+    .flow-arrow path { stroke: var(--text-muted); opacity: 0.4; }
+
+    /* Input card */
+    .flow-input pre {
+      font-family: var(--font-code);
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text);
+      white-space: pre;
+      margin: 0;
+    }
+    .flow-input .kw { color: var(--accent); }
+    .flow-input .str { color: var(--success); }
+
+    /* Compiler card */
+    .flow-compiler { border-color: var(--border-hover); }
+    .compiler-steps { list-style: none; padding: 0; position: relative; }
+    .compiler-steps::before {
+      content: '';
+      position: absolute;
+      left: 11px;
+      top: 16px;
+      bottom: 16px;
+      width: 2px;
+      background: var(--border);
+    }
+    .compiler-step {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 8px 0;
+      position: relative;
+    }
+    .step-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--bg-surface);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
       flex-shrink: 0;
-      margin: 0 6px;
+      z-index: 1;
+    }
+    .compiler-step.step-highlight .step-dot {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(232, 93, 58, 0.08);
+      box-shadow: 0 0 12px rgba(232, 93, 58, 0.15);
+    }
+    .step-name { font-weight: 600; font-size: 14px; color: var(--text); }
+    .compiler-step.step-highlight .step-name { color: var(--accent); }
+    .step-note { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+    /* Output card */
+    .flow-output ul { list-style: none; padding: 0; }
+    .flow-output li {
+      padding: 5px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .flow-output li::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--success);
+      border-radius: 50%;
+      flex-shrink: 0;
     }
 
     /* ══════════════════════════════════════════════
@@ -312,48 +336,41 @@
        ══════════════════════════════════════════════ */
     .principles {
       padding: 96px 24px;
-      border-top: 1px solid var(--soft-gray);
+      border-top: 1px solid var(--border);
     }
     .principles h2 {
-      font-family: var(--font-heading);
-      font-weight: 600;
+      font-weight: 700;
       font-size: 32px;
       text-align: center;
       margin-bottom: 56px;
+      color: #F5F5F3;
     }
 
     .principles-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
+      gap: 20px;
     }
     .principle-card {
-      background: var(--paper);
-      border: 1px solid var(--soft-gray);
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 28px;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.2s, border-color 0.2s;
     }
     .principle-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-    }
-    .principle-icon {
-      font-size: 28px;
-      margin-bottom: 12px;
-      display: block;
-      line-height: 1;
+      transform: translateY(-2px);
+      border-color: var(--border-hover);
     }
     .principle-card h3 {
-      font-family: var(--font-heading);
-      font-weight: 600;
-      font-size: 18px;
+      font-weight: 700;
+      font-size: 17px;
       margin-bottom: 8px;
-      color: var(--ink);
+      color: #F5F5F3;
     }
     .principle-card p {
       font-size: 15px;
-      color: var(--medium-gray);
+      color: var(--text-muted);
       line-height: 1.55;
     }
 
@@ -362,14 +379,14 @@
        ══════════════════════════════════════════════ */
     .targets {
       padding: 96px 24px;
-      border-top: 1px solid var(--soft-gray);
+      border-top: 1px solid var(--border);
     }
     .targets h2 {
-      font-family: var(--font-heading);
-      font-weight: 600;
+      font-weight: 700;
       font-size: 32px;
       text-align: center;
       margin-bottom: 56px;
+      color: #F5F5F3;
     }
 
     .targets-grid {
@@ -378,78 +395,66 @@
       gap: 32px;
     }
     .target-column h3 {
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 14px;
+      font-weight: 700;
+      font-size: 13px;
       text-transform: uppercase;
       letter-spacing: 1.5px;
       color: var(--accent);
       margin-bottom: 16px;
     }
-    .target-column ul {
-      list-style: none;
-      padding: 0;
-    }
+    .target-column ul { list-style: none; padding: 0; }
     .target-column li {
-      padding: 6px 0;
+      padding: 5px 0;
       font-size: 16px;
-      color: var(--ink);
+      color: var(--text);
     }
 
     /* ══════════════════════════════════════════════
        6. MANIFESTO TEASER
        ══════════════════════════════════════════════ */
     .manifesto {
-      background: var(--dark);
-      color: #F5F5F3;
       padding: 96px 24px;
       text-align: center;
+      border-top: 1px solid var(--border);
+      background: var(--bg-raised);
     }
-    .manifesto-inner {
-      max-width: 700px;
-      margin: 0 auto;
-    }
+    .manifesto-inner { max-width: 680px; margin: 0 auto; }
     .manifesto blockquote {
-      font-family: var(--font-heading);
-      font-weight: 600;
+      font-weight: 700;
       font-style: italic;
-      font-size: clamp(24px, 4vw, 36px);
+      font-size: clamp(24px, 4vw, 34px);
       line-height: 1.35;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
       color: #F5F5F3;
     }
     .manifesto p {
       font-size: 18px;
-      color: var(--medium-gray);
+      color: var(--text-muted);
       margin-bottom: 32px;
       line-height: 1.6;
     }
-    .manifesto a {
-      color: var(--accent);
-      font-weight: 600;
-      font-size: 17px;
-    }
-    .manifesto a:hover { color: #F5F5F3; }
+    .manifesto a { font-weight: 600; font-size: 17px; }
 
     /* ══════════════════════════════════════════════
        7. GET INVOLVED
        ══════════════════════════════════════════════ */
     .get-involved {
       padding: 96px 24px;
+      border-top: 1px solid var(--border);
     }
     .get-involved h2 {
-      font-family: var(--font-heading);
-      font-weight: 600;
+      font-weight: 700;
       font-size: 32px;
       text-align: center;
       margin-bottom: 12px;
+      color: #F5F5F3;
     }
     .get-involved > .container > p {
       text-align: center;
       font-size: 18px;
-      color: var(--medium-gray);
+      color: var(--text-muted);
       margin-bottom: 56px;
-      max-width: 600px;
+      max-width: 560px;
       margin-left: auto;
       margin-right: auto;
     }
@@ -457,64 +462,61 @@
     .involve-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 32px;
+      gap: 24px;
     }
     .involve-card {
       text-align: center;
       padding: 32px 24px;
-      border: 1px solid var(--soft-gray);
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
       border-radius: 12px;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.2s, border-color 0.2s;
     }
     .involve-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      transform: translateY(-2px);
+      border-color: var(--border-hover);
     }
     .involve-card h3 {
-      font-family: var(--font-heading);
-      font-weight: 600;
+      font-weight: 700;
       font-size: 20px;
       margin-bottom: 12px;
-      color: var(--ink);
+      color: #F5F5F3;
     }
     .involve-card p {
       font-size: 15px;
-      color: var(--medium-gray);
+      color: var(--text-muted);
       line-height: 1.55;
       margin-bottom: 20px;
-    }
-    .involve-card .btn {
-      font-size: 14px;
-      padding: 10px 20px;
     }
     .btn-ghost {
       background: none;
       border: none;
       color: var(--accent);
+      font-family: var(--font);
       font-weight: 600;
-      padding: 10px 20px;
+      font-size: 15px;
+      padding: 8px 0;
       cursor: pointer;
     }
-    .btn-ghost:hover { color: var(--accent-dark); }
+    .btn-ghost:hover { color: #F5F5F3; }
 
     /* ══════════════════════════════════════════════
        8. FOOTER
        ══════════════════════════════════════════════ */
     .footer {
-      background: var(--dark);
-      color: var(--medium-gray);
+      border-top: 1px solid var(--border);
       padding: 56px 24px 40px;
       text-align: center;
     }
     .footer-logo {
       font-family: var(--font-logo);
       font-weight: 700;
-      font-size: 28px;
+      font-size: 26px;
       letter-spacing: -1px;
       margin-bottom: 24px;
+      color: #F5F5F3;
     }
-    .footer-logo span { color: #F5F5F3; }
-    .footer-logo .footer-cursor { color: var(--accent); }
+    .footer-cursor { color: var(--accent); }
 
     .footer-links {
       display: flex;
@@ -524,36 +526,34 @@
       margin-bottom: 28px;
     }
     .footer-links a {
-      color: var(--medium-gray);
+      color: var(--text-muted);
       font-size: 14px;
-      transition: color 0.2s;
     }
     .footer-links a:hover { color: #F5F5F3; }
 
     .footer-copy {
       font-size: 13px;
-      color: rgba(140, 140, 140, 0.6);
+      color: rgba(122, 122, 122, 0.5);
     }
 
     /* ══════════════════════════════════════════════
        RESPONSIVE
        ══════════════════════════════════════════════ */
     @media (max-width: 900px) {
-      .example-grid {
+      .example-grid { grid-template-columns: 1fr; gap: 40px; }
+      .how-it-works-flow {
         grid-template-columns: 1fr;
-        gap: 40px;
-      }
-      .principles-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .targets-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .involve-grid {
-        grid-template-columns: 1fr;
-        max-width: 480px;
+        gap: 0;
+        max-width: 400px;
         margin: 0 auto;
       }
+      .flow-arrow {
+        transform: rotate(90deg);
+        padding: 8px 0;
+      }
+      .principles-grid { grid-template-columns: repeat(2, 1fr); }
+      .targets-grid { grid-template-columns: repeat(2, 1fr); }
+      .involve-grid { grid-template-columns: 1fr; max-width: 440px; margin: 0 auto; }
     }
 
     @media (max-width: 600px) {
@@ -564,12 +564,9 @@
 
       .example { padding: 64px 20px; }
       .code-body { padding: 16px; }
-      .code-body pre { font-size: 12.5px; }
+      .code-body pre { font-size: 13px; }
 
       .how-it-works { padding: 64px 20px; }
-      .pipeline { gap: 0; }
-      .pipeline-card { min-width: 110px; }
-      .pipeline-arrow { margin: 0 2px; font-size: 16px; }
 
       .principles { padding: 64px 20px; }
       .principles-grid { grid-template-columns: 1fr; }
@@ -578,18 +575,14 @@
       .targets-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
 
       .manifesto { padding: 64px 20px; }
-
       .get-involved { padding: 64px 20px; }
-
       .footer-links { gap: 16px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- ════════════════════════════════════════════
-       1. HERO
-       ════════════════════════════════════════════ -->
+  <!-- 1. HERO -->
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-logo">human<span class="hero-cursor">_</span></div>
@@ -602,15 +595,13 @@
     </div>
   </section>
 
-  <!-- ════════════════════════════════════════════
-       2. THE EXAMPLE
-       ════════════════════════════════════════════ -->
+  <!-- 2. THE EXAMPLE -->
   <section class="example" id="example">
     <div class="container">
       <div class="example-grid">
         <div class="code-window reveal">
           <div class="code-titlebar">
-            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-accent"></span>
             <span class="code-dot code-dot-dim"></span>
             <span class="code-dot code-dot-dim"></span>
             <span class="code-filename">app.human</span>
@@ -657,99 +648,98 @@
     </div>
   </section>
 
-  <!-- ════════════════════════════════════════════
-       3. HOW IT WORKS
-       ════════════════════════════════════════════ -->
+  <!-- 3. HOW IT WORKS -->
   <section class="how-it-works">
     <div class="container">
       <h2 class="reveal">How it works</h2>
-      <div class="pipeline">
-        <div class="pipeline-step reveal reveal-delay-1">
-          <div class="pipeline-card">
-            <div class="pipeline-box">.human files</div>
-            <div class="pipeline-desc">Your English source code</div>
-          </div>
+      <div class="how-it-works-flow">
+        <div class="flow-card flow-input reveal reveal-delay-1">
+          <div class="flow-card-label">You write</div>
+          <pre><span class="kw">app</span> TaskFlow <span class="kw">is a</span> web app
+
+<span class="kw">data</span> Task:
+  <span class="kw">has a</span> title
+  <span class="kw">has a</span> status
+
+<span class="kw">page</span> Dashboard:
+  <span class="kw">show</span> all tasks</pre>
         </div>
-        <div class="pipeline-arrow reveal reveal-delay-1">&rarr;</div>
-        <div class="pipeline-step reveal reveal-delay-2">
-          <div class="pipeline-card">
-            <div class="pipeline-box">Lexer</div>
-            <div class="pipeline-desc">Tokenizes English into structured tokens</div>
-          </div>
+
+        <div class="flow-arrow reveal reveal-delay-2">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="pipeline-arrow reveal reveal-delay-2">&rarr;</div>
-        <div class="pipeline-step reveal reveal-delay-3">
-          <div class="pipeline-card">
-            <div class="pipeline-box">Parser</div>
-            <div class="pipeline-desc">Builds an abstract syntax tree</div>
-          </div>
+
+        <div class="flow-card flow-compiler reveal reveal-delay-3">
+          <div class="flow-card-label">The compiler</div>
+          <ul class="compiler-steps">
+            <li class="compiler-step">
+              <span class="step-dot">1</span>
+              <div><div class="step-name">Lexer</div><div class="step-note">Tokenizes English</div></div>
+            </li>
+            <li class="compiler-step">
+              <span class="step-dot">2</span>
+              <div><div class="step-name">Parser</div><div class="step-note">Builds syntax tree</div></div>
+            </li>
+            <li class="compiler-step step-highlight">
+              <span class="step-dot">3</span>
+              <div><div class="step-name">Intent IR</div><div class="step-note">Framework-agnostic core</div></div>
+            </li>
+            <li class="compiler-step">
+              <span class="step-dot">4</span>
+              <div><div class="step-name">Code Generators</div><div class="step-note">IR to any framework</div></div>
+            </li>
+            <li class="compiler-step">
+              <span class="step-dot">5</span>
+              <div><div class="step-name">Quality Engine</div><div class="step-note">Tests, security, lint</div></div>
+            </li>
+          </ul>
         </div>
-        <div class="pipeline-arrow reveal reveal-delay-3">&rarr;</div>
-        <div class="pipeline-step reveal reveal-delay-4">
-          <div class="pipeline-card highlight">
-            <div class="pipeline-box">Intent IR</div>
-            <div class="pipeline-desc">The heart of the compiler &mdash; framework-agnostic</div>
-          </div>
+
+        <div class="flow-arrow reveal reveal-delay-4">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="pipeline-arrow reveal reveal-delay-4">&rarr;</div>
-        <div class="pipeline-step reveal reveal-delay-5">
-          <div class="pipeline-card">
-            <div class="pipeline-box">Code Generators</div>
-            <div class="pipeline-desc">IR &rarr; React, Node, Python, Go, Docker</div>
-          </div>
-        </div>
-        <div class="pipeline-arrow reveal reveal-delay-5">&rarr;</div>
-        <div class="pipeline-step reveal reveal-delay-6">
-          <div class="pipeline-card">
-            <div class="pipeline-box">Quality Engine</div>
-            <div class="pipeline-desc">Tests + security + lint + QA trail</div>
-          </div>
-        </div>
-        <div class="pipeline-arrow reveal reveal-delay-6">&rarr;</div>
-        <div class="pipeline-step reveal reveal-delay-7">
-          <div class="pipeline-card">
-            <div class="pipeline-box">Production Code</div>
-            <div class="pipeline-desc">Clean, tested, deployable</div>
-          </div>
+
+        <div class="flow-card flow-output reveal reveal-delay-5">
+          <div class="flow-card-label">You get</div>
+          <ul>
+            <li>React + TypeScript frontend</li>
+            <li>Node + Express API</li>
+            <li>PostgreSQL + migrations</li>
+            <li>JWT authentication</li>
+            <li>Tests & security audit</li>
+            <li>Docker-ready deploy</li>
+          </ul>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ════════════════════════════════════════════
-       4. SIX PRINCIPLES
-       ════════════════════════════════════════════ -->
+  <!-- 4. SIX PRINCIPLES -->
   <section class="principles">
     <div class="container">
       <h2 class="reveal">Six principles</h2>
       <div class="principles-grid">
         <div class="principle-card reveal reveal-delay-1">
-          <span class="principle-icon" aria-hidden="true">&#9998;</span>
           <h3>English is the syntax</h3>
           <p>If you can describe what you want in structured English, you can build it. No semicolons, no imports, no boilerplate.</p>
         </div>
         <div class="principle-card reveal reveal-delay-2">
-          <span class="principle-icon" aria-hidden="true">&#9670;</span>
           <h3>Deterministic compilation</h3>
           <p>Same .human file, same output, every time. No randomness. No temperature settings. If it compiles, it works.</p>
         </div>
         <div class="principle-card reveal reveal-delay-3">
-          <span class="principle-icon" aria-hidden="true">&#8644;</span>
           <h3>Target-agnostic</h3>
           <p>One source, any framework. The same code compiles to React, Vue, Angular, Node, Python, Go, or Rust.</p>
         </div>
         <div class="principle-card reveal reveal-delay-4">
-          <span class="principle-icon" aria-hidden="true">&#9745;</span>
           <h3>Quality is mandatory</h3>
           <p>Tests, security audit, code quality, and QA trail are compiler-enforced on every build. Cannot be skipped.</p>
         </div>
         <div class="principle-card reveal reveal-delay-5">
-          <span class="principle-icon" aria-hidden="true">&#9107;</span>
           <h3>Fully ejectable</h3>
           <p>Generated code is clean, readable, and fully yours. No runtime dependency. No vendor lock-in. Walk away any time.</p>
         </div>
         <div class="principle-card reveal reveal-delay-6">
-          <span class="principle-icon" aria-hidden="true">&#9883;</span>
           <h3>LLM-optional</h3>
           <p>Core compiler works offline with zero AI dependency. LLM connector available as an optional enhancement.</p>
         </div>
@@ -757,9 +747,7 @@
     </div>
   </section>
 
-  <!-- ════════════════════════════════════════════
-       5. SUPPORTED TARGETS
-       ════════════════════════════════════════════ -->
+  <!-- 5. SUPPORTED TARGETS -->
   <section class="targets">
     <div class="container">
       <h2 class="reveal">Supported targets</h2>
@@ -807,9 +795,7 @@
     </div>
   </section>
 
-  <!-- ════════════════════════════════════════════
-       6. MANIFESTO TEASER
-       ════════════════════════════════════════════ -->
+  <!-- 6. MANIFESTO TEASER -->
   <section class="manifesto">
     <div class="manifesto-inner reveal">
       <blockquote>Software is broken. Not the code&nbsp;&mdash; the process.</blockquote>
@@ -818,9 +804,7 @@
     </div>
   </section>
 
-  <!-- ════════════════════════════════════════════
-       7. GET INVOLVED
-       ════════════════════════════════════════════ -->
+  <!-- 7. GET INVOLVED -->
   <section class="get-involved">
     <div class="container">
       <h2 class="reveal">Get involved</h2>
@@ -845,12 +829,10 @@
     </div>
   </section>
 
-  <!-- ════════════════════════════════════════════
-       8. FOOTER
-       ════════════════════════════════════════════ -->
+  <!-- 8. FOOTER -->
   <footer class="footer">
     <div class="container">
-      <div class="footer-logo"><span>human</span><span class="footer-cursor">_</span></div>
+      <div class="footer-logo">human<span class="footer-cursor">_</span></div>
       <nav class="footer-links">
         <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
         <a href="https://github.com/barun-bash/human/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contributing</a>
@@ -862,25 +844,19 @@
     </div>
   </footer>
 
-  <!-- ════════════════════════════════════════════
-       SCROLL ANIMATIONS
-       ════════════════════════════════════════════ -->
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      var elements = document.querySelectorAll('.reveal');
+      var els = document.querySelectorAll('.reveal');
       if (!('IntersectionObserver' in window)) {
-        elements.forEach(function (el) { el.classList.add('visible'); });
+        els.forEach(function (el) { el.classList.add('visible'); });
         return;
       }
-      var observer = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-            observer.unobserve(entry.target);
-          }
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
         });
       }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-      elements.forEach(function (el) { observer.observe(el); });
+      els.forEach(function (el) { obs.observe(el); });
     });
   </script>
 </body>
