@@ -1,0 +1,31 @@
+# Build artifacts
+build/
+human
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Human compiler cache
+.human/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# Test coverage
+coverage.out
+coverage.html
