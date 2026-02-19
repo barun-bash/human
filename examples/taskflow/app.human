@@ -1,0 +1,257 @@
+app TaskFlow is a web application
+
+# This is a complete task management application
+# It exercises every feature of the Human language
+
+── frontend ──
+
+theme:
+  primary color is #6C5CE7
+  secondary color is #00B894
+  danger color is #D63031
+  font is Inter for body and Poppins for headings
+  border radius is smooth on all elements
+  dark mode is supported and toggles from the header
+  spacing is comfortable
+
+page Home:
+  show a hero section with the app name and tagline
+  show a call to action button with "Get Started"
+  clicking the button navigates to Dashboard
+  if user is logged in, show "Welcome back" with their name
+  if user is not logged in, show the signup form
+
+page Dashboard:
+  show a greeting with the user's name
+  show a summary card with total tasks and completed tasks
+  show a list of tasks sorted by due date
+  each task shows its title, status, and due date
+  clicking a task navigates to the task detail
+  there is a search bar that filters tasks by title
+  there is a dropdown to filter by status
+  if no tasks match, show "No tasks found"
+  while loading, show a spinner
+  there is a floating button to add a new task
+  clicking the add button opens a form to create a Task
+
+page Profile:
+  show the user's name and email
+  show a form to update the user's name and bio
+  show the user's task statistics
+  clicking "Delete Account" shows a confirmation dialog
+
+── backend ──
+
+data User:
+  has a name which is text
+  has an email which is unique email
+  has a password which is encrypted text
+  has a role which is either "user" or "admin"
+  has an optional bio which is text
+  has a created datetime
+  has many Task
+
+data Task:
+  belongs to a User
+  has a title which is text
+  has an optional description which is text
+  has a status which is either "todo" or "in_progress" or "done"
+  has a priority which is either "low" or "medium" or "high"
+  has an optional due date
+  has a created datetime
+  has many Tag through TaskTag
+
+data Tag:
+  has a name which is unique text
+  has a color which is text
+  has many Task through TaskTag
+
+data TaskTag:
+  belongs to a Task
+  belongs to a Tag
+
+api SignUp:
+  accepts name, email, and password
+  check that name is not empty
+  check that email is a valid email
+  check that password is at least 8 characters
+  create a User with the given fields
+  assign role to "user"
+  respond with the created user and a token
+
+api Login:
+  accepts email and password
+  fetch the user by email
+  if user does not exist, respond with "invalid credentials"
+  check that password matches the stored password
+  respond with the user and a token
+
+api CreateTask:
+  requires authentication
+  accepts title, description, status, priority, and due date
+  check that title is not empty
+  check that title is less than 200 characters
+  create a Task with the given fields and current user as owner
+  set status to "todo" if not provided
+  respond with the created task
+
+api ListTasks:
+  requires authentication
+  return all tasks where user is current user
+  sort by due date
+  support filtering by status
+  support searching by title
+  paginate with 20 per page
+  respond with tasks and pagination info
+
+api UpdateTask:
+  requires authentication
+  accepts task_id, title, description, status, priority, and due date
+  fetch the task by task_id
+  if task does not exist, respond with "task not found"
+  check that current user is the owner
+  update the task with the given fields
+  respond with the updated task
+
+api DeleteTask:
+  requires authentication
+  accepts task_id
+  fetch the task by task_id
+  if task does not exist, respond with "task not found"
+  check that current user is the owner or an admin
+  delete the task
+  respond with "task deleted"
+
+── security ──
+
+authentication:
+  method JWT tokens that expire in 7 days
+  method Google OAuth with redirect to "/auth/google/callback"
+  passwords are hashed with bcrypt using 12 rounds
+  all api requests require a valid token except SignUp and Login
+  rate limit all endpoints to 100 requests per minute per user
+  sanitize all text inputs against XSS
+  enable CORS only for our frontend domain
+
+── policies ──
+
+policy FreeUser:
+  can create up to 50 tasks per month
+  can view only their own tasks
+  can edit only their own tasks
+  cannot delete completed tasks
+  cannot export data
+
+policy ProUser:
+  can create unlimited tasks
+  can view only their own tasks
+  can edit only their own tasks
+  can export data
+  can use advanced filters
+
+policy Admin:
+  can view all users and their data
+  can edit any task
+  can delete any task
+  can export data
+  can view system analytics
+
+── workflows ──
+
+when a user signs up:
+  create their account
+  assign FreeUser policy
+  send welcome email with template "welcome"
+  after 3 days, send email with template "getting-started"
+
+when a task becomes overdue:
+  send notification to the task owner
+  update task status to "overdue"
+  if task is high priority, alert the admin
+
+when a task is completed:
+  update the completion count for the user
+  if all tasks are done, send "all done" notification
+  track completion time for analytics
+
+── error handling ──
+
+if database is unreachable:
+  retry 3 times with 1 second delay
+  if still failing, respond with "service temporarily unavailable"
+  alert the engineering team via Slack
+
+if an api request fails validation:
+  respond with a clear message explaining what is wrong
+  log the attempt for analytics
+  do not reveal internal details
+
+── database ──
+
+database:
+  use PostgreSQL
+  when the app starts, create tables if they don't exist
+  index User by email
+  index Task by user and due date
+  index Task by status
+  backup daily at 3am
+  keep backups for 30 days
+
+── integrations ──
+
+integrate with SendGrid:
+  api key from environment variable SENDGRID_API_KEY
+  use for sending transactional emails
+
+integrate with AWS S3:
+  api key from environment variable AWS_ACCESS_KEY
+  use for file storage and backups
+
+integrate with Slack:
+  api key from environment variable SLACK_WEBHOOK_URL
+  use for team notifications and alerts
+
+── devops ──
+
+source control using Git on GitHub
+repository: "https://github.com/taskflow/taskflow"
+
+branches:
+  main is the production branch
+  develop is the staging branch
+  feature branches from develop with prefix "feature/"
+
+when code is pushed to develop:
+  run all tests
+  check code formatting
+  check for security vulnerabilities
+  deploy to staging
+  notify the team on Slack
+
+when code is merged to main:
+  run all tests
+  build the application
+  deploy to production
+  run smoke tests against production
+  if any check fails, rollback automatically
+
+environment staging:
+  url is "staging.taskflow.app"
+  uses staging database
+
+environment production:
+  url is "taskflow.app"
+  uses production database
+
+track response time for all api endpoints
+alert on Slack if response time exceeds 500ms
+log all errors to CloudWatch
+keep logs for 90 days
+
+── build ──
+
+build with:
+  frontend using React with TypeScript
+  backend using Node with Express
+  database using PostgreSQL
+  deploy to Vercel
