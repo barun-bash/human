@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="800" height="200">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600');
+    </style>
+  </defs>
+  
+  <!-- Ink -->
+  <rect x="0" y="0" width="150" height="140" rx="12" fill="#1A1A1A"/>
+  <text x="75" y="172" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="600" font-size="13" fill="#1A1A1A">Ink</text>
+  <text x="75" y="190" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="400" font-size="12" fill="#8C8C8C">#1A1A1A</text>
+  
+  <!-- Paper -->
+  <rect x="165" y="0" width="150" height="140" rx="12" fill="#FAFAF8" stroke="#F0F0EC" stroke-width="1"/>
+  <text x="240" y="172" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="600" font-size="13" fill="#1A1A1A">Paper</text>
+  <text x="240" y="190" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="400" font-size="12" fill="#8C8C8C">#FAFAF8</text>
+  
+  <!-- Accent -->
+  <rect x="330" y="0" width="150" height="140" rx="12" fill="#E85D3A"/>
+  <text x="405" y="172" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="600" font-size="13" fill="#1A1A1A">Accent</text>
+  <text x="405" y="190" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="400" font-size="12" fill="#8C8C8C">#E85D3A</text>
+  
+  <!-- Soft Gray -->
+  <rect x="495" y="0" width="150" height="140" rx="12" fill="#F0F0EC" stroke="#E0E0DC" stroke-width="1"/>
+  <text x="570" y="172" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="600" font-size="13" fill="#1A1A1A">Soft Gray</text>
+  <text x="570" y="190" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="400" font-size="12" fill="#8C8C8C">#F0F0EC</text>
+  
+  <!-- Medium Gray -->
+  <rect x="660" y="0" width="140" height="140" rx="12" fill="#8C8C8C"/>
+  <text x="730" y="172" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="600" font-size="13" fill="#1A1A1A">Medium Gray</text>
+  <text x="730" y="190" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="400" font-size="12" fill="#8C8C8C">#8C8C8C</text>
+</svg>

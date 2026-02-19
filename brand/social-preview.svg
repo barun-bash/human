@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700');
+      @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400');
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400');
+      @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+      .cursor { animation: blink 1.2s step-end infinite; }
+    </style>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1A1A1A" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1280" height="640" fill="#0D0D0D"/>
+  <rect width="1280" height="640" fill="url(#grid)" opacity="0.4"/>
+  
+  <!-- Logo -->
+  <text x="640" y="220" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="700" font-size="96" letter-spacing="-2">
+    <tspan fill="#F5F5F3">human</tspan><tspan fill="#E85D3A" class="cursor">_</tspan>
+  </text>
+  
+  <!-- Tagline -->
+  <text x="640" y="290" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="400" font-size="24" fill="#8C8C8C">The first programming language designed for humans, not computers.</text>
+  
+  <!-- Code block -->
+  <rect x="340" y="340" width="600" height="200" rx="12" fill="#1A1A1A" stroke="#2A2A2A" stroke-width="1"/>
+  
+  <!-- Window dots -->
+  <circle cx="364" cy="362" r="6" fill="#E85D3A" opacity="0.8"/>
+  <circle cx="384" cy="362" r="6" fill="#8C8C8C" opacity="0.4"/>
+  <circle cx="404" cy="362" r="6" fill="#8C8C8C" opacity="0.4"/>
+  
+  <!-- Code text -->
+  <text font-family="JetBrains Mono, monospace" font-size="16" fill="#8C8C8C">
+    <tspan x="370" y="406" fill="#E85D3A">app</tspan><tspan fill="#F5F5F3"> TaskFlow </tspan><tspan fill="#E85D3A">is a</tspan><tspan fill="#F5F5F3"> web application</tspan>
+    <tspan x="370" y="432" fill="#E85D3A">page</tspan><tspan fill="#F5F5F3"> Dashboard:</tspan>
+    <tspan x="400" y="458" fill="#F5F5F3">show a list of all tasks sorted by due date</tspan>
+    <tspan x="400" y="484" fill="#F5F5F3">clicking a task toggles its status</tspan>
+    <tspan x="400" y="510" fill="#E85D3A">if</tspan><tspan fill="#F5F5F3"> no tasks match, show </tspan><tspan fill="#2D8C5A">"No tasks found"</tspan>
+  </text>
+  
+  <!-- Bottom accent line -->
+  <rect x="0" y="632" width="1280" height="8" fill="#E85D3A" opacity="0.6"/>
+</svg>
