@@ -1,8 +1,26 @@
-# Human
-
-**The first programming language designed for humans, not computers.**
-
-Write in structured English. Get production-ready applications.
+<div align="center">
+  <br>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/logo-primary-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="brand/logo-primary-light.svg">
+    <img alt="human_" src="brand/logo-primary-dark.svg" width="340">
+  </picture>
+  <br><br>
+  <strong>The first programming language designed for humans, not computers.</strong>
+  <br>
+  Write in structured English. Get production-ready applications.
+  <br><br>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>&nbsp;
+  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8.svg" alt="Go 1.21+"></a>&nbsp;
+  <a href="https://barun-bash.github.io/human/"><img src="https://img.shields.io/badge/website-live-E85D3A.svg" alt="Website"></a>
+  <br><br>
+  <a href="https://barun-bash.github.io/human/">Website</a> &middot;
+  <a href="LANGUAGE_SPEC.md">Language Spec</a> &middot;
+  <a href="ROADMAP.md">Roadmap</a> &middot;
+  <a href="CONTRIBUTING.md">Contributing</a> &middot;
+  <a href="https://github.com/barun-bash/human/issues">Support</a>
+  <br><br>
+</div>
 
 ```
 app TaskFlow is a web application
@@ -39,15 +57,15 @@ That's a **complete, deployable application.** No semicolons. No imports. No fra
 
 ## What is Human?
 
-Human is a natural language programming language that compiles structured English (and optionally design files) into production-ready, full-stack applications. The compiler is deterministic, target-agnostic, and enforces mandatory quality guarantees on every build.
+Human is a natural language programming language that compiles structured English into production-ready, full-stack applications. The compiler is deterministic, target-agnostic, and enforces mandatory quality guarantees on every build.
 
-**English is the syntax** — if you can describe what you want, you can build it.
-**Design files are input** — feed it Figma files, images, or screenshots alongside your `.human` code.
-**Output is real code** — React, Angular, Vue, Node, Python, Go, and more.
-**Quality is mandatory** — tests, security audit, code quality, and QA trail are compiler-enforced. Cannot be skipped.
-**Compilation is deterministic** — same `.human` file always produces the same output. No randomness.
-**Ejectable** — generated code is clean, readable, and fully owned by you.
-**LLM-optional** — core compiler works offline with zero AI dependency. LLM connector available as an optional enhancement.
+- **English is the syntax** — if you can describe what you want, you can build it.
+- **Design files are input** — feed it Figma files, images, or screenshots alongside your `.human` code.
+- **Output is real code** — React, Angular, Vue, Node, Python, Go, and more.
+- **Quality is mandatory** — tests, security audit, code quality, and QA trail are compiler-enforced. Cannot be skipped.
+- **Compilation is deterministic** — same `.human` file always produces the same output. No randomness.
+- **Ejectable** — generated code is clean, readable, and fully owned by you.
+- **LLM-optional** — core compiler works offline with zero AI dependency. LLM connector available as an optional enhancement.
 
 ---
 
@@ -117,23 +135,7 @@ human run
 
 ---
 
-## Project Structure
-
-```
-my-app/
-├── app.human           # Main application definition
-├── frontend.human      # UI pages, components, themes
-├── backend.human       # APIs, data, logic, security
-├── devops.human        # Architecture, CI/CD, deployment
-├── integrations.human  # Third-party connections
-├── designs/            # Figma files, images, screenshots
-├── human.config        # Project configuration
-└── .human/             # Compiler cache and IR
-```
-
----
-
-## Supported Targets (v1)
+## Supported Targets
 
 | Layer | Options |
 |-------|---------|
@@ -148,13 +150,28 @@ my-app/
 
 Every `human build` enforces all four pillars. These are not optional.
 
-**Automatic Tests** — Unit, integration, edge case, and frontend tests generated from your declarations. 90% minimum coverage (configurable). Build fails below threshold.
+| Pillar | What it does |
+|--------|-------------|
+| **Automatic Tests** | Unit, integration, edge case, and frontend tests generated from your declarations. 90% minimum coverage. Build fails below threshold. |
+| **Security Audit** | Dependency vulnerability scan, input sanitization, auth/authz checks, secret detection, infrastructure security review. |
+| **Code Quality** | Consistent formatting, no dead code, duplication detection, performance pattern analysis, accessibility compliance. |
+| **QA Trail** | Test plans from specs, execution records per build, regression tracking, full traceability from requirement to test to security to QA. |
 
-**Security Audit** — Dependency vulnerability scan, input sanitization verification, auth/authz checks, secret detection, infrastructure security review.
+---
 
-**Code Quality** — Consistent formatting, no dead code, duplication detection, performance pattern analysis (N+1 queries, missing indexes), accessibility compliance.
+## Project Structure
 
-**QA Trail** — Test plans derived from `.human` specs, execution records per build, regression tracking, full traceability matrix from requirement → test → security → QA.
+```
+my-app/
+├── app.human           # Main application definition
+├── frontend.human      # UI pages, components, themes
+├── backend.human       # APIs, data, logic, security
+├── devops.human        # Architecture, CI/CD, deployment
+├── integrations.human  # Third-party connections
+├── designs/            # Figma files, images, screenshots
+├── human.config        # Project configuration
+└── .human/             # Compiler cache and IR
+```
 
 ---
 
@@ -178,19 +195,20 @@ Every `human build` enforces all four pillars. These are not optional.
 
 ## Project Status
 
-**Phase 1: Foundation** — Building the lexer and parser.
-
-This project is in early development. The language specification is stable; the compiler is being built from the ground up in Go. See the [Roadmap](ROADMAP.md) for the full 52-week development plan.
+**Phase 2 complete** — Lexer, parser, and Intent IR are built. See the [Roadmap](ROADMAP.md) for the full 52-week development plan.
 
 ---
 
 ## Documentation
 
-- [Language Specification](LANGUAGE_SPEC.md) — Complete grammar reference
-- [Manifesto](MANIFESTO.md) — Why Human exists
-- [Architecture](ARCHITECTURE.md) — Compiler design and internals
-- [Roadmap](ROADMAP.md) — Development plan and milestones
-- [Examples](examples/) — Sample applications
+| Document | Description |
+|----------|-------------|
+| [Language Spec](LANGUAGE_SPEC.md) | Complete grammar reference |
+| [Architecture](ARCHITECTURE.md) | Compiler design and internals |
+| [Roadmap](ROADMAP.md) | 52-week development plan |
+| [Manifesto](MANIFESTO.md) | Why Human exists |
+| [Contributing](CONTRIBUTING.md) | How to contribute |
+| [Examples](examples/) | Sample applications |
 
 ---
 
@@ -210,14 +228,12 @@ Requires Go 1.21+.
 
 ## Contributing
 
-Human is open source under the MIT license. Contributions, ideas, and feedback are welcome.
+Human is open source under the MIT license. Contributions, ideas, and feedback are welcome. Read the [contributing guide](CONTRIBUTING.md) to get started.
 
 ---
 
-## License
-
-[MIT](LICENSE)
-
----
-
-*Rust guarantees memory safety. TypeScript guarantees type safety. **Human guarantees software quality.***
+<div align="center">
+  <sub>MIT License &middot; Built with intent.</sub>
+  <br><br>
+  <em>Rust guarantees memory safety. TypeScript guarantees type safety. <strong>Human guarantees software quality.</strong></em>
+</div>
