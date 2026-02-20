@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started — human_</title>
+  <meta name="description" content="Learn the Human programming language step by step. Build your first application in structured English.">
+  <meta property="og:title" content="Getting Started — human_">
+  <meta property="og:description" content="A progressive tutorial for learning the Human programming language. Write English, get production-ready code.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230D0D0D'/><text x='4' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23F5F5F3'>h</text><text x='18' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23E85D3A'>_</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+    :root {
+      --bg: #0D0D0D;
+      --bg-raised: #141414;
+      --bg-surface: #1A1A1A;
+      --text: #E8E8E4;
+      --text-muted: #7A7A7A;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --accent: #E85D3A;
+      --accent-dark: #C44A2D;
+      --success: #2D8C5A;
+      --font-logo: 'Nunito', sans-serif;
+      --font: 'Nunito Sans', system-ui, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: #F5F5F3; }
+
+    /* ── Site Nav ── */
+    .site-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13, 13, 13, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .nav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: -1px;
+      color: #F5F5F3;
+    }
+    .nav-logo:hover { color: #F5F5F3; }
+    .nav-logo span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a {
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: #F5F5F3; }
+    .nav-links a.active { color: var(--accent); }
+
+    /* ── Animations ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 140px 24px 80px;
+      text-align: center;
+    }
+    .hero-inner { max-width: 680px; margin: 0 auto; }
+    .hero h1 {
+      font-weight: 700;
+      font-size: clamp(32px, 6vw, 48px);
+      line-height: 1.2;
+      margin-bottom: 16px;
+      color: #F5F5F3;
+    }
+    .hero p {
+      font-size: 20px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .hero-divider {
+      width: 48px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      margin: 48px auto 0;
+    }
+
+    /* ── Tutorial Container ── */
+    .tutorial {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 24px 96px;
+    }
+
+    /* ── Step ── */
+    .step {
+      padding: 72px 0;
+      border-top: 1px solid var(--border);
+    }
+    .step:first-child { border-top: none; }
+
+    .step-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .step-number {
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: rgba(232, 93, 58, 0.1);
+      border: 1.5px solid rgba(232, 93, 58, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 20px;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .step-title {
+      font-weight: 700;
+      font-size: 28px;
+      color: #F5F5F3;
+      line-height: 1.3;
+      padding-top: 6px;
+    }
+
+    .step-text {
+      font-size: 17px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+    .step-text strong { color: var(--text); font-weight: 600; }
+    .step-text code {
+      font-family: var(--font-code);
+      font-size: 15px;
+      background: var(--bg-surface);
+      padding: 2px 7px;
+      border-radius: 4px;
+      color: var(--text);
+    }
+
+    /* ── Code Window ── */
+    .code-window {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .code-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .code-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .code-dot-accent { background: var(--accent); opacity: 0.8; }
+    .code-dot-dim { background: var(--text-muted); opacity: 0.25; }
+    .code-filename {
+      font-family: var(--font-code);
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-left: 8px;
+    }
+
+    .code-body { padding: 24px; overflow-x: auto; }
+    .code-body pre {
+      font-family: var(--font-code);
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      margin: 0;
+      white-space: pre;
+    }
+    .code-body .kw { color: var(--accent); }
+    .code-body .str { color: var(--success); }
+    .code-body .cm { color: var(--text-muted); font-style: italic; }
+
+    /* ── What This Does ── */
+    .explanation {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+    }
+    .explanation-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .explanation p {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.65;
+      margin: 0;
+    }
+    .explanation p + p { margin-top: 10px; }
+    .explanation strong { color: var(--text); font-weight: 600; }
+
+    /* ── Putting It Together ── */
+    .together {
+      padding: 72px 0;
+      border-top: 1px solid var(--border);
+    }
+    .together h2 {
+      font-weight: 700;
+      font-size: 28px;
+      color: #F5F5F3;
+      margin-bottom: 16px;
+    }
+    .together > p {
+      font-size: 17px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    /* ── CLI Section ── */
+    .cli-block {
+      margin-top: 32px;
+    }
+    .cli-block p {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .cli-commands {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+    }
+    .cli-commands pre {
+      font-family: var(--font-code);
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text);
+      margin: 0;
+      white-space: pre;
+    }
+    .cli-commands .cm { color: var(--text-muted); font-style: italic; }
+    .cli-commands .accent { color: var(--accent); }
+
+    /* ── What's Next ── */
+    .whats-next {
+      padding: 72px 0 0;
+      border-top: 1px solid var(--border);
+    }
+    .whats-next h2 {
+      font-weight: 700;
+      font-size: 28px;
+      color: #F5F5F3;
+      margin-bottom: 12px;
+    }
+    .whats-next > p {
+      font-size: 17px;
+      color: var(--text-muted);
+      margin-bottom: 36px;
+    }
+    .next-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .next-card {
+      display: block;
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 24px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .next-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+    .next-card h3 {
+      font-weight: 700;
+      font-size: 17px;
+      color: #F5F5F3;
+      margin-bottom: 8px;
+    }
+    .next-card p {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin: 0;
+    }
+    .next-card .arrow {
+      display: inline-block;
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 56px 24px 40px;
+      text-align: center;
+    }
+    .footer-logo {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 26px;
+      letter-spacing: -1px;
+      margin-bottom: 24px;
+      color: #F5F5F3;
+    }
+    .footer-cursor { color: var(--accent); }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .footer-links a:hover { color: #F5F5F3; }
+
+    .footer-copy {
+      font-size: 13px;
+      color: rgba(122, 122, 122, 0.5);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .next-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 600px) {
+      .nav-links { gap: 16px; }
+      .nav-links a { font-size: 13px; }
+      .hero { padding: 100px 20px 60px; }
+      .hero p { font-size: 17px; }
+      .tutorial { padding: 0 20px 64px; }
+      .step { padding: 48px 0; }
+      .step-header { gap: 14px; }
+      .step-number { width: 40px; height: 40px; font-size: 17px; border-radius: 11px; }
+      .step-title { font-size: 22px; padding-top: 4px; }
+      .code-body { padding: 16px; }
+      .code-body pre { font-size: 13px; }
+      .next-grid { grid-template-columns: 1fr; }
+      .footer-links { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">human<span>_</span></a>
+      <div class="nav-links">
+        <a href="getting-started.html" class="active">Getting Started</a>
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+        <a href="manifesto.html">Manifesto</a>
+        <a href="contributing.html">Contributing</a>
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-inner reveal">
+      <h1>Getting Started</h1>
+      <p>Build your first application in Human &mdash; step by step.</p>
+      <div class="hero-divider"></div>
+    </div>
+  </section>
+
+  <!-- TUTORIAL -->
+  <div class="tutorial">
+
+    <!-- ── Step 1: Your first app ── -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">1</div>
+        <h2 class="step-title">Your first app</h2>
+      </div>
+      <p class="step-text">
+        Every Human project starts with a single line: a declaration of what you are building. This tells the compiler the name of your application and what kind of platform it targets. No imports, no configuration files, no boilerplate. Just one sentence.
+      </p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">app</span> TaskFlow <span class="kw">is a</span> web application</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this does</div>
+        <p>This single line declares an application called <strong>TaskFlow</strong> that targets the web. The compiler uses this to set up routing, project structure, and build configuration. You can also target <strong>mobile</strong>, <strong>desktop</strong>, or <strong>api</strong> platforms.</p>
+      </div>
+    </div>
+
+    <!-- ── Step 2: Define your data ── -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">2</div>
+        <h2 class="step-title">Define your data</h2>
+      </div>
+      <p class="step-text">
+        Data declarations describe the entities in your application &mdash; the things your users create, read, update, and delete. Each field has a type, and you can add modifiers like <code>unique</code>, <code>encrypted</code>, or <code>optional</code>. Relationships between entities are expressed as plain English: <strong>belongs to</strong>, <strong>has many</strong>.
+      </p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">data</span> User:
+  <span class="kw">has a</span> name <span class="kw">which is</span> text
+  <span class="kw">has an</span> email <span class="kw">which is</span> unique email
+  <span class="kw">has a</span> password <span class="kw">which is</span> encrypted text
+  <span class="kw">has a</span> role <span class="kw">which is either</span> <span class="str">"user"</span> <span class="kw">or</span> <span class="str">"admin"</span>
+  <span class="kw">has an optional</span> bio <span class="kw">which is</span> text
+  <span class="kw">has a</span> created datetime
+  <span class="kw">has many</span> Task
+
+<span class="kw">data</span> Task:
+  <span class="kw">belongs to a</span> User
+  <span class="kw">has a</span> title <span class="kw">which is</span> text
+  <span class="kw">has a</span> status <span class="kw">which is either</span> <span class="str">"pending"</span> <span class="kw">or</span> <span class="str">"in_progress"</span> <span class="kw">or</span> <span class="str">"done"</span>
+  <span class="kw">has a</span> priority <span class="kw">which is either</span> <span class="str">"low"</span> <span class="kw">or</span> <span class="str">"medium"</span> <span class="kw">or</span> <span class="str">"high"</span>
+  <span class="kw">has a</span> due date
+  <span class="kw">has many</span> Tag <span class="kw">through</span> TaskTag</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this does</div>
+        <p>The compiler generates database tables, ORM models, TypeScript types, and migration files from these declarations. The <strong>unique</strong> modifier creates a database constraint. The <strong>encrypted</strong> modifier ensures the password is hashed at rest. Enum fields like <code>status</code> and <code>role</code> are type-safe &mdash; the compiler rejects any value not in the list. The <strong>belongs to</strong> / <strong>has many</strong> syntax creates foreign keys and join tables automatically.</p>
+      </div>
+    </div>
+
+    <!-- ── Step 3: Create pages ── -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">3</div>
+        <h2 class="step-title">Create pages</h2>
+      </div>
+      <p class="step-text">
+        Pages describe what the user sees and how they interact with it. You write display statements, interaction handlers, input elements, and conditional states &mdash; all in English. The compiler turns these into fully functional frontend components with proper state management, event handling, and data fetching.
+      </p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">page</span> Dashboard:
+  <span class="kw">show</span> a greeting with the user's name
+  <span class="kw">show</span> a summary card with total tasks, completed tasks, and overdue tasks
+
+  <span class="kw">show</span> a list of tasks sorted by due date
+  <span class="kw">each</span> task shows its title, status, priority, and due date
+  <span class="kw">each</span> task shows the status as a colored badge
+  clicking a task opens a detail panel on the right
+
+  there is a search bar that <span class="kw">filter</span>s tasks by title
+  there is a dropdown to <span class="kw">filter</span> by status
+
+  <span class="kw">if</span> no tasks match, <span class="kw">show</span> <span class="str">"No tasks found. Create your first task!"</span>
+  <span class="kw">while</span> loading, <span class="kw">show</span> a skeleton screen
+
+  there is a floating button to add a new task
+  clicking the add button opens a form to <span class="kw">create</span> a Task</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this does</div>
+        <p>This generates a complete Dashboard page: a React component with a greeting header, summary statistics, a sortable and filterable task list, search input, status dropdown, an empty state message, a loading skeleton, and a floating action button that opens a creation form. Every interaction described in English becomes a real event handler. Every conditional becomes a proper render branch.</p>
+      </div>
+    </div>
+
+    <!-- ── Step 4: Build your API ── -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">4</div>
+        <h2 class="step-title">Build your API</h2>
+      </div>
+      <p class="step-text">
+        API declarations define your backend endpoints. Each one specifies what it accepts, what preconditions it requires, what logic it runs, and what it returns. Validation, authentication, and error handling are expressed inline. No route files, no middleware configuration &mdash; just describe the behavior.
+      </p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">api</span> CreateTask:
+  <span class="kw">requires</span> authentication
+  <span class="kw">accepts</span> title, description, priority, and due date
+  <span class="kw">check that</span> title is not empty
+  <span class="kw">check that</span> title is less than 200 characters
+  <span class="kw">check that</span> due date is in the future
+  <span class="kw">create</span> a Task with the given fields and current user as owner
+  set status to <span class="str">"pending"</span> if not provided
+  <span class="kw">respond with</span> the created task
+
+<span class="kw">api</span> GetTasks:
+  <span class="kw">requires</span> authentication
+  <span class="kw">fetch</span> all tasks for the current user
+  <span class="kw">sort</span> by due date
+  support <span class="kw">filter</span>ing by status
+  support <span class="kw">search</span>ing by title
+  <span class="kw">paginate</span> with 20 per page
+  <span class="kw">respond with</span> tasks and pagination info</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this does</div>
+        <p>The compiler generates Express (or your chosen framework) route handlers with input validation, authentication middleware, database queries, error responses, and pagination. Each <strong>check that</strong> statement becomes a validation rule that returns a clear error message on failure. Each <strong>fetch</strong> or <strong>create</strong> becomes a properly parameterized database operation. Filtering, sorting, and pagination are handled automatically.</p>
+      </div>
+    </div>
+
+    <!-- ── Step 5: Add authentication and security ── -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">5</div>
+        <h2 class="step-title">Add authentication and security</h2>
+      </div>
+      <p class="step-text">
+        Security in Human is not an afterthought. The <code>authentication</code> block configures your auth strategy, and <code>policy</code> blocks define role-based access control. The compiler enforces these rules across your entire application &mdash; if an API requires authentication but your security config is missing, the build fails with a helpful message.
+      </p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">authentication</span>:
+  method JWT tokens that expire in 7 days
+  method Google OAuth with redirect to /auth/google/callback
+  passwords are hashed with bcrypt using 12 rounds
+  <span class="kw">all</span> api requests require a valid token except SignUp and Login
+  rate limit <span class="kw">all</span> endpoints to 100 requests per minute per user
+  <span class="kw">sanitize</span> <span class="kw">all</span> text inputs against XSS
+  enable CORS <span class="kw">only for</span> our frontend domain
+
+<span class="kw">policy</span> FreeUser:
+  can <span class="kw">create</span> up to 50 tasks per month
+  can view <span class="kw">only</span> their own tasks
+  can edit <span class="kw">only</span> their own tasks
+  cannot <span class="kw">delete</span> completed tasks
+  cannot export data
+
+<span class="kw">policy</span> Admin:
+  can view <span class="kw">all</span> users and their data
+  can edit any task
+  can <span class="kw">delete</span> any task
+  can export data
+  can view system analytics</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this does</div>
+        <p>The compiler generates JWT middleware, OAuth integration, bcrypt password hashing, rate limiting middleware, XSS sanitization, and CORS configuration. Policies become authorization guards applied to every relevant endpoint. The <strong>FreeUser</strong> policy creates usage limits enforced at the database level. The <strong>Admin</strong> policy grants elevated access. These are not just comments &mdash; they are compiled into real, tested access control code.</p>
+      </div>
+    </div>
+
+    <!-- ── Step 6: Set up workflows ── -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">6</div>
+        <h2 class="step-title">Set up workflows</h2>
+      </div>
+      <p class="step-text">
+        Workflows describe what happens when events occur in your system. A user signs up, a task becomes overdue, a payment fails &mdash; each trigger starts a sequence of actions. These are compiled into event handlers, background jobs, and scheduled tasks with proper retry logic and error handling.
+      </p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">when</span> a user signs up:
+  <span class="kw">create</span> their account
+  assign FreeUser <span class="kw">policy</span>
+  <span class="kw">send</span> welcome email with template <span class="str">"welcome"</span>
+  <span class="kw">after</span> 3 days, <span class="kw">send</span> email with template <span class="str">"getting-started"</span>
+  <span class="kw">after</span> 14 days, <span class="kw">if</span> they have fewer than 5 tasks,
+    <span class="kw">send</span> email with template <span class="str">"need-help"</span>
+
+<span class="kw">when</span> a task is marked done:
+  <span class="kw">update</span> the user's completed task count
+  <span class="kw">if</span> <span class="kw">all</span> tasks for today are done,
+    <span class="kw">send</span> congratulations notification
+  log the completion <span class="kw">for</span> analytics</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this does</div>
+        <p>The signup workflow generates an event listener that runs after user creation: it assigns a default policy, sends an immediate welcome email, and schedules two delayed follow-up emails with conditional logic. The completion workflow updates aggregate counts, checks a condition across related records, and logs an analytics event. All timing, retries, and failure handling are managed by the compiled code.</p>
+      </div>
+    </div>
+
+    <!-- ── Step 7: Choose your stack and build ── -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">7</div>
+        <h2 class="step-title">Choose your stack and build</h2>
+      </div>
+      <p class="step-text">
+        The <code>build with</code> block tells the compiler what frameworks and tools to target. Your entire application &mdash; data models, pages, APIs, security, workflows &mdash; compiles to the stack you choose. Change the target later and recompile; your logic stays the same.
+      </p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">build with</span>:
+  frontend using React with TypeScript
+  backend using Node with Express
+  <span class="kw">database</span> using PostgreSQL
+  <span class="kw">deploy</span> to Docker</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this does</div>
+        <p>The compiler reads your entire <code>.human</code> file and generates a complete project: React components with TypeScript types, Express API routes with middleware, PostgreSQL schemas with migrations, a Dockerfile, and a full test suite. Same source file could target Vue + FastAPI + MySQL &mdash; just change the build block.</p>
+      </div>
+      <div class="cli-block">
+        <p>Then run it from your terminal:</p>
+        <div class="cli-commands"><pre><span class="accent">$</span> human check      <span class="cm"># Validate your .human files</span>
+<span class="accent">$</span> human build      <span class="cm"># Compile to your target stack</span>
+<span class="accent">$</span> human run        <span class="cm"># Start the development server</span></pre></div>
+      </div>
+    </div>
+
+    <!-- ── Putting it all together ── -->
+    <div class="together reveal">
+      <h2>Putting it all together</h2>
+      <p>Here is a complete, minimal Human application combining every concept from the tutorial. This single file produces a full-stack, tested, deployable task manager.</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">app</span> TaskFlow <span class="kw">is a</span> web application
+
+<span class="cm"># ── Data ──</span>
+
+<span class="kw">data</span> User:
+  <span class="kw">has a</span> name <span class="kw">which is</span> text
+  <span class="kw">has an</span> email <span class="kw">which is</span> unique email
+  <span class="kw">has a</span> password <span class="kw">which is</span> encrypted text
+  <span class="kw">has many</span> Task
+
+<span class="kw">data</span> Task:
+  <span class="kw">belongs to a</span> User
+  <span class="kw">has a</span> title <span class="kw">which is</span> text
+  <span class="kw">has a</span> status <span class="kw">which is either</span> <span class="str">"pending"</span> <span class="kw">or</span> <span class="str">"done"</span>
+  <span class="kw">has a</span> due date
+
+<span class="cm"># ── Pages ──</span>
+
+<span class="kw">page</span> Dashboard:
+  <span class="kw">show</span> a list of tasks sorted by due date
+  <span class="kw">each</span> task shows its title, status, and due date
+  clicking a task toggles its status
+  <span class="kw">if</span> no tasks match, <span class="kw">show</span> <span class="str">"No tasks yet."</span>
+  there is a form to <span class="kw">create</span> a Task
+
+<span class="cm"># ── API ──</span>
+
+<span class="kw">api</span> CreateTask:
+  <span class="kw">requires</span> authentication
+  <span class="kw">accepts</span> title and due date
+  <span class="kw">check that</span> title is not empty
+  <span class="kw">create</span> the task for the current user
+  <span class="kw">respond with</span> the created task
+
+<span class="cm"># ── Security ──</span>
+
+<span class="kw">authentication</span>:
+  method JWT tokens that expire in 7 days
+  passwords are hashed with bcrypt
+
+<span class="kw">policy</span> User:
+  can view <span class="kw">only</span> their own tasks
+  can <span class="kw">create</span> up to 100 tasks
+
+<span class="cm"># ── Workflows ──</span>
+
+<span class="kw">when</span> a user signs up:
+  <span class="kw">send</span> welcome email with template <span class="str">"welcome"</span>
+
+<span class="cm"># ── Build ──</span>
+
+<span class="kw">build with</span>:
+  frontend using React with TypeScript
+  backend using Node with Express
+  <span class="kw">database</span> using PostgreSQL</pre></div>
+      </div>
+    </div>
+
+    <!-- ── What's Next ── -->
+    <div class="whats-next reveal">
+      <h2>What's next?</h2>
+      <p>You know the basics. Here is where to go from here.</p>
+      <div class="next-grid">
+        <a href="language-spec.html" class="next-card">
+          <h3>Language Spec</h3>
+          <p>The complete grammar reference. Every keyword, every type, every declaration &mdash; documented with examples.</p>
+          <span class="arrow">Read the spec &rarr;</span>
+        </a>
+        <a href="https://github.com/barun-bash/human/tree/main/examples" class="next-card" target="_blank" rel="noopener">
+          <h3>Examples</h3>
+          <p>Full sample applications written in Human. See how real projects are structured from data to deployment.</p>
+          <span class="arrow">Browse examples &rarr;</span>
+        </a>
+        <a href="contributing.html" class="next-card">
+          <h3>Contributing</h3>
+          <p>Human is open source and built in public. The compiler, docs, and tooling all welcome contributions.</p>
+          <span class="arrow">Get involved &rarr;</span>
+        </a>
+        <a href="https://github.com/barun-bash/human" class="next-card" target="_blank" rel="noopener">
+          <h3>GitHub</h3>
+          <p>Star the repository to follow development. Watch for updates as new compiler phases ship each week.</p>
+          <span class="arrow">Star the repo &rarr;</span>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div>
+      <div class="footer-logo">human<span class="footer-cursor">_</span></div>
+      <nav class="footer-links">
+        <a href="getting-started.html">Getting Started</a>
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+        <a href="manifesto.html">Manifesto</a>
+        <a href="contributing.html">Contributing</a>
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <p class="footer-copy">MIT License &middot; Built with intent.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var els = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window)) {
+        els.forEach(function (el) { el.classList.add('visible'); });
+        return;
+      }
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+      els.forEach(function (el) { obs.observe(el); });
+    });
+  </script>
+</body>
+</html>

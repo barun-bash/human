@@ -15,6 +15,7 @@
   <a href="https://barun-bash.github.io/human/"><img src="https://img.shields.io/badge/website-live-E85D3A.svg" alt="Website"></a>
   <br><br>
   <a href="https://barun-bash.github.io/human/">Website</a> &middot;
+  <a href="https://barun-bash.github.io/human/getting-started.html">Getting Started</a> &middot;
   <a href="https://barun-bash.github.io/human/language-spec.html">Language Spec</a> &middot;
   <a href="https://barun-bash.github.io/human/roadmap.html">Roadmap</a> &middot;
   <a href="https://barun-bash.github.io/human/manifesto.html">Manifesto</a> &middot;
@@ -204,6 +205,7 @@ my-app/
 
 | Document | Description |
 |----------|-------------|
+| [Getting Started](https://barun-bash.github.io/human/getting-started.html) | Build your first app in Human |
 | [Language Spec](https://barun-bash.github.io/human/language-spec.html) | Complete grammar reference |
 | [Architecture](ARCHITECTURE.md) | Compiler design and internals |
 | [Roadmap](https://barun-bash.github.io/human/roadmap.html) | 52-week development plan |
