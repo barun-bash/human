@@ -59,8 +59,8 @@ English in → production-ready applications out.
 **Goal: Generate a working React project from Intent IR**
 
 ### Week 7-8: Project Scaffolding
-- [ ] Generate package.json with correct dependencies
-- [ ] Generate tsconfig.json
+- [x] Generate package.json with correct dependencies
+- [x] Generate tsconfig.json
 - [x] Generate project structure (src/, pages/, components/, etc.)
 - [x] Generate routing from page declarations
 - [x] Generate data types from data declarations
@@ -97,7 +97,7 @@ English in → production-ready applications out.
 
 ---
 
-## Phase 5: Quality Engine (Weeks 15-18) — Started
+## Phase 5: Quality Engine (Weeks 15-18) ✅
 **Goal: Mandatory quality guarantees**
 
 ### Week 15-16: Auto Test Generation
@@ -178,6 +178,7 @@ English in → production-ready applications out.
 - [x] Generate Dockerfiles and docker-compose
 - [ ] Generate Terraform for cloud deployment
 - [x] Generate environment configurations (.env.example)
+- [x] Project scaffolder (package.json workspaces, tsconfigs, vite config, README, start.sh)
 - [ ] Git workflow commands (human feature, human release, etc.)
 - [ ] Monitoring configuration generation
 
@@ -263,7 +264,7 @@ English in → production-ready applications out.
 
 ## Current Output
 
-Running `human build examples/taskflow/app.human` produces **38 files**:
+Running `human build examples/taskflow/app.human` produces **45 files**:
 
 | Generator | Files | Output |
 |-----------|-------|--------|
@@ -272,6 +273,9 @@ Running `human build examples/taskflow/app.human` produces **38 files**:
 | Docker + Compose | 5 | Dockerfiles, docker-compose.yml, .env.example, package.json |
 | PostgreSQL | 2 | Migration (001_initial.sql), seed data |
 | Quality Engine | 11 | 8 test files, security-report.md, lint-report.md, build-report.md |
+| Scaffold | 7 | Root + node + react package.json, tsconfigs, vite config, README, start.sh |
+
+The scaffolder overwrites Docker's root `package.json` (adding npm workspaces) and `.env.example` (identical content), so 9 files are written but 2 replace existing ones.
 
 ---
 
@@ -283,7 +287,8 @@ Running `human build examples/taskflow/app.human` produces **38 files**:
 | Generate a running React app | Phase 3 | ✅ Done |
 | Full-stack app from English | Phase 4 | ✅ Done |
 | Docker deployment config | Phase 9 | ✅ Done |
-| Quality guarantees enforced | Phase 5 | ✅ Started |
+| Project scaffolder (runnable output) | Phase 9 | ✅ Done |
+| Quality guarantees enforced | Phase 5 | ✅ Done |
 | Design-to-code pipeline | Phase 7 | Upcoming |
 | Multi-framework output | Phase 8 | Upcoming |
 | Public launch | Phase 14 | Upcoming |

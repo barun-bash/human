@@ -653,8 +653,8 @@
             <div class="phase-subsection">
               <div class="phase-subsection-title">Week 7-8: Project Scaffolding</div>
               <ul class="task-list">
-                <li class="task-item"><span class="task-checkbox"></span>Generate package.json with correct dependencies</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate tsconfig.json</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate package.json with correct dependencies</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate tsconfig.json</li>
                 <li class="task-item done"><span class="task-checkbox"></span>Generate project structure (src/, pages/, components/, etc.)</li>
                 <li class="task-item done"><span class="task-checkbox"></span>Generate routing from page declarations</li>
                 <li class="task-item done"><span class="task-checkbox"></span>Generate data types from data declarations</li>
@@ -718,7 +718,7 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 15 - 18</div>
-              <h3 class="phase-title">Quality Engine <span class="phase-status started">Started</span></h3>
+              <h3 class="phase-title">Quality Engine <span class="phase-status complete">Complete</span></h3>
               <p class="phase-goal">Mandatory quality guarantees.</p>
             </div>
 
@@ -859,6 +859,7 @@
               <li class="task-item done"><span class="task-checkbox"></span>Generate Dockerfiles and docker-compose</li>
               <li class="task-item"><span class="task-checkbox"></span>Generate Terraform for cloud deployment</li>
               <li class="task-item done"><span class="task-checkbox"></span>Generate environment configurations (.env.example)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Project scaffolder (package.json workspaces, tsconfigs, vite config, README, start.sh)</li>
               <li class="task-item"><span class="task-checkbox"></span>Git workflow commands (human feature, human release, etc.)</li>
               <li class="task-item"><span class="task-checkbox"></span>Monitoring configuration generation</li>
             </ul>
@@ -1014,7 +1015,7 @@
   <section class="metrics-section">
     <div class="container">
       <h2 class="reveal">Current Output</h2>
-      <p class="reveal" style="text-align:center; color:var(--text-muted); margin-bottom:36px; font-size:17px;">Running <code style="font-family:var(--font-code); background:var(--bg-surface); padding:2px 8px; border-radius:4px; font-size:15px; color:var(--accent);">human build examples/taskflow/app.human</code> produces <strong style="color:#F5F5F3;">38 files</strong>:</p>
+      <p class="reveal" style="text-align:center; color:var(--text-muted); margin-bottom:36px; font-size:17px;">Running <code style="font-family:var(--font-code); background:var(--bg-surface); padding:2px 8px; border-radius:4px; font-size:15px; color:var(--accent);">human build examples/taskflow/app.human</code> produces <strong style="color:#F5F5F3;">45 files</strong>:</p>
       <div class="metrics-table-wrap reveal reveal-delay-1">
         <table class="metrics-table">
           <thead>
@@ -1049,6 +1050,11 @@
               <td>Quality Engine</td>
               <td class="target-phase">11</td>
               <td>8 test files, security-report.md, lint-report.md, build-report.md</td>
+            </tr>
+            <tr>
+              <td>Scaffold</td>
+              <td class="target-phase">7</td>
+              <td>Root + node + react package.json, tsconfigs, vite config, README, start.sh</td>
             </tr>
           </tbody>
         </table>
@@ -1091,9 +1097,14 @@
               <td><span style="color:var(--success); font-weight:600;">Done</span></td>
             </tr>
             <tr>
+              <td>Project scaffolder (runnable output)</td>
+              <td class="target-phase">Phase 9</td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
+            </tr>
+            <tr>
               <td>Quality guarantees enforced</td>
               <td class="target-phase">Phase 5</td>
-              <td><span style="color:var(--accent); font-weight:600;">Started</span></td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
             </tr>
             <tr>
               <td>Design-to-code pipeline</td>

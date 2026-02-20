@@ -197,7 +197,7 @@ my-app/
 
 ## Project Status
 
-**Phase 5 complete** — Lexer, parser, Intent IR, code generators (React, Node, PostgreSQL, Docker), Quality Engine, and CLI are built. 139 tests passing. 38 files generated from a single .human file. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full development plan.
+**Phases 1–5 + Scaffolder complete** — Lexer, parser, Intent IR, code generators (React, Node, PostgreSQL, Docker), Quality Engine, project scaffolder, and CLI are built. 139 tests passing. 45 files generated from a single .human file. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full development plan.
 
 ---
 
