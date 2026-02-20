@@ -448,12 +448,18 @@
         <div class="code-body"><pre><span class="cm"># Install the compiler</span>
 <span class="kw">$</span> go install github.com/barun-bash/human/cmd/human@v0.1.0
 
+<span class="cm"># Make sure Go binaries are in your PATH</span>
+<span class="kw">$</span> export PATH="$PATH:$(go env GOPATH)/bin"
+
 <span class="cm"># Verify it's installed</span>
 <span class="kw">$</span> human version</pre></div>
       </div>
       <div class="explanation">
         <div class="explanation-label">Requirements</div>
-        <p><strong>Go 1.21+</strong> is required. If you don't have Go installed, get it from <a href="https://go.dev/dl/" target="_blank" rel="noopener">go.dev/dl</a>. After installing, make sure <code>$GOPATH/bin</code> is in your <code>PATH</code>.</p>
+        <p><strong>Go 1.21+</strong> is required. If you don't have Go installed, get it from <a href="https://go.dev/dl/" target="_blank" rel="noopener">go.dev/dl</a>.</p>
+        <p><strong>GOPATH/bin in PATH</strong> is required. Go installs binaries to <code>$GOPATH/bin</code> (usually <code>~/go/bin</code>), but this directory is not in your <code>PATH</code> by default. Run the <code>export</code> command above, then add it to your shell config to make it permanent:</p>
+        <p><code>echo 'export PATH="$PATH:$(go env GOPATH)/bin"' >> ~/.zshrc</code></p>
+        <p>On Linux or if you use bash, replace <code>~/.zshrc</code> with <code>~/.bashrc</code>.</p>
       </div>
     </div>
 
