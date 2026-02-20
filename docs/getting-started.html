@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="version.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
@@ -446,7 +447,7 @@
           <span class="code-filename">terminal</span>
         </div>
         <div class="code-body"><pre><span class="cm"># Install the compiler</span>
-<span class="kw">$</span> go install github.com/barun-bash/human/cmd/human@v0.2.0
+<span class="kw">$</span> <span data-version="install">go install github.com/barun-bash/human/cmd/human@v0.2.0</span>
 
 <span class="cm"># Make sure Go binaries are in your PATH</span>
 <span class="kw">$</span> export PATH="$PATH:$(go env GOPATH)/bin"
