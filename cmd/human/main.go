@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/barun-bash/human/internal/codegen/docker"
 	"github.com/barun-bash/human/internal/codegen/node"
 	"github.com/barun-bash/human/internal/codegen/react"
 	"github.com/barun-bash/human/internal/ir"
@@ -192,6 +193,16 @@ func cmdBuild() {
 			os.Exit(1)
 		}
 		fmt.Printf("  node:         %s/\n", nodeDir)
+	}
+
+	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Deploy), "docker") {
+		outputDir := filepath.Join(".human", "output")
+		g := docker.Generator{}
+		if err := g.Generate(app, outputDir); err != nil {
+			fmt.Fprintf(os.Stderr, "Docker codegen error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("  docker:       %s/\n", outputDir)
 	}
 }
 
