@@ -14,9 +14,10 @@ build/
 # Human compiler cache
 .human/
 
-# IDE files
+# IDE / tool config
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 *~
