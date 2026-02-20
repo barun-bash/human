@@ -87,7 +87,7 @@ English in → production-ready applications out.
 - [x] Generate API routes from api declarations
 - [x] Generate input validation from check statements
 - [x] Generate data models (Prisma)
-- [ ] Generate database migrations
+- [x] Generate database migrations (PostgreSQL)
 - [x] Generate authentication middleware (JWT)
 - [ ] Generate authorization middleware (from policies)
 - [x] Generate error handling
@@ -263,13 +263,14 @@ English in → production-ready applications out.
 
 ## Current Output
 
-Running `human build examples/taskflow/app.human` produces **25 files**:
+Running `human build examples/taskflow/app.human` produces **27 files**:
 
 | Generator | Files | Output |
 |-----------|-------|--------|
 | React + TypeScript | 7 | Types, API client, pages, components, router |
 | Node + Express | 13 | Prisma schema, auth middleware, error handler, route files, server |
 | Docker + Compose | 5 | Dockerfiles, docker-compose.yml, .env.example, package.json |
+| PostgreSQL | 2 | Migration (001_initial.sql), seed data |
 
 ---
 
