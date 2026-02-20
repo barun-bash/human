@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/barun-bash/human/internal/analyzer"
 	"github.com/barun-bash/human/internal/cli"
+	cerr "github.com/barun-bash/human/internal/errors"
 	"github.com/barun-bash/human/internal/codegen/docker"
 	"github.com/barun-bash/human/internal/codegen/node"
 	"github.com/barun-bash/human/internal/codegen/postgres"
@@ -93,6 +95,27 @@ func cmdCheck() {
 		os.Exit(1)
 	}
 
+	// Semantic analysis
+	app, irErr := ir.Build(prog)
+	if irErr != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("IR build error: %v", irErr)))
+		os.Exit(1)
+	}
+
+	errs := analyzer.Analyze(app, file)
+	if errs.HasWarnings() {
+		for _, w := range errs.Warnings() {
+			printDiagnostic(w)
+		}
+	}
+	if errs.HasErrors() {
+		for _, e := range errs.Errors() {
+			printDiagnostic(e)
+		}
+		fmt.Fprintf(os.Stderr, "\n%s\n", cli.Error(fmt.Sprintf("%d error(s) found", len(errs.Errors()))))
+		os.Exit(1)
+	}
+
 	// Summarize what was found
 	var parts []string
 	if len(prog.Data) > 0 {
@@ -164,6 +187,21 @@ func cmdBuild() {
 	app, err := ir.Build(prog)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("IR build error: %v", err)))
+		os.Exit(1)
+	}
+
+	// Semantic analysis
+	errs := analyzer.Analyze(app, file)
+	if errs.HasWarnings() {
+		for _, w := range errs.Warnings() {
+			printDiagnostic(w)
+		}
+	}
+	if errs.HasErrors() {
+		for _, e := range errs.Errors() {
+			printDiagnostic(e)
+		}
+		fmt.Fprintf(os.Stderr, "\n%s\n", cli.Error(fmt.Sprintf("%d error(s) found — build aborted", len(errs.Errors()))))
 		os.Exit(1)
 	}
 
@@ -452,6 +490,19 @@ func cmdTest() {
 }
 
 // ── Helpers ──
+
+// printDiagnostic prints a CompilerError with its suggestion (if any) to stderr.
+func printDiagnostic(e *cerr.CompilerError) {
+	switch e.Severity {
+	case cerr.SeverityWarning:
+		fmt.Fprintln(os.Stderr, cli.Warn(e.Format()))
+	default:
+		fmt.Fprintln(os.Stderr, cli.Error(e.Format()))
+	}
+	if e.Suggestion != "" {
+		fmt.Fprintf(os.Stderr, "  suggestion: %s\n", e.Suggestion)
+	}
+}
 
 func plural(n int) string {
 	if n == 1 {

@@ -1,0 +1,392 @@
+package analyzer
+
+import (
+	"strings"
+	"testing"
+
+	cerr "github.com/barun-bash/human/internal/errors"
+	"github.com/barun-bash/human/internal/ir"
+)
+
+// helper to build a minimal valid app
+func minApp() *ir.Application {
+	return &ir.Application{
+		Name:     "TestApp",
+		Platform: "web",
+		Data: []*ir.DataModel{
+			{Name: "User", Fields: []*ir.DataField{{Name: "name", Type: "text"}, {Name: "email", Type: "email"}}},
+			{Name: "Task", Fields: []*ir.DataField{{Name: "title", Type: "text"}, {Name: "status", Type: "enum"}},
+				Relations: []*ir.Relation{{Kind: "belongs_to", Target: "User"}}},
+		},
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{{Type: "display", Text: "show heading"}}},
+			{Name: "Dashboard", Content: []*ir.Action{{Type: "display", Text: "show tasks"}}},
+		},
+		APIs: []*ir.Endpoint{
+			{Name: "CreateTask", Steps: []*ir.Action{{Type: "create", Text: "create a Task with title"}}},
+		},
+	}
+}
+
+// ── Passes cleanly ──
+
+func TestAnalyzeCleanApp(t *testing.T) {
+	app := minApp()
+	errs := Analyze(app, "test.human")
+	if errs.HasErrors() {
+		t.Fatalf("expected no errors on clean app, got:\n%s", errs.Format())
+	}
+	if errs.HasWarnings() {
+		t.Fatalf("expected no warnings on clean app, got:\n%s", errs.Format())
+	}
+}
+
+// ── Duplicate names ──
+
+func TestDuplicateModelName(t *testing.T) {
+	app := minApp()
+	app.Data = append(app.Data, &ir.DataModel{Name: "User"})
+	errs := Analyze(app, "test.human")
+	if !errs.HasErrors() {
+		t.Fatal("expected error for duplicate model name")
+	}
+	assertCode(t, errs.Errors(), "E301")
+}
+
+func TestDuplicatePageName(t *testing.T) {
+	app := minApp()
+	app.Pages = append(app.Pages, &ir.Page{Name: "Home"})
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E302")
+}
+
+func TestDuplicateAPIName(t *testing.T) {
+	app := minApp()
+	app.APIs = append(app.APIs, &ir.Endpoint{Name: "CreateTask"})
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E304")
+}
+
+// ── Duplicate fields ──
+
+func TestDuplicateFieldName(t *testing.T) {
+	app := minApp()
+	app.Data[0].Fields = append(app.Data[0].Fields, &ir.DataField{Name: "email", Type: "email"})
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E306")
+}
+
+// ── Relation target validation ──
+
+func TestUnknownRelationTarget(t *testing.T) {
+	app := minApp()
+	app.Data[1].Relations = append(app.Data[1].Relations, &ir.Relation{Kind: "belongs_to", Target: "Userr"})
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E101")
+	assertSuggestion(t, errs.Errors(), "User")
+}
+
+func TestUnknownThroughModel(t *testing.T) {
+	app := minApp()
+	app.Data = append(app.Data, &ir.DataModel{Name: "Tag"})
+	app.Data[1].Relations = append(app.Data[1].Relations, &ir.Relation{
+		Kind:    "has_many_through",
+		Target:  "Tag",
+		Through: "TasgTag", // typo
+	})
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E101")
+}
+
+// ── Through-table validation ──
+
+func TestThroughTableMissingBelongsTo(t *testing.T) {
+	app := minApp()
+	app.Data = append(app.Data,
+		&ir.DataModel{Name: "Tag"},
+		&ir.DataModel{Name: "TaskTag"}, // missing belongs_to
+	)
+	app.Data[1].Relations = append(app.Data[1].Relations, &ir.Relation{
+		Kind:    "has_many_through",
+		Target:  "Tag",
+		Through: "TaskTag",
+	})
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E105")
+	count := 0
+	for _, e := range errs.Errors() {
+		if e.Code == "E105" {
+			count++
+		}
+	}
+	if count != 2 {
+		t.Errorf("expected 2 E105 errors, got %d", count)
+	}
+}
+
+func TestThroughTableValid(t *testing.T) {
+	app := minApp()
+	app.Data = append(app.Data,
+		&ir.DataModel{Name: "Tag"},
+		&ir.DataModel{
+			Name: "TaskTag",
+			Relations: []*ir.Relation{
+				{Kind: "belongs_to", Target: "Task"},
+				{Kind: "belongs_to", Target: "Tag"},
+			},
+		},
+	)
+	app.Data[1].Relations = append(app.Data[1].Relations, &ir.Relation{
+		Kind:    "has_many_through",
+		Target:  "Tag",
+		Through: "TaskTag",
+	})
+	errs := Analyze(app, "test.human")
+	for _, e := range errs.Errors() {
+		if e.Code == "E105" {
+			t.Errorf("unexpected E105 error: %s", e.Message)
+		}
+	}
+}
+
+// ── Database index validation ──
+
+func TestIndexUnknownModel(t *testing.T) {
+	app := minApp()
+	app.Database = &ir.DatabaseConfig{
+		Indexes: []*ir.Index{{Entity: "Userr", Fields: []string{"email"}}},
+	}
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E102")
+	assertSuggestion(t, errs.Errors(), "User")
+}
+
+func TestIndexUnknownField(t *testing.T) {
+	app := minApp()
+	app.Database = &ir.DatabaseConfig{
+		Indexes: []*ir.Index{{Entity: "User", Fields: []string{"nonexistent"}}},
+	}
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E102")
+}
+
+func TestIndexValidBelongsToField(t *testing.T) {
+	app := minApp()
+	app.Database = &ir.DatabaseConfig{
+		Indexes: []*ir.Index{{Entity: "Task", Fields: []string{"user"}}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, e := range errs.Errors() {
+		if e.Code == "E102" {
+			t.Errorf("unexpected E102 — 'user' should resolve via belongs_to: %s", e.Message)
+		}
+	}
+}
+
+func TestIndexValidFieldName(t *testing.T) {
+	app := minApp()
+	app.Database = &ir.DatabaseConfig{
+		Indexes: []*ir.Index{{Entity: "User", Fields: []string{"email"}}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, e := range errs.Errors() {
+		if e.Code == "E102" {
+			t.Errorf("unexpected E102 — 'email' should match field: %s", e.Message)
+		}
+	}
+}
+
+// ── Page navigation validation ──
+
+func TestPageNavigatesToUnknown(t *testing.T) {
+	app := minApp()
+	app.Pages[0].Content = append(app.Pages[0].Content, &ir.Action{
+		Type: "interact",
+		Text: "clicking the button navigates to Settigns",
+	})
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E103")
+}
+
+func TestPageNavigatesToKnown(t *testing.T) {
+	app := minApp()
+	app.Pages[0].Content = append(app.Pages[0].Content, &ir.Action{
+		Type: "interact",
+		Text: "clicking the button navigates to Dashboard",
+	})
+	errs := Analyze(app, "test.human")
+	for _, e := range errs.Errors() {
+		if e.Code == "E103" {
+			t.Errorf("unexpected E103 — Dashboard exists: %s", e.Message)
+		}
+	}
+}
+
+// ── API model reference validation ──
+
+func TestAPIReferencesUnknownModel(t *testing.T) {
+	app := minApp()
+	app.APIs = append(app.APIs, &ir.Endpoint{
+		Name: "BadAPI",
+		Steps: []*ir.Action{
+			{Type: "create", Text: "create a Userr with name"},
+		},
+	})
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E104")
+	assertSuggestion(t, errs.Errors(), "User")
+}
+
+func TestAPIReferencesKnownModel(t *testing.T) {
+	app := minApp()
+	// "create a Task" should be fine
+	errs := Analyze(app, "test.human")
+	for _, e := range errs.Errors() {
+		if e.Code == "E104" {
+			t.Errorf("unexpected E104 — Task exists: %s", e.Message)
+		}
+	}
+}
+
+// ── Completeness ──
+
+func TestAuthRequiredButMissing(t *testing.T) {
+	app := minApp()
+	app.APIs[0].Auth = true
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E201")
+}
+
+func TestAuthRequiredAndPresent(t *testing.T) {
+	app := minApp()
+	app.APIs[0].Auth = true
+	app.Auth = &ir.Auth{Methods: []*ir.AuthMethod{{Type: "jwt"}}}
+	errs := Analyze(app, "test.human")
+	for _, e := range errs.Errors() {
+		if e.Code == "E201" {
+			t.Errorf("unexpected E201 — auth is configured: %s", e.Message)
+		}
+	}
+}
+
+func TestDatabaseWithoutModels(t *testing.T) {
+	app := &ir.Application{
+		Config: &ir.BuildConfig{Database: "PostgreSQL"},
+	}
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E202")
+}
+
+func TestFrontendWithoutPages(t *testing.T) {
+	app := &ir.Application{
+		Config: &ir.BuildConfig{Frontend: "React"},
+	}
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E203")
+}
+
+// ── Integration: taskflow-like example ──
+
+func TestAnalyzeTaskflowIR(t *testing.T) {
+	app := &ir.Application{
+		Name:     "TaskFlow",
+		Platform: "web",
+		Data: []*ir.DataModel{
+			{
+				Name: "User",
+				Fields: []*ir.DataField{
+					{Name: "name", Type: "text"},
+					{Name: "email", Type: "email"},
+					{Name: "password", Type: "text"},
+					{Name: "avatar", Type: "image"},
+					{Name: "bio", Type: "text"},
+					{Name: "role", Type: "enum", EnumValues: []string{"admin", "member", "viewer"}},
+				},
+			},
+			{
+				Name: "Task",
+				Fields: []*ir.DataField{
+					{Name: "title", Type: "text"},
+					{Name: "description", Type: "text"},
+					{Name: "status", Type: "enum"},
+					{Name: "priority", Type: "enum"},
+					{Name: "due", Type: "datetime"},
+				},
+				Relations: []*ir.Relation{
+					{Kind: "belongs_to", Target: "User"},
+					{Kind: "has_many_through", Target: "Tag", Through: "TaskTag"},
+				},
+			},
+			{
+				Name:   "Tag",
+				Fields: []*ir.DataField{{Name: "name", Type: "text"}},
+			},
+			{
+				Name: "TaskTag",
+				Relations: []*ir.Relation{
+					{Kind: "belongs_to", Target: "Task"},
+					{Kind: "belongs_to", Target: "Tag"},
+				},
+			},
+		},
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{
+				{Type: "interact", Text: "clicking the \"Get Started\" button navigates to Dashboard"},
+			}},
+			{Name: "Dashboard", Content: []*ir.Action{{Type: "display", Text: "show tasks"}}},
+			{Name: "Profile", Content: []*ir.Action{{Type: "display", Text: "show user info"}}},
+		},
+		APIs: []*ir.Endpoint{
+			{Name: "SignUp", Steps: []*ir.Action{{Type: "create", Text: "create a User with name, email, password"}}},
+			{Name: "Login"},
+			{Name: "CreateTask", Auth: true, Steps: []*ir.Action{{Type: "create", Text: "create a Task with title, description"}}},
+			{Name: "GetTasks", Auth: true, Steps: []*ir.Action{{Type: "query", Text: "fetch the Task list"}}},
+			{Name: "UpdateTask", Auth: true, Steps: []*ir.Action{{Type: "update", Text: "update the Task with provided fields"}}},
+			{Name: "DeleteTask", Auth: true, Steps: []*ir.Action{{Type: "delete", Text: "delete the Task"}}},
+		},
+		Auth: &ir.Auth{
+			Methods: []*ir.AuthMethod{{Type: "jwt"}},
+		},
+		Database: &ir.DatabaseConfig{
+			Engine: "PostgreSQL",
+			Indexes: []*ir.Index{
+				{Entity: "User", Fields: []string{"email"}},
+				{Entity: "Task", Fields: []string{"user", "status"}},
+				{Entity: "Task", Fields: []string{"due date"}},
+			},
+		},
+		Config: &ir.BuildConfig{
+			Frontend: "React with TypeScript",
+			Backend:  "Node with Express",
+			Database: "PostgreSQL",
+			Deploy:   "Docker",
+		},
+	}
+
+	errs := Analyze(app, "app.human")
+	if errs.HasErrors() {
+		t.Fatalf("expected no errors on taskflow-like app, got:\n%s", errs.Format())
+	}
+}
+
+// ── Test helpers ──
+
+func assertCode(t *testing.T, errs []*cerr.CompilerError, code string) {
+	t.Helper()
+	for _, e := range errs {
+		if e.Code == code {
+			return
+		}
+	}
+	t.Errorf("expected at least one error with code %s, found none", code)
+}
+
+func assertSuggestion(t *testing.T, errs []*cerr.CompilerError, contains string) {
+	t.Helper()
+	for _, e := range errs {
+		if strings.Contains(e.Suggestion, contains) {
+			return
+		}
+	}
+	t.Errorf("expected a suggestion containing %q, found none", contains)
+}
