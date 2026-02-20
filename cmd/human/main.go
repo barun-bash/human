@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/barun-bash/human/internal/codegen/node"
 	"github.com/barun-bash/human/internal/codegen/react"
 	"github.com/barun-bash/human/internal/ir"
 	"github.com/barun-bash/human/internal/parser"
@@ -181,6 +182,16 @@ func cmdBuild() {
 			os.Exit(1)
 		}
 		fmt.Printf("  react:        %s/\n", reactDir)
+	}
+
+	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Backend), "node") {
+		nodeDir := filepath.Join(".human", "output", "node")
+		g := node.Generator{}
+		if err := g.Generate(app, nodeDir); err != nil {
+			fmt.Fprintf(os.Stderr, "Node codegen error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("  node:         %s/\n", nodeDir)
 	}
 }
 
