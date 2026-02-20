@@ -407,7 +407,7 @@
     <div class="nav-inner">
       <a href="index.html" class="nav-logo">human<span>_</span></a>
       <div class="nav-links">
-        <a href="getting-started.html" class="active">Getting Started</a>
+        <a href="getting-started.html" class="active">Get Started</a>
         <a href="language-spec.html">Language Spec</a>
         <a href="roadmap.html">Roadmap</a>
         <a href="manifesto.html">Manifesto</a>
@@ -428,6 +428,34 @@
 
   <!-- TUTORIAL -->
   <div class="tutorial">
+
+    <!-- ── Step 0: Install ── -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">0</div>
+        <h2 class="step-title">Install</h2>
+      </div>
+      <p class="step-text">
+        Human is distributed as a single Go binary. Install it with one command, then verify it's working.
+      </p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">terminal</span>
+        </div>
+        <div class="code-body"><pre><span class="cm"># Install the compiler</span>
+<span class="kw">$</span> go install github.com/barun-bash/human/cmd/human@latest
+
+<span class="cm"># Verify it's installed</span>
+<span class="kw">$</span> human version</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">Requirements</div>
+        <p><strong>Go 1.21+</strong> is required. If you don't have Go installed, get it from <a href="https://go.dev/dl/" target="_blank" rel="noopener">go.dev/dl</a>. After installing, make sure <code>$GOPATH/bin</code> is in your <code>PATH</code>.</p>
+      </div>
+    </div>
 
     <!-- ── Step 1: Your first app ── -->
     <div class="step reveal">
@@ -777,6 +805,11 @@
           <p>Human is open source and built in public. The compiler, docs, and tooling all welcome contributions.</p>
           <span class="arrow">Get involved &rarr;</span>
         </a>
+        <a href="https://github.com/barun-bash/human/blob/main/ARCHITECTURE.md" class="next-card" target="_blank" rel="noopener">
+          <h3>Architecture</h3>
+          <p>Understand how the compiler works: lexer, parser, Intent IR, code generators, and the quality engine.</p>
+          <span class="arrow">Read the architecture &rarr;</span>
+        </a>
         <a href="https://github.com/barun-bash/human" class="next-card" target="_blank" rel="noopener">
           <h3>GitHub</h3>
           <p>Star the repository to follow development. Watch for updates as new compiler phases ship each week.</p>
@@ -792,12 +825,12 @@
     <div>
       <div class="footer-logo">human<span class="footer-cursor">_</span></div>
       <nav class="footer-links">
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
         <a href="getting-started.html">Getting Started</a>
+        <a href="contributing.html">Contributing</a>
+        <a href="manifesto.html">Manifesto</a>
         <a href="language-spec.html">Language Spec</a>
         <a href="roadmap.html">Roadmap</a>
-        <a href="manifesto.html">Manifesto</a>
-        <a href="contributing.html">Contributing</a>
-        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
       </nav>
       <p class="footer-copy">MIT License &middot; Built with intent.</p>
     </div>

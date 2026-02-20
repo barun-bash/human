@@ -149,7 +149,15 @@
       margin-bottom: 48px;
     }
 
-    .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
+    .hero-status {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .hero-status a {
+      color: var(--accent);
+      font-weight: 600;
+    }
 
     .btn {
       display: inline-flex;
@@ -417,6 +425,37 @@
     }
 
     /* ══════════════════════════════════════════════
+       4B. QUICK START
+       ══════════════════════════════════════════════ */
+    .quickstart {
+      padding: 96px 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .quickstart h2 {
+      font-weight: 700;
+      font-size: 32px;
+      margin-bottom: 12px;
+      color: #F5F5F3;
+    }
+    .quickstart-sub {
+      font-size: 18px;
+      color: var(--text-muted);
+      margin-bottom: 40px;
+    }
+    .quickstart-terminal {
+      max-width: 640px;
+      margin: 0 auto;
+      text-align: left;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .qs-prompt { color: var(--accent); font-weight: 700; }
+    .qs-comment { color: var(--text-muted); font-style: italic; }
+
+    /* ══════════════════════════════════════════════
        5. SUPPORTED TARGETS
        ══════════════════════════════════════════════ */
     .targets {
@@ -503,7 +542,7 @@
 
     .involve-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 24px;
     }
     .involve-card {
@@ -650,6 +689,9 @@
       <div class="hero-buttons">
         <a href="getting-started.html" class="btn btn-primary">Get Started</a>
         <a href="https://github.com/barun-bash/human" class="btn btn-secondary" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="hero-status">
+        <a href="roadmap.html">Phase 3 in progress</a> — Code generators shipping. 27 files from a single .human file.
       </div>
     </div>
   </section>
@@ -806,6 +848,25 @@
     </div>
   </section>
 
+  <!-- 4B. QUICK START -->
+  <section class="quickstart">
+    <div class="container">
+      <h2 class="reveal">Quick start</h2>
+      <p class="quickstart-sub reveal">Three commands. That's it.</p>
+      <div class="quickstart-terminal reveal reveal-delay-1">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">terminal</span>
+        </div>
+        <div class="code-body"><pre><span class="qs-prompt">$</span> go install github.com/barun-bash/human/cmd/human@latest
+<span class="qs-prompt">$</span> human check      <span class="qs-comment"># validate your .human files</span>
+<span class="qs-prompt">$</span> human build      <span class="qs-comment"># compile to production-ready code</span></pre></div>
+      </div>
+    </div>
+  </section>
+
   <!-- 5. SUPPORTED TARGETS -->
   <section class="targets">
     <div class="container">
@@ -870,16 +931,21 @@
       <p class="reveal">Human is open source and community-driven. Here's how you can be part of it.</p>
       <div class="involve-grid">
         <div class="involve-card reveal reveal-delay-1">
+          <h3>Getting Started</h3>
+          <p>New here? Follow the step-by-step guide to build your first app in 5 minutes.</p>
+          <a href="getting-started.html" class="btn btn-ghost">Start building &rarr;</a>
+        </div>
+        <div class="involve-card reveal reveal-delay-2">
           <h3>Contribute</h3>
           <p>We're building in public. The parser, code generators, and documentation all need help. Every contribution matters.</p>
           <a href="contributing.html" class="btn btn-ghost">Read the guide &rarr;</a>
         </div>
-        <div class="involve-card reveal reveal-delay-2">
+        <div class="involve-card reveal reveal-delay-3">
           <h3>Star on GitHub</h3>
           <p>Stars help others discover the project. If you think software should be easier to build, let people know.</p>
           <a href="https://github.com/barun-bash/human" class="btn btn-ghost" target="_blank" rel="noopener">Star the repo &rarr;</a>
         </div>
-        <div class="involve-card reveal reveal-delay-3">
+        <div class="involve-card reveal reveal-delay-4">
           <h3>Stay updated</h3>
           <p>Watch the repository to follow development progress. We ship updates and write about every phase.</p>
           <a href="https://github.com/barun-bash/human/watchers" class="btn btn-ghost" target="_blank" rel="noopener">Watch the repo &rarr;</a>
@@ -894,6 +960,7 @@
       <div class="footer-logo">human<span class="footer-cursor">_</span></div>
       <nav class="footer-links">
         <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+        <a href="getting-started.html">Getting Started</a>
         <a href="contributing.html">Contributing</a>
         <a href="manifesto.html">Manifesto</a>
         <a href="language-spec.html">Language Spec</a>

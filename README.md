@@ -197,7 +197,7 @@ my-app/
 
 ## Project Status
 
-**Phase 2 complete** — Lexer, parser, and Intent IR are built. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full 52-week development plan.
+**Phase 3 in progress** — Lexer, parser, Intent IR, and code generators (React, Node, PostgreSQL, Docker) are built. 27 files generated from a single .human file. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full 52-week development plan.
 
 ---
 
