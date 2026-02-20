@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/barun-bash/human/internal/codegen/react"
 	"github.com/barun-bash/human/internal/ir"
 	"github.com/barun-bash/human/internal/parser"
 )
@@ -170,6 +171,17 @@ func cmdBuild() {
 	// Print summary
 	fmt.Printf("Built %s → %s\n", file, outFile)
 	printIRSummary(app)
+
+	// Run code generators based on build config
+	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Frontend), "react") {
+		reactDir := filepath.Join(".human", "output", "react")
+		g := react.Generator{}
+		if err := g.Generate(app, reactDir); err != nil {
+			fmt.Fprintf(os.Stderr, "React codegen error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("  react:        %s/\n", reactDir)
+	}
 }
 
 func printIRSummary(app *ir.Application) {
