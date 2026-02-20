@@ -10,6 +10,7 @@
   <br>
   Write in structured English. Get production-ready applications.
   <br><br>
+  <a href="https://github.com/barun-bash/human/releases/tag/v0.1.1"><img src="https://img.shields.io/badge/release-v0.1.1-E85D3A.svg" alt="v0.1.1"></a>&nbsp;
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>&nbsp;
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8.svg" alt="Go 1.21+"></a>&nbsp;
   <a href="https://barun-bash.github.io/human/"><img src="https://img.shields.io/badge/website-live-E85D3A.svg" alt="Website"></a>
@@ -116,23 +117,20 @@ The **Intent IR** is the key innovation — a typed, serializable, framework-agn
 ## Quick Start
 
 ```bash
-# Install
-go install github.com/barun-bash/human/cmd/human@latest
+# Install (requires Go 1.21+)
+go install github.com/barun-bash/human/cmd/human@v0.1.1
 
-# Create a project
-human init my-app
-cd my-app
+# Make sure Go binaries are in your PATH
+export PATH="$PATH:$(go env GOPATH)/bin"
 
-# Write your app (open app.human in any editor)
+# Validate a .human file
+human check examples/taskflow/app.human
 
-# Validate
-human check
+# Compile to a full-stack project
+human build examples/taskflow/app.human
 
-# Build
-human build
-
-# Run
-human run
+# Run the generated project
+cd .human/output && bash start.sh
 ```
 
 ---
@@ -197,7 +195,7 @@ my-app/
 
 ## Project Status
 
-**Phases 1–5 + Scaffolder complete** — Lexer, parser, Intent IR, code generators (React, Node, PostgreSQL, Docker), Quality Engine, project scaffolder, and CLI are built. 139 tests passing. 45 files generated from a single .human file. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full development plan.
+**[v0.1.1 released](https://github.com/barun-bash/human/releases/tag/v0.1.1)** — Lexer (47 tests), parser + Intent IR (66 tests), code generators for React/Node/PostgreSQL/Docker (57 tests), quality engine with test generation, security audit, and lint (26 tests), CLI commands (`check`, `build`, `build --inspect`, `version`), and project scaffolder that makes output runnable with `start.sh`. 196 tests passing. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full development plan.
 
 ---
 
