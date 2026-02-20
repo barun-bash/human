@@ -48,6 +48,48 @@
     a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
     a:hover { color: #F5F5F3; }
 
+    /* ── Site Nav ── */
+    .site-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13, 13, 13, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .nav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: -1px;
+      color: #F5F5F3;
+    }
+    .nav-logo:hover { color: #F5F5F3; }
+    .nav-logo span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a {
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: #F5F5F3; }
+
     /* ── Animations ── */
     .reveal {
       opacity: 0;
@@ -557,6 +599,8 @@
     }
 
     @media (max-width: 600px) {
+      .nav-links { gap: 16px; }
+      .nav-links a { font-size: 13px; }
       .hero { padding: 80px 20px 64px; min-height: auto; }
       .hero-subtitle { font-size: 17px; }
       .hero-buttons { flex-direction: column; align-items: center; }
@@ -581,6 +625,20 @@
   </style>
 </head>
 <body>
+
+  <!-- NAV -->
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">human<span>_</span></a>
+      <div class="nav-links">
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+        <a href="manifesto.html">Manifesto</a>
+        <a href="contributing.html">Contributing</a>
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </nav>
 
   <!-- 1. HERO -->
   <section class="hero">
@@ -800,7 +858,7 @@
     <div class="manifesto-inner reveal">
       <blockquote>Software is broken. Not the code&nbsp;&mdash; the process.</blockquote>
       <p>We're building the language that closes the gap between human intent and working software.</p>
-      <a href="https://github.com/barun-bash/human/blob/main/MANIFESTO.md" target="_blank" rel="noopener">Read the manifesto &rarr;</a>
+      <a href="manifesto.html">Read the manifesto &rarr;</a>
     </div>
   </section>
 
@@ -836,7 +894,7 @@
       <nav class="footer-links">
         <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
         <a href="contributing.html">Contributing</a>
-        <a href="https://github.com/barun-bash/human/blob/main/MANIFESTO.md" target="_blank" rel="noopener">Manifesto</a>
+        <a href="manifesto.html">Manifesto</a>
         <a href="language-spec.html">Language Spec</a>
         <a href="roadmap.html">Roadmap</a>
       </nav>

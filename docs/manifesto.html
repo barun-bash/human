@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manifesto — human_</title>
+  <meta name="description" content="The Human Manifesto. Software is broken. Not the code — the process. We're building the language that closes the gap between human intent and working software.">
+  <meta property="og:title" content="The Human Manifesto — human_">
+  <meta property="og:description" content="Software is broken. Not the code — the process. We're building the language that closes the gap between human intent and working software.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230D0D0D'/><text x='4' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23F5F5F3'>h</text><text x='18' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23E85D3A'>_</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+    :root {
+      --bg: #0D0D0D;
+      --bg-raised: #141414;
+      --bg-surface: #1A1A1A;
+      --text: #E8E8E4;
+      --text-muted: #7A7A7A;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --accent: #E85D3A;
+      --accent-dark: #C44A2D;
+      --success: #2D8C5A;
+      --font-logo: 'Nunito', sans-serif;
+      --font: 'Nunito Sans', system-ui, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+      --nav-height: 60px;
+    }
+
+    body {
+      font-family: var(--font);
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: #F5F5F3; }
+
+    /* ── Animations ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* ══════════════════════════════════════════════
+       NAVIGATION BAR
+       ══════════════════════════════════════════════ */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      height: var(--nav-height);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+    }
+    .navbar-inner {
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar-logo {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: -1px;
+      color: #F5F5F3;
+      text-decoration: none;
+    }
+    .navbar-logo:hover { color: #F5F5F3; }
+    .navbar-logo-cursor { color: var(--accent); }
+
+    .navbar-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+    .navbar-links a {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .navbar-links a:hover { color: #F5F5F3; }
+    .navbar-links a.active { color: var(--accent); }
+    .navbar-links a.gh-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .navbar-links a.gh-link svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    /* ══════════════════════════════════════════════
+       ESSAY LAYOUT
+       ══════════════════════════════════════════════ */
+    .essay {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Hero / Title ── */
+    .essay-hero {
+      padding: 96px 0 64px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 64px;
+    }
+    .essay-hero-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+    .essay-hero h1 {
+      font-family: var(--font);
+      font-weight: 700;
+      font-size: clamp(36px, 6vw, 52px);
+      line-height: 1.15;
+      color: #F5F5F3;
+      margin-bottom: 20px;
+      letter-spacing: -0.5px;
+    }
+    .essay-hero .subtitle {
+      font-size: clamp(18px, 3vw, 22px);
+      color: var(--text-muted);
+      line-height: 1.5;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* ── Body Text ── */
+    .essay-body {
+      padding-bottom: 96px;
+    }
+    .essay-body p {
+      font-size: 18px;
+      line-height: 1.78;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+
+    /* ── Section Headings (h2) ── */
+    .essay-body h2 {
+      font-weight: 700;
+      font-size: 28px;
+      line-height: 1.3;
+      color: #F5F5F3;
+      margin-top: 64px;
+      margin-bottom: 28px;
+      padding-left: 20px;
+      border-left: 3px solid var(--accent);
+    }
+
+    /* ── Dividers ── */
+    .essay-divider {
+      border: none;
+      height: 1px;
+      background: var(--border);
+      margin: 56px 0;
+    }
+
+    /* ── Blockquotes / Italic lines ── */
+    .essay-body blockquote {
+      font-style: italic;
+      font-size: 19px;
+      line-height: 1.7;
+      color: #F5F5F3;
+      padding: 16px 0 16px 24px;
+      border-left: 3px solid var(--accent);
+      margin: 32px 0;
+      background: transparent;
+    }
+    .essay-body blockquote p {
+      margin-bottom: 8px;
+      font-size: 19px;
+      color: #F5F5F3;
+    }
+    .essay-body blockquote p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* ── Code Window ── */
+    .code-window {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 36px 0;
+    }
+    .code-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .code-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .code-dot-accent { background: var(--accent); opacity: 0.8; }
+    .code-dot-dim { background: var(--text-muted); opacity: 0.25; }
+    .code-filename {
+      font-family: var(--font-code);
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-left: 8px;
+    }
+    .code-body { padding: 24px; overflow-x: auto; }
+    .code-body pre {
+      font-family: var(--font-code);
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      margin: 0;
+      white-space: pre;
+    }
+    .code-body .kw { color: var(--accent); }
+    .code-body .str { color: var(--success); }
+
+    .essay-body .post-code {
+      font-size: 18px;
+      line-height: 1.78;
+      color: var(--text);
+      margin-top: 28px;
+      margin-bottom: 24px;
+    }
+
+    /* ── Beliefs (numbered sections) ── */
+    .belief {
+      margin-bottom: 48px;
+    }
+    .belief-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .belief-number {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 32px;
+      color: var(--accent);
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .belief-title {
+      font-weight: 700;
+      font-size: 22px;
+      color: #F5F5F3;
+      line-height: 1.3;
+    }
+    .belief p {
+      font-size: 18px;
+      line-height: 1.78;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .belief p:last-child {
+      margin-bottom: 0;
+    }
+    .belief strong { color: #F5F5F3; }
+    .belief code {
+      font-family: var(--font-code);
+      font-size: 15px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+      color: var(--accent);
+    }
+
+    /* ── Audience section ── */
+    .audience-item {
+      margin-bottom: 28px;
+    }
+    .audience-label {
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .audience-item p {
+      font-size: 18px;
+      line-height: 1.78;
+      color: var(--text);
+      margin-bottom: 0;
+    }
+    .audience-item code {
+      font-family: var(--font-code);
+      font-size: 15px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+      color: var(--accent);
+    }
+    .audience-item em {
+      color: var(--text-muted);
+    }
+
+    /* ── "What Human is not" section ── */
+    .contrast-item {
+      margin-bottom: 28px;
+    }
+    .contrast-item .contrast-label {
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .contrast-item p {
+      font-size: 18px;
+      line-height: 1.78;
+      color: var(--text);
+      margin-bottom: 0;
+    }
+
+    /* ── Closing quote ── */
+    .closing-quote {
+      text-align: center;
+      padding: 48px 0 0;
+      margin-top: 56px;
+      border-top: 1px solid var(--border);
+    }
+    .closing-quote p {
+      font-style: italic;
+      font-size: clamp(20px, 3.5vw, 26px);
+      line-height: 1.5;
+      color: #F5F5F3;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ══════════════════════════════════════════════
+       FOOTER
+       ══════════════════════════════════════════════ */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 56px 24px 40px;
+      text-align: center;
+      margin-top: 96px;
+    }
+    .footer-logo {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 26px;
+      letter-spacing: -1px;
+      margin-bottom: 24px;
+      color: #F5F5F3;
+    }
+    .footer-cursor { color: var(--accent); }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .footer-links a:hover { color: #F5F5F3; }
+
+    .footer-copy {
+      font-size: 13px;
+      color: rgba(122, 122, 122, 0.5);
+    }
+
+    /* ══════════════════════════════════════════════
+       RESPONSIVE
+       ══════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .navbar-links { gap: 16px; }
+      .navbar-links a { font-size: 13px; }
+
+      .essay-hero { padding: 64px 0 48px; margin-bottom: 48px; }
+      .essay-body p { font-size: 16px; line-height: 1.75; }
+      .essay-body h2 { font-size: 24px; margin-top: 48px; margin-bottom: 20px; }
+      .essay-body blockquote { font-size: 17px; }
+      .essay-body blockquote p { font-size: 17px; }
+      .belief-number { font-size: 28px; }
+      .belief-title { font-size: 19px; }
+      .belief p { font-size: 16px; }
+      .audience-label { font-size: 16px; }
+      .audience-item p { font-size: 16px; }
+      .contrast-item .contrast-label { font-size: 16px; }
+      .contrast-item p { font-size: 16px; }
+      .essay-divider { margin: 40px 0; }
+      .code-body { padding: 16px; }
+      .code-body pre { font-size: 13px; }
+      .closing-quote p { font-size: 18px; }
+      .footer-links { gap: 16px; }
+    }
+
+    @media (max-width: 480px) {
+      .navbar-links a.nav-hide-mobile { display: none; }
+      .essay-hero { padding: 48px 0 36px; margin-bottom: 36px; }
+      .essay-body h2 { font-size: 22px; padding-left: 16px; }
+      .belief-header { gap: 8px; }
+      .belief-number { font-size: 24px; }
+      .belief-title { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVIGATION BAR -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-logo">human<span class="navbar-logo-cursor">_</span></a>
+      <div class="navbar-links">
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+        <a href="manifesto.html" class="active">Manifesto</a>
+        <a href="contributing.html" class="nav-hide-mobile">Contributing</a>
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener" class="gh-link">
+          <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ESSAY -->
+  <article class="essay">
+
+    <!-- Hero -->
+    <header class="essay-hero reveal">
+      <div class="essay-hero-label">Manifesto</div>
+      <h1>The Human Manifesto</h1>
+      <p class="subtitle">We have a translation problem. And it is costing us everything.</p>
+    </header>
+
+    <!-- Body -->
+    <div class="essay-body">
+
+      <!-- Section: Software is broken -->
+      <section class="reveal">
+        <h2>Software is broken. Not the code&nbsp;&mdash; the process.</h2>
+
+        <p>We have mass-produced more software in the last decade than in the previous fifty years combined. And yet, building software remains one of the most wasteful human activities on the planet.</p>
+
+        <p>A feature that takes two sentences to describe takes two weeks to ship. A page that a designer mocks up in an afternoon takes a team of engineers a sprint to build. A product that a founder can sketch on a napkin takes six months and six figures before a single user touches it.</p>
+
+        <p>This is not because software is inherently complex. It&rsquo;s because we&rsquo;ve been speaking the wrong language.</p>
+      </section>
+
+      <hr class="essay-divider">
+
+      <!-- Section: The gap is linguistic -->
+      <section class="reveal">
+        <h2>The gap is not technical. It&rsquo;s linguistic.</h2>
+
+        <p>Every piece of software begins as an idea expressed in English.</p>
+
+        <blockquote>
+          <p>&ldquo;I want a dashboard that shows my team&rsquo;s tasks, sorted by deadline.&rdquo;</p>
+          <p>&ldquo;When a user signs up, send them a welcome email.&rdquo;</p>
+          <p>&ldquo;Only admins can delete published content.&rdquo;</p>
+        </blockquote>
+
+        <p>These statements are precise. They are unambiguous. They contain everything a machine needs to produce working software.</p>
+
+        <p>And yet, between this English and the running application, we force every idea through layers of translation&nbsp;&mdash; from English to user stories, to designs, to tickets, to code, to tests, to deployments. Each translation introduces delay. Each handoff introduces error. Each layer employs people whose primary job is to translate, not to create.</p>
+
+        <p>We don&rsquo;t have a technology problem. We have a translation problem.</p>
+      </section>
+
+      <hr class="essay-divider">
+
+      <!-- Section: What if English was the code? -->
+      <section class="reveal">
+        <h2>What if English was the code?</h2>
+
+        <p>Not pseudocode. Not prompts. Not &ldquo;low-code&rdquo; drag-and-drop with hidden limitations. Not AI hallucinations wrapped in a chat interface.</p>
+
+        <p>Actual, compilable English. Structured enough to be deterministic. Natural enough to be readable by anyone. Powerful enough to produce full-stack, production-grade, tested, secure, deployable applications.</p>
+
+        <p>That&rsquo;s Human.</p>
+
+        <div class="code-window">
+          <div class="code-titlebar">
+            <span class="code-dot code-dot-accent"></span>
+            <span class="code-dot code-dot-dim"></span>
+            <span class="code-dot code-dot-dim"></span>
+            <span class="code-filename">taskflow.human</span>
+          </div>
+          <div class="code-body"><pre><span class="kw">app</span> TaskFlow <span class="kw">is a</span> web application
+
+<span class="kw">data</span> Task:
+  <span class="kw">belongs to a</span> User
+  <span class="kw">has a</span> title <span class="kw">which is</span> text
+  <span class="kw">has a</span> status <span class="kw">which is either</span> <span class="str">"pending"</span> <span class="kw">or</span> <span class="str">"done"</span>
+  <span class="kw">has a</span> due date
+
+<span class="kw">page</span> Dashboard:
+  <span class="kw">show</span> a list of all tasks sorted by due date
+  clicking a task toggles its status
+  <span class="kw">if</span> no tasks match, <span class="kw">show</span> <span class="str">"No tasks found"</span>
+
+<span class="kw">api</span> CreateTask:
+  <span class="kw">requires</span> authentication
+  <span class="kw">accepts</span> title and due date
+  <span class="kw">check that</span> title is not empty
+  <span class="kw">create</span> the task for the current user
+  <span class="kw">respond with</span> the created task</pre>
+          </div>
+        </div>
+
+        <p class="post-code">Read it once. You understand the entire application. That&rsquo;s the point.</p>
+      </section>
+
+      <hr class="essay-divider">
+
+      <!-- Section: Our beliefs -->
+      <section class="reveal">
+        <h2>Our beliefs</h2>
+
+        <div class="belief reveal">
+          <div class="belief-header">
+            <span class="belief-number">1.</span>
+            <span class="belief-title">If you can describe it, you can build it.</span>
+          </div>
+          <p>The ability to build software should not be gated by knowing that a React <code>useEffect</code> hook needs a dependency array, or that your Express middleware has to call <code>next()</code>, or that PostgreSQL requires <code>ON DELETE CASCADE</code> on a foreign key.</p>
+          <p>These are implementation details. They have nothing to do with what the software does.</p>
+          <p>Human separates <strong>intent</strong> from <strong>implementation</strong>. You describe what you want. The compiler handles the how.</p>
+        </div>
+
+        <div class="belief reveal">
+          <div class="belief-header">
+            <span class="belief-number">2.</span>
+            <span class="belief-title">Determinism over magic.</span>
+          </div>
+          <p>Every LLM-powered tool on the market right now has the same fundamental problem: you cannot trust the output. Run the same prompt twice, get different code. Subtle bugs. Missing edge cases. Hallucinated APIs.</p>
+          <p>Human is a compiler, not a chatbot. The same <code>.human</code> file always produces the same output. No randomness. No temperature settings. No &ldquo;try again and hope for the better.&rdquo; If it compiles, it works.</p>
+          <p>AI is available as an <em>optional</em> enhancement&nbsp;&mdash; for interpreting freeform English, suggesting patterns, or importing designs. But the core compiler runs without any AI dependency. You can build on an airplane.</p>
+        </div>
+
+        <div class="belief reveal">
+          <div class="belief-header">
+            <span class="belief-number">3.</span>
+            <span class="belief-title">Quality is not optional.</span>
+          </div>
+          <p>In the traditional workflow, testing is a chore that gets cut when deadlines loom. Security audits happen quarterly, if at all. Code quality is enforced by linters that developers disable when they&rsquo;re annoyed.</p>
+          <p>In Human, quality is part of the compiler. You cannot build without tests. You cannot deploy without a security audit. You cannot ship code that doesn&rsquo;t meet the quality bar.</p>
+          <p>This isn&rsquo;t about being strict for the sake of it. It&rsquo;s about recognizing that every shortcut in quality becomes a tax on every future change. Human eliminates the shortcut entirely.</p>
+        </div>
+
+        <div class="belief reveal">
+          <div class="belief-header">
+            <span class="belief-number">4.</span>
+            <span class="belief-title">The developer chooses the target, not the language.</span>
+          </div>
+          <p>Your business requirements don&rsquo;t change because your frontend team prefers Vue over React. Your data model doesn&rsquo;t change because you&rsquo;re deploying to AWS instead of GCP.</p>
+          <p>Human is target-agnostic. The same <code>.human</code> source compiles to React, Angular, Vue, Svelte, or HTMX. The same backend logic compiles to Node, Python, Go, or Rust. Switch frameworks without rewriting your application. That&rsquo;s not a feature&nbsp;&mdash; it&rsquo;s the architecture.</p>
+        </div>
+
+        <div class="belief reveal">
+          <div class="belief-header">
+            <span class="belief-number">5.</span>
+            <span class="belief-title">Generated code belongs to you.</span>
+          </div>
+          <p>Human is not a platform. There is no vendor lock-in. There is no runtime dependency. There is no monthly subscription required to keep your app running.</p>
+          <p><code>human eject</code> gives you a clean, readable, well-structured codebase in the framework of your choice. Walk away with your code any time. We believe the best way to earn trust is to never require it.</p>
+        </div>
+
+        <div class="belief reveal">
+          <div class="belief-header">
+            <span class="belief-number">6.</span>
+            <span class="belief-title">Design is a first-class input.</span>
+          </div>
+          <p>In most workflows, a designer creates a Figma mockup, then an engineer recreates it from scratch in code. The mockup becomes a suggestion, not a source of truth.</p>
+          <p>In Human, Figma files, images, and screenshots are compiler inputs alongside English. The design is not an inspiration&nbsp;&mdash; it&rsquo;s part of the specification.</p>
+        </div>
+      </section>
+
+      <hr class="essay-divider">
+
+      <!-- Section: Who is Human for? -->
+      <section class="reveal">
+        <h2>Who is Human for?</h2>
+
+        <div class="audience-item">
+          <div class="audience-label">Founders</div>
+          <p>Who can describe their product but can&rsquo;t build it. Write a <code>.human</code> file. Get a working application. Iterate from there.</p>
+        </div>
+
+        <div class="audience-item">
+          <div class="audience-label">Developers</div>
+          <p>Who are tired of boilerplate. Stop writing the same CRUD endpoints, the same auth flows, the same CI/CD pipelines. Describe what&rsquo;s unique about your application and let the compiler handle the infrastructure.</p>
+        </div>
+
+        <div class="audience-item">
+          <div class="audience-label">Teams</div>
+          <p>Where the gap between &ldquo;what we want&rdquo; and &ldquo;what we shipped&rdquo; keeps growing. Human makes the specification the source code. When the spec changes, the application changes. No translation layer.</p>
+        </div>
+
+        <div class="audience-item">
+          <div class="audience-label">Agencies</div>
+          <p>That build similar applications for different clients. Write the pattern once in Human, swap the data models and branding, compile to the client&rsquo;s preferred stack.</p>
+        </div>
+
+        <div class="audience-item">
+          <div class="audience-label">Anyone</div>
+          <p>Who has ever looked at a piece of software and thought: <em>&ldquo;Why did this take so long to build?&rdquo;</em></p>
+        </div>
+      </section>
+
+      <hr class="essay-divider">
+
+      <!-- Section: What Human is not -->
+      <section class="reveal">
+        <h2>What Human is not</h2>
+
+        <div class="contrast-item">
+          <div class="contrast-label">Human is not AI-generated code.</div>
+          <p>It is compiled code. There is a critical difference. AI-generated code is probabilistic&nbsp;&mdash; it might work, it might not, and you won&rsquo;t know until you test it. Compiled code is deterministic&nbsp;&mdash; it either compiles or it doesn&rsquo;t, and if it compiles, the output is guaranteed to match the specification.</p>
+        </div>
+
+        <div class="contrast-item">
+          <div class="contrast-label">Human is not no-code.</div>
+          <p>No-code tools trade power for simplicity. You get a working prototype fast, but the moment you need something custom, you hit a wall. Human has no walls. The language is expressive enough to describe any application, and when you eject, you have full source code to extend however you like.</p>
+        </div>
+
+        <div class="contrast-item">
+          <div class="contrast-label">Human is not a framework.</div>
+          <p>Frameworks are opinions about how to organize code. Human is a language that compiles to frameworks. It sits above them, not beside them.</p>
+        </div>
+      </section>
+
+      <hr class="essay-divider">
+
+      <!-- Section: The road ahead -->
+      <section class="reveal">
+        <h2>The road ahead</h2>
+
+        <p>Human is in early development. The language specification is stable. The compiler is being built from scratch in Go. The path is long and the scope is ambitious.</p>
+
+        <p>We are building in public because we believe this idea is bigger than any one team. If this resonates with you&nbsp;&mdash; if you&rsquo;ve felt the frustration of translating ideas into code, if you&rsquo;ve watched good software take too long to build, if you believe there&rsquo;s a better way&nbsp;&mdash; we want to hear from you.</p>
+
+        <p>The gap between human intent and working software has existed since the first line of code was written. We think it&rsquo;s time to close it.</p>
+      </section>
+
+      <!-- Closing quote -->
+      <div class="closing-quote reveal">
+        <p>Human: the programming language where you describe what you want, and get what you described.</p>
+      </div>
+
+    </div>
+  </article>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div>
+      <div class="footer-logo">human<span class="footer-cursor">_</span></div>
+      <nav class="footer-links">
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+        <a href="contributing.html">Contributing</a>
+        <a href="manifesto.html">Manifesto</a>
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+      </nav>
+      <p class="footer-copy">MIT License &middot; Built with intent.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var els = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window)) {
+        els.forEach(function (el) { el.classList.add('visible'); });
+        return;
+      }
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+      els.forEach(function (el) { obs.observe(el); });
+    });
+  </script>
+</body>
+</html>

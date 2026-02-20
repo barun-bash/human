@@ -15,9 +15,10 @@
   <a href="https://barun-bash.github.io/human/"><img src="https://img.shields.io/badge/website-live-E85D3A.svg" alt="Website"></a>
   <br><br>
   <a href="https://barun-bash.github.io/human/">Website</a> &middot;
-  <a href="LANGUAGE_SPEC.md">Language Spec</a> &middot;
-  <a href="ROADMAP.md">Roadmap</a> &middot;
-  <a href="CONTRIBUTING.md">Contributing</a> &middot;
+  <a href="https://barun-bash.github.io/human/language-spec.html">Language Spec</a> &middot;
+  <a href="https://barun-bash.github.io/human/roadmap.html">Roadmap</a> &middot;
+  <a href="https://barun-bash.github.io/human/manifesto.html">Manifesto</a> &middot;
+  <a href="https://barun-bash.github.io/human/contributing.html">Contributing</a> &middot;
   <a href="https://github.com/barun-bash/human/issues">Support</a>
   <br><br>
 </div>
@@ -195,7 +196,7 @@ my-app/
 
 ## Project Status
 
-**Phase 2 complete** — Lexer, parser, and Intent IR are built. See the [Roadmap](ROADMAP.md) for the full 52-week development plan.
+**Phase 2 complete** — Lexer, parser, and Intent IR are built. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full 52-week development plan.
 
 ---
 
@@ -203,11 +204,11 @@ my-app/
 
 | Document | Description |
 |----------|-------------|
-| [Language Spec](LANGUAGE_SPEC.md) | Complete grammar reference |
+| [Language Spec](https://barun-bash.github.io/human/language-spec.html) | Complete grammar reference |
 | [Architecture](ARCHITECTURE.md) | Compiler design and internals |
-| [Roadmap](ROADMAP.md) | 52-week development plan |
-| [Manifesto](MANIFESTO.md) | Why Human exists |
-| [Contributing](CONTRIBUTING.md) | How to contribute |
+| [Roadmap](https://barun-bash.github.io/human/roadmap.html) | 52-week development plan |
+| [Manifesto](https://barun-bash.github.io/human/manifesto.html) | Why Human exists |
+| [Contributing](https://barun-bash.github.io/human/contributing.html) | How to contribute |
 | [Examples](examples/) | Sample applications |
 
 ---
@@ -228,7 +229,7 @@ Requires Go 1.21+.
 
 ## Contributing
 
-Human is open source under the MIT license. Contributions, ideas, and feedback are welcome. Read the [contributing guide](CONTRIBUTING.md) to get started.
+Human is open source under the MIT license. Contributions, ideas, and feedback are welcome. Read the [contributing guide](https://barun-bash.github.io/human/contributing.html) to get started.
 
 ---
 
