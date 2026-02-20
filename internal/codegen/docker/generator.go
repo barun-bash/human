@@ -44,11 +44,11 @@ func writeFile(path, content string) error {
 	return nil
 }
 
-// collectEnvVars gathers all required environment variables from the IR.
+// CollectEnvVars gathers all required environment variables from the IR.
 // Returns a sorted list of EnvVar entries.
-func collectEnvVars(app *ir.Application) []EnvVar {
+func CollectEnvVars(app *ir.Application) []EnvVar {
 	vars := []EnvVar{
-		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@db:5432/" + dbName(app) + "?schema=public", Comment: "PostgreSQL connection string"},
+		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@db:5432/" + DbName(app) + "?schema=public", Comment: "PostgreSQL connection string"},
 		{Name: "JWT_SECRET", Example: "change-me-to-a-random-secret", Comment: "Secret for signing JWT tokens"},
 		{Name: "PORT", Example: "3000", Comment: "Backend server port"},
 		{Name: "VITE_API_URL", Example: "http://localhost:3000", Comment: "API URL for the React frontend"},
@@ -82,16 +82,16 @@ type EnvVar struct {
 	Comment string
 }
 
-// dbName derives a database name from the application name.
-func dbName(app *ir.Application) string {
+// DbName derives a database name from the application name.
+func DbName(app *ir.Application) string {
 	if app.Name != "" {
 		return strings.ToLower(strings.ReplaceAll(app.Name, " ", "_"))
 	}
 	return "app"
 }
 
-// appNameLower returns a lowercase, hyphenated version of the app name.
-func appNameLower(app *ir.Application) string {
+// AppNameLower returns a lowercase, hyphenated version of the app name.
+func AppNameLower(app *ir.Application) string {
 	if app.Name != "" {
 		return strings.ToLower(strings.ReplaceAll(app.Name, " ", "-"))
 	}

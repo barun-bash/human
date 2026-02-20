@@ -24,7 +24,7 @@ func TestDbName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		app := &ir.Application{Name: tt.name}
-		got := dbName(app)
+		got := DbName(app)
 		if got != tt.want {
 			t.Errorf("dbName(%q): got %q, want %q", tt.name, got, tt.want)
 		}
@@ -42,7 +42,7 @@ func TestAppNameLower(t *testing.T) {
 	}
 	for _, tt := range tests {
 		app := &ir.Application{Name: tt.name}
-		got := appNameLower(app)
+		got := AppNameLower(app)
 		if got != tt.want {
 			t.Errorf("appNameLower(%q): got %q, want %q", tt.name, got, tt.want)
 		}
@@ -64,7 +64,7 @@ func TestCollectEnvVars(t *testing.T) {
 		},
 	}
 
-	vars := collectEnvVars(app)
+	vars := CollectEnvVars(app)
 
 	// Should include core vars + integration vars
 	names := make(map[string]bool)

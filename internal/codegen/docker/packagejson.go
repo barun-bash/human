@@ -10,7 +10,7 @@ import (
 // generatePackageJSON produces a root package.json with orchestration scripts.
 func generatePackageJSON(app *ir.Application) string {
 	var b strings.Builder
-	name := appNameLower(app)
+	name := AppNameLower(app)
 
 	b.WriteString("{\n")
 	fmt.Fprintf(&b, "  \"name\": \"%s\",\n", name)

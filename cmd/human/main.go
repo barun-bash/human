@@ -10,6 +10,7 @@ import (
 	"github.com/barun-bash/human/internal/codegen/node"
 	"github.com/barun-bash/human/internal/codegen/postgres"
 	"github.com/barun-bash/human/internal/codegen/react"
+	"github.com/barun-bash/human/internal/codegen/scaffold"
 	"github.com/barun-bash/human/internal/ir"
 	"github.com/barun-bash/human/internal/parser"
 	"github.com/barun-bash/human/internal/quality"
@@ -225,6 +226,14 @@ func cmdBuild() {
 		os.Exit(1)
 	}
 	quality.PrintSummary(qResult)
+
+	// Scaffolder — always runs last, produces project files
+	sg := scaffold.Generator{}
+	if err := sg.Generate(app, outputDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Scaffold error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("  scaffold:     %s/ (package.json, tsconfig, README, start.sh)\n", outputDir)
 }
 
 func printIRSummary(app *ir.Application) {
