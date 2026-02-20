@@ -8,6 +8,7 @@ import (
 
 	"github.com/barun-bash/human/internal/codegen/docker"
 	"github.com/barun-bash/human/internal/codegen/node"
+	"github.com/barun-bash/human/internal/codegen/postgres"
 	"github.com/barun-bash/human/internal/codegen/react"
 	"github.com/barun-bash/human/internal/ir"
 	"github.com/barun-bash/human/internal/parser"
@@ -203,6 +204,16 @@ func cmdBuild() {
 			os.Exit(1)
 		}
 		fmt.Printf("  docker:       %s/\n", outputDir)
+	}
+
+	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Database), "postgres") {
+		pgDir := filepath.Join(".human", "output", "postgres")
+		g := postgres.Generator{}
+		if err := g.Generate(app, pgDir); err != nil {
+			fmt.Fprintf(os.Stderr, "PostgreSQL codegen error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("  postgres:     %s/\n", pgDir)
 	}
 }
 
