@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Language Specification — human_</title>
+  <meta name="description" content="Complete grammar reference for the Human programming language. Write in structured English, compile to production-ready applications.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230D0D0D'/><text x='4' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23F5F5F3'>h</text><text x='18' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23E85D3A'>_</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+    :root {
+      --bg: #0D0D0D;
+      --bg-raised: #141414;
+      --bg-surface: #1A1A1A;
+      --text: #E8E8E4;
+      --text-muted: #7A7A7A;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --accent: #E85D3A;
+      --accent-dark: #C44A2D;
+      --success: #2D8C5A;
+      --font-logo: 'Nunito', sans-serif;
+      --font: 'Nunito Sans', system-ui, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+      --nav-height: 60px;
+      --sidebar-width: 260px;
+    }
+
+    body {
+      font-family: var(--font);
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: #F5F5F3; }
+
+    /* ══════════════════════════════════════════════
+       NAVIGATION BAR
+       ══════════════════════════════════════════════ */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      height: var(--nav-height);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+    }
+    .navbar-inner {
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar-logo {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: -1px;
+      color: #F5F5F3;
+      text-decoration: none;
+    }
+    .navbar-logo:hover { color: #F5F5F3; }
+    .navbar-logo-cursor { color: var(--accent); }
+
+    .navbar-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+    .navbar-links a {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .navbar-links a:hover { color: #F5F5F3; }
+    .navbar-links a.active { color: var(--accent); }
+    .navbar-links a.gh-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .navbar-links a.gh-link svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    /* ══════════════════════════════════════════════
+       LAYOUT: SIDEBAR + CONTENT
+       ══════════════════════════════════════════════ */
+    .page-layout {
+      display: flex;
+      max-width: 1280px;
+      margin: 0 auto;
+      min-height: calc(100vh - var(--nav-height));
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      flex-shrink: 0;
+      position: sticky;
+      top: var(--nav-height);
+      height: calc(100vh - var(--nav-height));
+      overflow-y: auto;
+      padding: 32px 24px 48px 24px;
+      border-right: 1px solid var(--border);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-hover) transparent;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 4px; }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .sidebar-nav { list-style: none; }
+    .sidebar-nav li { margin-bottom: 2px; }
+    .sidebar-nav a {
+      display: block;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-muted);
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+      line-height: 1.45;
+    }
+    .sidebar-nav a:hover {
+      color: var(--text);
+      background: var(--bg-surface);
+    }
+    .sidebar-nav a.active {
+      color: var(--accent);
+      background: rgba(232, 93, 58, 0.08);
+    }
+
+    /* Mobile TOC */
+    .mobile-toc {
+      display: none;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-raised);
+    }
+    .mobile-toc-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .mobile-toc-toggle:hover { border-color: var(--border-hover); }
+    .mobile-toc-toggle svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .mobile-toc.open .mobile-toc-toggle svg { transform: rotate(180deg); }
+    .mobile-toc-list {
+      list-style: none;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .mobile-toc.open .mobile-toc-list {
+      max-height: 600px;
+      margin-top: 12px;
+    }
+    .mobile-toc-list a {
+      display: block;
+      padding: 8px 12px;
+      font-size: 14px;
+      color: var(--text-muted);
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .mobile-toc-list a:hover {
+      color: var(--text);
+      background: var(--bg-surface);
+    }
+
+    /* Main content */
+    .content {
+      flex: 1;
+      min-width: 0;
+      max-width: 780px;
+      padding: 48px 48px 96px 48px;
+    }
+
+    /* ══════════════════════════════════════════════
+       TYPOGRAPHY
+       ══════════════════════════════════════════════ */
+    .content h1 {
+      font-weight: 700;
+      font-size: 38px;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      color: #F5F5F3;
+    }
+    .content .spec-version {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 40px;
+    }
+
+    .content h2 {
+      font-weight: 700;
+      font-size: 28px;
+      line-height: 1.25;
+      color: #F5F5F3;
+      margin-top: 64px;
+      margin-bottom: 20px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+    .content h2:first-of-type {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+
+    .content h3 {
+      font-weight: 700;
+      font-size: 22px;
+      line-height: 1.3;
+      color: #F5F5F3;
+      margin-top: 40px;
+      margin-bottom: 16px;
+    }
+
+    .content h4 {
+      font-weight: 700;
+      font-size: 17px;
+      line-height: 1.4;
+      color: var(--text);
+      margin-top: 32px;
+      margin-bottom: 12px;
+    }
+
+    .content h5 {
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1.4;
+      color: var(--text);
+      margin-top: 24px;
+      margin-bottom: 8px;
+    }
+
+    .content p {
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .content p strong { color: #F5F5F3; }
+
+    .content ul, .content ol {
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+    .content li {
+      margin-bottom: 6px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .content li code {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: var(--font-code);
+      font-size: 0.88em;
+    }
+
+    .content p code, .content td code, .content h4 code {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: var(--font-code);
+      font-size: 0.88em;
+      color: var(--accent);
+    }
+
+    .content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ══════════════════════════════════════════════
+       CODE BLOCKS
+       ══════════════════════════════════════════════ */
+    .code-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+    .code-block pre {
+      font-family: var(--font-code);
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      margin: 0;
+      white-space: pre;
+    }
+    .code-block .kw { color: var(--accent); }
+    .code-block .str { color: var(--success); }
+    .code-block .cmt { color: var(--text-muted); font-style: italic; }
+    .code-block .type { color: #7FBBDA; }
+
+    /* YAML code blocks */
+    .code-block .yaml-key { color: var(--accent); }
+    .code-block .yaml-val { color: var(--success); }
+
+    /* ══════════════════════════════════════════════
+       TABLES
+       ══════════════════════════════════════════════ */
+    .spec-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-bottom: 24px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .spec-table thead th {
+      background: var(--bg-raised);
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 14px;
+      text-align: left;
+      color: #F5F5F3;
+      border-bottom: 1px solid var(--border);
+    }
+    .spec-table tbody td {
+      padding: 10px 16px;
+      font-size: 15px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .spec-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .spec-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* ══════════════════════════════════════════════
+       OVERVIEW BOX
+       ══════════════════════════════════════════════ */
+    .overview-box {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 32px;
+    }
+    .overview-box p {
+      margin-bottom: 12px;
+      font-size: 17px;
+    }
+    .overview-box p:last-child { margin-bottom: 0; }
+    .overview-meta {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .overview-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .overview-meta-item strong {
+      color: var(--text);
+    }
+
+    /* ══════════════════════════════════════════════
+       SECTION LIST (for bullet lists within spec)
+       ══════════════════════════════════════════════ */
+    .section-list {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 20px;
+    }
+    .section-list li {
+      padding: 4px 0;
+      padding-left: 20px;
+      position: relative;
+      font-size: 16px;
+    }
+    .section-list li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 13px;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+
+    /* ══════════════════════════════════════════════
+       IR TREE
+       ══════════════════════════════════════════════ */
+    .ir-tree {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .ir-tree pre {
+      font-family: var(--font-code);
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      margin: 0;
+    }
+    .ir-tree .node { color: var(--accent); font-weight: 700; }
+    .ir-tree .leaf { color: var(--text-muted); }
+
+    /* ══════════════════════════════════════════════
+       CLOSING QUOTE
+       ══════════════════════════════════════════════ */
+    .closing-quote {
+      text-align: center;
+      font-style: italic;
+      font-size: 18px;
+      color: var(--text-muted);
+      margin-top: 48px;
+      padding: 32px 0;
+    }
+
+    /* ══════════════════════════════════════════════
+       FOOTER
+       ══════════════════════════════════════════════ */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 56px 24px 40px;
+      text-align: center;
+    }
+    .footer-logo {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 26px;
+      letter-spacing: -1px;
+      margin-bottom: 24px;
+      color: #F5F5F3;
+    }
+    .footer-cursor { color: var(--accent); }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .footer-links a:hover { color: #F5F5F3; }
+
+    .footer-copy {
+      font-size: 13px;
+      color: rgba(122, 122, 122, 0.5);
+    }
+
+    /* ══════════════════════════════════════════════
+       RESPONSIVE
+       ══════════════════════════════════════════════ */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .mobile-toc { display: block; }
+      .content {
+        max-width: 100%;
+        padding: 32px 24px 64px 24px;
+      }
+      .content h1 { font-size: 30px; }
+      .content h2 { font-size: 24px; }
+      .content h3 { font-size: 20px; }
+      .overview-meta { gap: 16px; }
+      .navbar-links { gap: 16px; }
+      .navbar-links a { font-size: 13px; }
+    }
+
+    @media (max-width: 600px) {
+      .navbar { padding: 0 16px; }
+      .navbar-links { gap: 12px; }
+      .navbar-links a.nav-contributing { display: none; }
+      .content { padding: 24px 16px 48px 16px; }
+      .content h1 { font-size: 26px; }
+      .content h2 { font-size: 22px; margin-top: 48px; }
+      .content h3 { font-size: 18px; }
+      .code-block { padding: 14px; }
+      .code-block pre { font-size: 13px; }
+      .spec-table { font-size: 14px; }
+      .spec-table thead th { padding: 10px 12px; }
+      .spec-table tbody td { padding: 8px 12px; }
+      .overview-box { padding: 20px; }
+      .footer-links { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════
+       NAVIGATION BAR
+       ══════════════════════════════════════════════ -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-logo">human<span class="navbar-logo-cursor">_</span></a>
+      <div class="navbar-links">
+        <a href="language-spec.html" class="active">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+        <a href="contributing.html" class="nav-contributing">Contributing</a>
+        <a href="https://github.com/barun-bash/human" class="gh-link" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════
+       MOBILE TABLE OF CONTENTS
+       ══════════════════════════════════════════════ -->
+  <div class="mobile-toc" id="mobileToc">
+    <button class="mobile-toc-toggle" onclick="document.getElementById('mobileToc').classList.toggle('open')">
+      Table of Contents
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <ul class="mobile-toc-list">
+      <li><a href="#overview" onclick="document.getElementById('mobileToc').classList.remove('open')">Overview</a></li>
+      <li><a href="#core-principles" onclick="document.getElementById('mobileToc').classList.remove('open')">1. Core Principles</a></li>
+      <li><a href="#file-structure" onclick="document.getElementById('mobileToc').classList.remove('open')">2. File Structure</a></li>
+      <li><a href="#language-grammar" onclick="document.getElementById('mobileToc').classList.remove('open')">3. Language Grammar</a></li>
+      <li><a href="#quality-system" onclick="document.getElementById('mobileToc').classList.remove('open')">4. Mandatory Quality System</a></li>
+      <li><a href="#intent-ir" onclick="document.getElementById('mobileToc').classList.remove('open')">5. Intent IR</a></li>
+      <li><a href="#llm-connector" onclick="document.getElementById('mobileToc').classList.remove('open')">6. LLM Connector</a></li>
+      <li><a href="#cli-reference" onclick="document.getElementById('mobileToc').classList.remove('open')">7. CLI Reference</a></li>
+      <li><a href="#error-messages" onclick="document.getElementById('mobileToc').classList.remove('open')">8. Error Messages</a></li>
+      <li><a href="#reserved-keywords" onclick="document.getElementById('mobileToc').classList.remove('open')">9. Reserved Keywords</a></li>
+      <li><a href="#version-history" onclick="document.getElementById('mobileToc').classList.remove('open')">10. Version History</a></li>
+    </ul>
+  </div>
+
+  <div class="page-layout">
+
+    <!-- ══════════════════════════════════════════════
+         SIDEBAR TABLE OF CONTENTS
+         ══════════════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-title">On this page</div>
+      <ul class="sidebar-nav" id="sidebarNav">
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#core-principles">1. Core Principles</a></li>
+        <li><a href="#file-structure">2. File Structure</a></li>
+        <li><a href="#language-grammar">3. Language Grammar</a></li>
+        <li><a href="#quality-system">4. Mandatory Quality System</a></li>
+        <li><a href="#intent-ir">5. Intent IR</a></li>
+        <li><a href="#llm-connector">6. LLM Connector</a></li>
+        <li><a href="#cli-reference">7. CLI Reference</a></li>
+        <li><a href="#error-messages">8. Error Messages</a></li>
+        <li><a href="#reserved-keywords">9. Reserved Keywords</a></li>
+        <li><a href="#version-history">10. Version History</a></li>
+      </ul>
+    </aside>
+
+    <!-- ══════════════════════════════════════════════
+         MAIN CONTENT
+         ══════════════════════════════════════════════ -->
+    <main class="content">
+
+      <h1 id="overview">Human Language Specification</h1>
+      <p class="spec-version">Version 0.1</p>
+
+      <div class="overview-box">
+        <p><strong>Human</strong> is a natural language programming language that compiles structured English and design files into production-ready full-stack applications. It is deterministic, target-agnostic, and enforces mandatory quality guarantees.</p>
+        <div class="overview-meta">
+          <div class="overview-meta-item"><strong>File extension:</strong> .human</div>
+          <div class="overview-meta-item"><strong>CLI command:</strong> human</div>
+          <div class="overview-meta-item"><strong>Compiler:</strong> Go</div>
+        </div>
+      </div>
+
+      <!-- ── 1. Core Principles ── -->
+      <h2 id="core-principles">1. Core Principles</h2>
+
+      <ol>
+        <li><strong>English is the syntax.</strong> If you can describe what you want in structured English, you can build it.</li>
+        <li><strong>Deterministic compilation.</strong> Same <code>.human</code> file always produces the same output. No randomness.</li>
+        <li><strong>Target-agnostic.</strong> One source, any output framework. The developer chooses the target.</li>
+        <li><strong>Quality is mandatory.</strong> Tests, security audit, code quality, and QA trail are compiler-enforced. Cannot be skipped.</li>
+        <li><strong>Design-aware.</strong> Figma files, images, and screenshots are first-class inputs alongside English.</li>
+        <li><strong>Ejectable.</strong> Generated code is clean, readable, and fully owned by the developer.</li>
+        <li><strong>LLM-optional.</strong> Core compiler works offline with no AI dependency. LLM connector available as enhancement.</li>
+      </ol>
+
+      <!-- ── 2. File Structure ── -->
+      <h2 id="file-structure">2. File Structure</h2>
+
+      <p>A Human project has the following structure:</p>
+
+      <div class="code-block"><pre>my-app/
+├── app.human              <span class="cmt"># Main application definition</span>
+├── frontend.human         <span class="cmt"># UI pages, components, themes</span>
+├── backend.human          <span class="cmt"># APIs, data, logic, security</span>
+├── devops.human           <span class="cmt"># Architecture, CI/CD, deployment</span>
+├── integrations.human     <span class="cmt"># Third-party API connections</span>
+├── designs/               <span class="cmt"># Figma files, images, screenshots</span>
+│   ├── homepage.figma
+│   └── dashboard.png
+├── assets/                <span class="cmt"># Static assets (images, fonts, icons)</span>
+├── human.config            <span class="cmt"># Project configuration</span>
+└── .human/                <span class="cmt"># Compiler cache and generated IR</span>
+    └── intent/            <span class="cmt"># Intermediate representation files</span></pre></div>
+
+      <h3>human.config</h3>
+
+      <div class="code-block"><pre><span class="yaml-key">name:</span> <span class="yaml-val">my-app</span>
+<span class="yaml-key">version:</span> <span class="yaml-val">0.1.0</span>
+
+<span class="yaml-key">target:</span>
+  <span class="yaml-key">frontend:</span> <span class="yaml-val">react with typescript</span>
+  <span class="yaml-key">backend:</span> <span class="yaml-val">node with express</span>
+  <span class="yaml-key">database:</span> <span class="yaml-val">postgresql</span>
+  <span class="yaml-key">deploy:</span> <span class="yaml-val">vercel</span>
+
+<span class="yaml-key">options:</span>
+  <span class="yaml-key">test_coverage_minimum:</span> <span class="yaml-val">90</span>
+  <span class="yaml-key">strict_security:</span> <span class="yaml-val">true</span>
+  <span class="yaml-key">accessibility:</span> <span class="yaml-val">WCAG-AA</span></pre></div>
+
+      <!-- ── 3. Language Grammar ── -->
+      <h2 id="language-grammar">3. Language Grammar</h2>
+
+      <!-- 3.1 Top-Level Declarations -->
+      <h3 id="top-level-declarations">3.1 Top-Level Declarations</h3>
+
+      <p>Every <code>.human</code> file begins with declarations that define what things exist.</p>
+
+      <h4>Application Declaration</h4>
+
+      <div class="code-block"><pre><span class="kw">app</span> &lt;Name&gt; <span class="kw">is a</span> &lt;platform&gt; application
+
+platform := <span class="str">"web"</span> | <span class="str">"mobile"</span> | <span class="str">"desktop"</span> | <span class="str">"api"</span></pre></div>
+
+      <p>Examples:</p>
+
+      <div class="code-block"><pre><span class="kw">app</span> FinanceTracker <span class="kw">is a</span> web application
+<span class="kw">app</span> FitnessPal <span class="kw">is a</span> mobile application
+<span class="kw">app</span> PhotoEditor <span class="kw">is a</span> desktop application
+<span class="kw">app</span> PaymentGateway <span class="kw">is an</span> api application</pre></div>
+
+      <h4>Section Declaration</h4>
+
+      <div class="code-block"><pre>── &lt;section_name&gt; ──</pre></div>
+
+      <p>Sections organize code within a file. Recognized sections:</p>
+      <ul>
+        <li><code>frontend</code>, <code>backend</code>, <code>devops</code>, <code>integrations</code></li>
+        <li><code>logic</code>, <code>security</code>, <code>database</code>, <code>policies</code></li>
+        <li><code>theme</code>, <code>workflows</code>, <code>monitoring</code></li>
+        <li><code>pipeline</code>, <code>environments</code></li>
+      </ul>
+
+      <!-- 3.2 Data Declarations -->
+      <h3 id="data-declarations">3.2 Data Declarations</h3>
+
+      <p>Data declarations define the entities/models in your application.</p>
+
+      <div class="code-block"><pre><span class="kw">data</span> &lt;Name&gt;:
+  <span class="kw">has a</span> &lt;field_name&gt; <span class="kw">which is</span> &lt;type&gt;
+  <span class="kw">has a</span> &lt;field_name&gt; <span class="kw">which is</span> &lt;type&gt;
+  <span class="kw">belongs to a</span> &lt;OtherData&gt;
+  <span class="kw">has many</span> &lt;OtherData&gt;</pre></div>
+
+      <h4>Field Types</h4>
+
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Human Type</th>
+            <th>Meaning</th>
+            <th>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>text</code></td><td>String</td><td><code>has a name which is text</code></td></tr>
+          <tr><td><code>number</code></td><td>Integer or float</td><td><code>has an age which is number</code></td></tr>
+          <tr><td><code>decimal</code></td><td>Precise decimal</td><td><code>has a price which is decimal</code></td></tr>
+          <tr><td><code>boolean</code></td><td>True/false</td><td><code>has an active flag which is boolean</code></td></tr>
+          <tr><td><code>date</code></td><td>Date only</td><td><code>has a birthday which is date</code></td></tr>
+          <tr><td><code>datetime</code></td><td>Date and time</td><td><code>has a created datetime</code></td></tr>
+          <tr><td><code>email</code></td><td>Email (auto-validated)</td><td><code>has an email which is email</code></td></tr>
+          <tr><td><code>url</code></td><td>URL (auto-validated)</td><td><code>has a website which is url</code></td></tr>
+          <tr><td><code>file</code></td><td>File upload</td><td><code>has an avatar which is file</code></td></tr>
+          <tr><td><code>image</code></td><td>Image file</td><td><code>has a photo which is image</code></td></tr>
+          <tr><td><code>json</code></td><td>Arbitrary JSON</td><td><code>has metadata which is json</code></td></tr>
+        </tbody>
+      </table>
+
+      <h4>Field Modifiers</h4>
+
+      <div class="code-block"><pre><span class="kw">has a</span> &lt;field&gt; <span class="kw">which is</span> &lt;type&gt;              <span class="cmt"># required by default</span>
+<span class="kw">has an</span> optional &lt;field&gt; <span class="kw">which is</span> &lt;type&gt;    <span class="cmt"># nullable</span>
+<span class="kw">has a</span> &lt;field&gt; <span class="kw">which is</span> unique &lt;type&gt;       <span class="cmt"># unique constraint</span>
+<span class="kw">has a</span> &lt;field&gt; <span class="kw">which is</span> encrypted &lt;type&gt;    <span class="cmt"># encrypted at rest</span>
+<span class="kw">has a</span> &lt;field&gt; <span class="kw">which is either</span> <span class="str">"a"</span> <span class="kw">or</span> <span class="str">"b"</span>   <span class="cmt"># enum</span>
+<span class="kw">has a</span> &lt;field&gt; <span class="kw">which</span> defaults to &lt;value&gt;    <span class="cmt"># default value</span></pre></div>
+
+      <h4>Relationships</h4>
+
+      <div class="code-block"><pre><span class="kw">belongs to a</span> &lt;Data&gt;                 <span class="cmt"># foreign key, many-to-one</span>
+<span class="kw">has many</span> &lt;Data&gt;                     <span class="cmt"># one-to-many</span>
+<span class="kw">has many</span> &lt;Data&gt; <span class="kw">through</span> &lt;JoinData&gt;  <span class="cmt"># many-to-many</span></pre></div>
+
+      <h4>Full Example</h4>
+
+      <div class="code-block"><pre><span class="kw">data</span> User:
+  <span class="kw">has a</span> name <span class="kw">which is</span> text
+  <span class="kw">has an</span> email <span class="kw">which is</span> unique email
+  <span class="kw">has a</span> password <span class="kw">which is</span> encrypted text
+  <span class="kw">has a</span> role <span class="kw">which is either</span> <span class="str">"user"</span> <span class="kw">or</span> <span class="str">"admin"</span> <span class="kw">or</span> <span class="str">"moderator"</span>
+  <span class="kw">has an</span> optional bio <span class="kw">which is</span> text
+  <span class="kw">has a</span> created datetime
+  <span class="kw">has many</span> Post
+  <span class="kw">has many</span> Comment
+
+<span class="kw">data</span> Post:
+  <span class="kw">belongs to a</span> User
+  <span class="kw">has a</span> title <span class="kw">which is</span> text
+  <span class="kw">has a</span> body <span class="kw">which is</span> text
+  <span class="kw">has a</span> status <span class="kw">which is either</span> <span class="str">"draft"</span> <span class="kw">or</span> <span class="str">"published"</span> <span class="kw">or</span> <span class="str">"archived"</span>
+  <span class="kw">has a</span> published date
+  <span class="kw">has many</span> Comment
+  <span class="kw">has many</span> Tag <span class="kw">through</span> PostTag
+
+<span class="kw">data</span> Comment:
+  <span class="kw">belongs to a</span> User
+  <span class="kw">belongs to a</span> Post
+  <span class="kw">has a</span> body <span class="kw">which is</span> text
+  <span class="kw">has a</span> created datetime</pre></div>
+
+      <!-- 3.3 Frontend Declarations -->
+      <h3 id="frontend-declarations">3.3 Frontend Declarations</h3>
+
+      <h4>Page Declaration</h4>
+
+      <div class="code-block"><pre><span class="kw">page</span> &lt;Name&gt;:
+  &lt;content_statements&gt;</pre></div>
+
+      <p>Content statements describe what appears on the page and how it behaves.</p>
+
+      <h5>Display Statements</h5>
+
+      <div class="code-block"><pre><span class="kw">show</span> &lt;what&gt;                                    <span class="cmt"># render something</span>
+<span class="kw">show</span> a list of &lt;data&gt;                          <span class="cmt"># render a collection</span>
+<span class="kw">show</span> each &lt;item&gt;'s &lt;field&gt; and &lt;field&gt;         <span class="cmt"># specify fields</span>
+<span class="kw">show</span> &lt;data&gt; in a &lt;layout&gt;                      <span class="cmt"># specify layout</span>
+<span class="kw">show</span> <span class="str">"static text"</span>                             <span class="cmt"># static content</span>
+<span class="kw">show</span> a &lt;element&gt; with &lt;properties&gt;             <span class="cmt"># specific element</span></pre></div>
+
+      <p>Layouts: <code>card</code>, <code>table</code>, <code>grid</code>, <code>list</code>, <code>row</code>, <code>column</code>, <code>form</code></p>
+
+      <h5>Interaction Statements</h5>
+
+      <div class="code-block"><pre>clicking &lt;element&gt; does &lt;action&gt;               <span class="cmt"># click handler</span>
+clicking &lt;element&gt; <span class="kw">navigates to</span> &lt;page&gt;         <span class="cmt"># navigation</span>
+clicking &lt;element&gt; opens &lt;thing&gt;               <span class="cmt"># modal/panel/link</span>
+typing in &lt;element&gt; does &lt;action&gt;              <span class="cmt"># input handler</span>
+hovering over &lt;element&gt; shows &lt;thing&gt;          <span class="cmt"># hover effect</span>
+pressing &lt;key&gt; does &lt;action&gt;                   <span class="cmt"># keyboard shortcut</span>
+scrolling to bottom loads more &lt;data&gt;          <span class="cmt"># infinite scroll</span>
+dragging &lt;element&gt; reorders the list           <span class="cmt"># drag and drop</span></pre></div>
+
+      <h5>Input Statements</h5>
+
+      <div class="code-block"><pre>there <span class="kw">is</span> a text input <span class="kw">for</span> &lt;purpose&gt;            <span class="cmt"># text field</span>
+there <span class="kw">is</span> a search bar that <span class="kw">filter</span>s &lt;data&gt;      <span class="cmt"># search + filter</span>
+there <span class="kw">is</span> a dropdown to select &lt;options&gt;        <span class="cmt"># select</span>
+there <span class="kw">is</span> a checkbox <span class="kw">for</span> &lt;purpose&gt;              <span class="cmt"># checkbox</span>
+there <span class="kw">is</span> a date picker <span class="kw">for</span> &lt;purpose&gt;           <span class="cmt"># date input</span>
+there <span class="kw">is</span> a file upload <span class="kw">for</span> &lt;purpose&gt;           <span class="cmt"># file input</span>
+there <span class="kw">is</span> a form to <span class="kw">create</span> &lt;data&gt;               <span class="cmt"># auto-form</span></pre></div>
+
+      <h5>Conditional Display</h5>
+
+      <div class="code-block"><pre><span class="kw">if</span> &lt;condition&gt;, <span class="kw">show</span> &lt;thing&gt;                   <span class="cmt"># conditional render</span>
+<span class="kw">if</span> no &lt;data&gt; match, <span class="kw">show</span> <span class="str">"&lt;message&gt;"</span>           <span class="cmt"># empty state</span>
+<span class="kw">while</span> loading, <span class="kw">show</span> a spinner                  <span class="cmt"># loading state</span>
+<span class="kw">if</span> there is an error, <span class="kw">show</span> the error message   <span class="cmt"># error state</span></pre></div>
+
+      <h4>Full Page Example</h4>
+
+      <div class="code-block"><pre><span class="kw">page</span> Dashboard:
+  <span class="kw">show</span> a greeting <span class="kw">with</span> the user's name
+  <span class="kw">show</span> a summary card <span class="kw">with</span> total income <span class="kw">and</span> total expenses this month
+
+  <span class="kw">show</span> a list of recent transactions sorted by date newest first
+  each transaction shows its title, amount, category, <span class="kw">and</span> date
+  each transaction shows the amount in green <span class="kw">if</span> income, red <span class="kw">if</span> expense
+  clicking a transaction opens a detail panel on the right
+
+  there <span class="kw">is</span> a search bar that <span class="kw">filter</span>s transactions by title
+  there <span class="kw">is</span> a dropdown to <span class="kw">filter</span> by category
+  there <span class="kw">is</span> a date range picker to <span class="kw">filter</span> by date
+
+  <span class="kw">if</span> no transactions match, <span class="kw">show</span> <span class="str">"No transactions found"</span>
+  <span class="kw">while</span> loading, <span class="kw">show</span> a skeleton screen
+
+  there <span class="kw">is</span> a floating button to add a new transaction
+  clicking the add button opens a form to <span class="kw">create</span> a Transaction</pre></div>
+
+      <h4>Component Declaration</h4>
+
+      <p>Reusable UI pieces.</p>
+
+      <div class="code-block"><pre><span class="kw">component</span> &lt;Name&gt;:
+  <span class="kw">accepts</span> &lt;prop&gt; <span class="kw">as</span> &lt;type&gt;
+  &lt;content_statements&gt;</pre></div>
+
+      <p>Example:</p>
+
+      <div class="code-block"><pre><span class="kw">component</span> TransactionCard:
+  <span class="kw">accepts</span> transaction <span class="kw">as</span> Transaction
+  <span class="kw">show</span> the transaction title in bold
+  <span class="kw">show</span> the amount aligned right
+  <span class="kw">show</span> the category <span class="kw">as</span> a colored badge
+  <span class="kw">show</span> the date in relative format like <span class="str">"2 hours ago"</span>
+  clicking the card triggers on_click</pre></div>
+
+      <h4>Design Import</h4>
+
+      <div class="code-block"><pre><span class="kw">design</span> &lt;name&gt; <span class="kw">from</span> <span class="str">"&lt;file_path&gt;"</span>
+  &lt;enrichment_statements&gt;</pre></div>
+
+      <p>Example:</p>
+
+      <div class="code-block"><pre><span class="kw">design</span> dashboard <span class="kw">from</span> <span class="str">"designs/dashboard.figma"</span>
+  the sidebar <span class="kw">is</span> a shared <span class="kw">component</span> across all pages
+  the chart section uses recharts
+  the transaction list <span class="kw">is</span> scrollable <span class="kw">and</span> loads more on scroll
+  make the layout responsive <span class="kw">for</span> mobile <span class="kw">and</span> tablet</pre></div>
+
+      <h4>Theme Declaration</h4>
+
+      <div class="code-block"><pre><span class="kw">theme</span>:
+  primary color <span class="kw">is</span> &lt;color&gt;
+  secondary color <span class="kw">is</span> &lt;color&gt;
+  font <span class="kw">is</span> &lt;font&gt; <span class="kw">for</span> body <span class="kw">and</span> &lt;font&gt; <span class="kw">for</span> headings
+  border radius <span class="kw">is</span> &lt;style&gt;
+  dark mode <span class="kw">is</span> supported
+  spacing <span class="kw">is</span> &lt;density&gt;</pre></div>
+
+      <p>Example:</p>
+
+      <div class="code-block"><pre><span class="kw">theme</span>:
+  primary color <span class="kw">is</span> <span class="str">#6C5CE7</span>
+  secondary color <span class="kw">is</span> <span class="str">#00B894</span>
+  danger color <span class="kw">is</span> <span class="str">#D63031</span>
+  font <span class="kw">is</span> Inter <span class="kw">for</span> body <span class="kw">and</span> Poppins <span class="kw">for</span> headings
+  border radius <span class="kw">is</span> smooth on all elements
+  dark mode <span class="kw">is</span> supported <span class="kw">and</span> toggles <span class="kw">from</span> the header
+  spacing <span class="kw">is</span> comfortable</pre></div>
+
+      <!-- 3.4 Backend Declarations -->
+      <h3 id="backend-declarations">3.4 Backend Declarations</h3>
+
+      <h4>API Declaration</h4>
+
+      <div class="code-block"><pre><span class="kw">api</span> &lt;Name&gt;:
+  <span class="kw">accepts</span> &lt;fields&gt;
+  <span class="kw">requires</span> &lt;precondition&gt;
+  &lt;logic_statements&gt;
+  <span class="kw">respond with</span> &lt;response&gt;</pre></div>
+
+      <p>Logic statements:</p>
+
+      <div class="code-block"><pre><span class="kw">check</span> that &lt;validation&gt;                        <span class="cmt"># validation</span>
+<span class="kw">if</span> &lt;condition&gt;, <span class="kw">respond with</span> <span class="str">"&lt;message&gt;"</span>       <span class="cmt"># conditional response</span>
+<span class="kw">create</span> &lt;data&gt;                                  <span class="cmt"># insert</span>
+<span class="kw">update</span> &lt;data&gt;                                  <span class="cmt"># update</span>
+<span class="kw">delete</span> &lt;data&gt;                                  <span class="cmt"># delete</span>
+<span class="kw">fetch</span> &lt;data&gt; <span class="kw">from</span> &lt;source&gt;                     <span class="cmt"># query</span>
+<span class="kw">send</span> &lt;notification&gt;                            <span class="cmt"># side effect</span>
+<span class="kw">respond with</span> &lt;data&gt;                            <span class="cmt"># return</span></pre></div>
+
+      <p>Example:</p>
+
+      <div class="code-block"><pre><span class="kw">api</span> CreatePost:
+  <span class="kw">requires</span> authentication
+  <span class="kw">accepts</span> title, body, <span class="kw">and</span> category
+  <span class="kw">check</span> that title <span class="kw">is</span> <span class="kw">not</span> empty
+  <span class="kw">check</span> that title <span class="kw">is</span> less than 200 characters
+  <span class="kw">check</span> that body <span class="kw">is</span> <span class="kw">not</span> empty
+  <span class="kw">check</span> that category <span class="kw">is</span> a valid category
+  <span class="kw">create</span> a Post <span class="kw">with</span> the given fields <span class="kw">and</span> current user <span class="kw">as</span> author
+  set status to <span class="str">"draft"</span>
+  <span class="kw">respond with</span> the created post
+
+<span class="kw">api</span> ListPosts:
+  <span class="kw">requires</span> authentication
+  return <span class="kw">all</span> posts where status <span class="kw">is</span> <span class="str">"published"</span>
+  <span class="kw">sort</span> by published date newest first
+  support filtering by category
+  support searching by title
+  <span class="kw">paginate</span> <span class="kw">with</span> 20 per <span class="kw">page</span>
+  <span class="kw">respond with</span> posts <span class="kw">and</span> pagination info
+
+<span class="kw">api</span> DeletePost:
+  <span class="kw">requires</span> authentication
+  <span class="kw">accepts</span> post_id
+  <span class="kw">fetch</span> the post by post_id
+  <span class="kw">if</span> post does <span class="kw">not</span> exist, <span class="kw">respond with</span> <span class="str">"post not found"</span>
+  <span class="kw">check</span> that current user <span class="kw">is</span> the author <span class="kw">or</span> an admin
+  <span class="kw">delete</span> the post
+  <span class="kw">respond with</span> <span class="str">"post deleted"</span></pre></div>
+
+      <h4>Security Declaration</h4>
+
+      <div class="code-block"><pre><span class="kw">authentication</span>:
+  method &lt;auth_method&gt;
+  &lt;auth_rules&gt;</pre></div>
+
+      <div class="code-block"><pre><span class="kw">authentication</span>:
+  method JWT tokens that expire <span class="kw">in</span> 7 days
+  method Google OAuth <span class="kw">with</span> redirect to /auth/google/callback
+  passwords <span class="kw">are</span> hashed <span class="kw">with</span> bcrypt <span class="kw">using</span> 12 rounds
+  <span class="kw">all</span> <span class="kw">api</span> requests <span class="kw">require</span> a valid token except SignUp <span class="kw">and</span> Login
+  rate <span class="kw">limit</span> <span class="kw">all</span> endpoints to 100 requests per minute per user
+  sanitize <span class="kw">all</span> text inputs against XSS
+  enable CORS <span class="kw">only</span> <span class="kw">for</span> our frontend domain</pre></div>
+
+      <h4>Policy Declaration</h4>
+
+      <div class="code-block"><pre><span class="kw">policy</span> &lt;Name&gt;:
+  can &lt;permission&gt;
+  cannot &lt;restriction&gt;</pre></div>
+
+      <p>Example:</p>
+
+      <div class="code-block"><pre><span class="kw">policy</span> FreeUser:
+  can <span class="kw">create</span> up to 50 posts per month
+  can view <span class="kw">only</span> their own posts
+  can edit <span class="kw">only</span> their own posts
+  cannot <span class="kw">delete</span> published posts
+  cannot export <span class="kw">data</span>
+
+<span class="kw">policy</span> Admin:
+  can view <span class="kw">all</span> users <span class="kw">and</span> their <span class="kw">data</span>
+  can edit any post
+  can <span class="kw">delete</span> any post
+  can export <span class="kw">data</span>
+  can view system analytics</pre></div>
+
+      <h4>Database Declaration</h4>
+
+      <div class="code-block"><pre><span class="kw">database</span>:
+  use &lt;database_type&gt;
+  &lt;database_rules&gt;</pre></div>
+
+      <p>Example:</p>
+
+      <div class="code-block"><pre><span class="kw">database</span>:
+  use PostgreSQL
+  <span class="kw">when</span> the <span class="kw">app</span> starts, <span class="kw">create</span> tables <span class="kw">if</span> they don't exist
+  index User by email
+  index Post by user <span class="kw">and</span> published date
+  index Comment by post <span class="kw">and</span> created date
+  backup daily at 3am
+  keep backups <span class="kw">for</span> 30 days</pre></div>
+
+      <h4>Workflow Declaration</h4>
+
+      <div class="code-block"><pre><span class="kw">when</span> &lt;event&gt;:
+  &lt;action_sequence&gt;</pre></div>
+
+      <p>Example:</p>
+
+      <div class="code-block"><pre><span class="kw">when</span> a user signs up:
+  <span class="kw">create</span> their account
+  assign FreeUser <span class="kw">policy</span>
+  <span class="kw">send</span> welcome email <span class="kw">with</span> template <span class="str">"welcome"</span>
+  <span class="kw">after</span> 3 days, <span class="kw">send</span> email <span class="kw">with</span> template <span class="str">"getting-started"</span>
+  <span class="kw">after</span> 14 days, <span class="kw">if</span> they have fewer than 5 posts,
+    <span class="kw">send</span> email <span class="kw">with</span> template <span class="str">"need-help"</span>
+
+<span class="kw">when</span> a post <span class="kw">is</span> published:
+  <span class="kw">notify</span> <span class="kw">all</span> followers of the author
+  add to the public feed
+  <span class="kw">update</span> the author's post count
+  index <span class="kw">for</span> <span class="kw">search</span></pre></div>
+
+      <h4>Error Handling</h4>
+
+      <div class="code-block"><pre><span class="kw">if</span> &lt;error_condition&gt;:
+  &lt;recovery_actions&gt;</pre></div>
+
+      <p>Example:</p>
+
+      <div class="code-block"><pre><span class="kw">if</span> <span class="kw">database</span> <span class="kw">is</span> unreachable:
+  retry 3 times <span class="kw">with</span> 1 second delay
+  <span class="kw">if</span> still failing, <span class="kw">respond with</span> <span class="str">"service temporarily unavailable"</span>
+  <span class="kw">alert</span> the engineering team via Slack
+
+<span class="kw">if</span> an <span class="kw">api</span> request fails <span class="kw">validate</span>ion:
+  <span class="kw">respond with</span> a clear message explaining what <span class="kw">is</span> wrong
+  <span class="kw">log</span> the attempt <span class="kw">for</span> analytics
+  do <span class="kw">not</span> reveal internal details</pre></div>
+
+      <!-- 3.5 Integration Declarations -->
+      <h3 id="integration-declarations">3.5 Integration Declarations</h3>
+
+      <div class="code-block"><pre><span class="kw">integrate with</span> &lt;ServiceName&gt;:
+  <span class="kw">api</span> key <span class="kw">from</span> <span class="kw">environment</span> variable &lt;VAR_NAME&gt;
+  use <span class="kw">for</span> &lt;purpose&gt;
+
+<span class="kw">integrate with</span> custom <span class="kw">api</span> <span class="str">"&lt;Name&gt;"</span>:
+  base url <span class="kw">from</span> <span class="kw">environment</span> variable &lt;VAR_NAME&gt;
+  <span class="kw">authentication</span> <span class="kw">using</span> &lt;method&gt;
+  endpoint &lt;Name&gt;:
+    method &lt;HTTP_METHOD&gt; to &lt;path&gt;
+    sends &lt;fields&gt;
+    returns &lt;fields&gt;</pre></div>
+
+      <p>Example:</p>
+
+      <div class="code-block"><pre><span class="kw">integrate with</span> Stripe:
+  <span class="kw">api</span> key <span class="kw">from</span> <span class="kw">environment</span> variable STRIPE_KEY
+  use <span class="kw">for</span> payment processing
+
+<span class="kw">integrate with</span> custom <span class="kw">api</span> <span class="str">"InventoryService"</span>:
+  base url <span class="kw">from</span> <span class="kw">environment</span> variable INVENTORY_API_URL
+  <span class="kw">authentication</span> <span class="kw">using</span> <span class="kw">api</span> key <span class="kw">in</span> header <span class="str">"X-API-Key"</span>
+
+  endpoint CheckStock:
+    method GET to /stock/{product_id}
+    returns quantity <span class="kw">as</span> number <span class="kw">and</span> warehouse <span class="kw">as</span> text</pre></div>
+
+      <!-- 3.6 Architecture Declaration -->
+      <h3 id="architecture-declaration">3.6 Architecture Declaration</h3>
+
+      <div class="code-block"><pre><span class="kw">architecture</span>: &lt;type&gt;</pre></div>
+
+      <p>Types: <code>monolith</code>, <code>modular monolith</code>, <code>microservices</code>, <code>event-driven microservices</code>, <code>serverless</code>, <code>hybrid</code></p>
+
+      <h4>Monolith</h4>
+
+      <div class="code-block"><pre><span class="kw">architecture</span>: monolith</pre></div>
+
+      <h4>Microservices</h4>
+
+      <div class="code-block"><pre><span class="kw">architecture</span>: microservices
+
+  <span class="kw">service</span> &lt;Name&gt;:
+    handles &lt;responsibilities&gt;
+    runs on port &lt;number&gt;
+    <span class="kw">has</span> its own <span class="kw">database</span>
+    talks to &lt;OtherService&gt; to &lt;purpose&gt;
+
+  <span class="kw">gateway</span>:
+    routes &lt;path&gt; to &lt;Service&gt;
+    handles rate limiting <span class="kw">and</span> CORS</pre></div>
+
+      <h4>Event-Driven</h4>
+
+      <div class="code-block"><pre><span class="kw">architecture</span>: event-driven microservices
+  message <span class="kw">broker</span> <span class="kw">using</span> &lt;Broker&gt;
+
+  <span class="kw">service</span> &lt;Name&gt;:
+    <span class="kw">publish</span>es <span class="str">"&lt;event&gt;"</span> <span class="kw">when</span> &lt;condition&gt;
+    <span class="kw">listen</span>s <span class="kw">for</span> <span class="str">"&lt;event&gt;"</span> <span class="kw">and</span> &lt;action&gt;</pre></div>
+
+      <h4>Serverless</h4>
+
+      <div class="code-block"><pre><span class="kw">architecture</span>: <span class="kw">serverless</span>
+  each <span class="kw">api</span> endpoint runs <span class="kw">as</span> an independent function
+  scale automatically based on traffic</pre></div>
+
+      <!-- 3.7 DevOps Declarations -->
+      <h3 id="devops-declarations">3.7 DevOps Declarations</h3>
+
+      <h4>Source Control</h4>
+
+      <div class="code-block"><pre>source control <span class="kw">using</span> Git on &lt;Provider&gt;
+repository: &lt;url&gt;
+
+branches:
+  &lt;branch&gt; <span class="kw">is</span> the &lt;purpose&gt; branch
+  &lt;pattern&gt; branch <span class="kw">from</span> &lt;base&gt; <span class="kw">with</span> prefix <span class="str">"&lt;prefix&gt;"</span></pre></div>
+
+      <h4>Pipeline / CI/CD</h4>
+
+      <div class="code-block"><pre><span class="kw">when</span> &lt;git_event&gt;:
+  &lt;pipeline_actions&gt;</pre></div>
+
+      <p>Pipeline actions:</p>
+
+      <div class="code-block"><pre><span class="kw">run</span> <span class="kw">all</span> tests
+<span class="kw">check</span> code formatting
+<span class="kw">check</span> <span class="kw">for</span> security vulnerabilities
+<span class="kw">build</span> the application
+<span class="kw">deploy</span> to &lt;<span class="kw">environment</span>&gt;
+<span class="kw">run</span> smoke tests against &lt;<span class="kw">environment</span>&gt;
+<span class="kw">run</span> health checks
+<span class="kw">if</span> &lt;<span class="kw">check</span>&gt; fails, <span class="kw">rollback</span> automatically
+<span class="kw">notify</span> the team on &lt;channel&gt;
+report results back to the pull request</pre></div>
+
+      <h4>Environments</h4>
+
+      <div class="code-block"><pre><span class="kw">environment</span> &lt;name&gt;:
+  url <span class="kw">is</span> &lt;domain&gt;
+  uses &lt;env&gt; <span class="kw">database</span>
+  &lt;environment_rules&gt;</pre></div>
+
+      <h4>Monitoring</h4>
+
+      <div class="code-block"><pre><span class="kw">track</span> &lt;metric&gt;
+<span class="kw">alert</span> on &lt;channel&gt; <span class="kw">if</span> &lt;condition&gt;
+<span class="kw">log</span> &lt;what&gt; to &lt;<span class="kw">service</span>&gt;
+keep logs <span class="kw">for</span> &lt;duration&gt;</pre></div>
+
+      <!-- 3.8 Build Target Declaration -->
+      <h3 id="build-target-declaration">3.8 Build Target Declaration</h3>
+
+      <div class="code-block"><pre><span class="kw">build</span> <span class="kw">with</span>:
+  frontend <span class="kw">using</span> &lt;framework&gt; <span class="kw">with</span> &lt;language&gt;
+  backend <span class="kw">using</span> &lt;language&gt; <span class="kw">with</span> &lt;framework&gt;
+  <span class="kw">database</span> <span class="kw">using</span> &lt;<span class="kw">database</span>&gt;
+  <span class="kw">deploy</span> to &lt;platform&gt;</pre></div>
+
+      <h4>Supported Targets (v1)</h4>
+
+      <p><strong>Frontend:</strong></p>
+      <ul>
+        <li>React with TypeScript</li>
+        <li>Angular with TypeScript</li>
+        <li>Vue with TypeScript</li>
+        <li>Svelte with TypeScript</li>
+        <li>HTMX with vanilla JavaScript</li>
+      </ul>
+
+      <p><strong>Backend:</strong></p>
+      <ul>
+        <li>Node with Express</li>
+        <li>Node with Fastify</li>
+        <li>Python with FastAPI</li>
+        <li>Python with Django</li>
+        <li>Go with Gin</li>
+        <li>Go with Fiber</li>
+        <li>Rust with Axum</li>
+      </ul>
+
+      <p><strong>Database:</strong></p>
+      <ul>
+        <li>PostgreSQL</li>
+        <li>MySQL</li>
+        <li>MongoDB</li>
+        <li>SQLite</li>
+        <li>Supabase</li>
+      </ul>
+
+      <p><strong>Deploy:</strong></p>
+      <ul>
+        <li>Vercel</li>
+        <li>AWS (Lambda + API Gateway)</li>
+        <li>GCP (Cloud Run)</li>
+        <li>Docker (self-hosted)</li>
+        <li>Kubernetes</li>
+      </ul>
+
+      <!-- ── 4. Mandatory Quality System ── -->
+      <h2 id="quality-system">4. Mandatory Quality System</h2>
+
+      <p>These are not optional. The compiler enforces all four pillars on every build.</p>
+
+      <h3 id="automatic-tests">4.1 Automatic Tests</h3>
+
+      <p>Every <code>data</code>, <code>api</code>, <code>page</code>, and <code>component</code> declaration generates:</p>
+
+      <ul>
+        <li><strong>Unit tests:</strong> Each stated behavior, each validation rule, each conditional branch</li>
+        <li><strong>Edge case tests:</strong> Empty inputs, boundary values, special characters, unicode</li>
+        <li><strong>Integration tests:</strong> API-to-database flows, service-to-service contracts</li>
+        <li><strong>Frontend tests:</strong> Render, interaction, accessibility, responsive breakpoints</li>
+      </ul>
+
+      <p>Minimum coverage: configurable (default 90%). Build fails below threshold.</p>
+
+      <h3 id="security-audit">4.2 Security Audit</h3>
+
+      <p>Every build runs:</p>
+
+      <ul>
+        <li>Dependency vulnerability scan (block on critical CVE)</li>
+        <li>Input sanitization verification (SQL injection, XSS)</li>
+        <li>Authentication/authorization check (every protected route)</li>
+        <li>Secret detection (no hardcoded keys, tokens, passwords)</li>
+        <li>Infrastructure security (HTTPS, CORS, headers, encryption)</li>
+      </ul>
+
+      <h3 id="code-quality">4.3 Code Quality</h3>
+
+      <p>Every build ensures:</p>
+
+      <ul>
+        <li>Consistent formatting (no configuration needed)</li>
+        <li>No unused code, no type errors, no unsafe patterns</li>
+        <li>Duplication detection with refactoring suggestions</li>
+        <li>Performance pattern detection (N+1 queries, missing indexes, unbounded fetches)</li>
+        <li>Accessibility compliance (WCAG level configurable)</li>
+      </ul>
+
+      <h3 id="qa-trail">4.4 QA Trail</h3>
+
+      <p>Every feature generates:</p>
+
+      <ul>
+        <li>Test plan derived from <code>.human</code> specifications</li>
+        <li>Test execution records per build</li>
+        <li>Regression tracking across versions</li>
+        <li>Traceability matrix: requirement &rarr; tests &rarr; security &rarr; QA</li>
+      </ul>
+
+      <!-- ── 5. Intent IR ── -->
+      <h2 id="intent-ir">5. Intent IR (Intermediate Representation)</h2>
+
+      <p>The Intent IR is the framework-agnostic representation between Human source and generated code. It is a typed, structured, serializable format (YAML/JSON).</p>
+
+      <h3>IR Node Types</h3>
+
+      <div class="ir-tree"><pre><span class="node">Application</span>       <span class="leaf"># root node</span>
+├── <span class="node">Config</span>        <span class="leaf"># build targets, options</span>
+├── <span class="node">Data[]</span>        <span class="leaf"># entity definitions</span>
+│   ├── <span class="node">Field[]</span>   <span class="leaf"># field definitions with types</span>
+│   └── <span class="node">Relation[]</span> <span class="leaf"># relationships</span>
+├── <span class="node">Page[]</span>        <span class="leaf"># frontend pages</span>
+│   ├── <span class="node">DataBinding[]</span>  <span class="leaf"># data sources</span>
+│   ├── <span class="node">Layout[]</span>       <span class="leaf"># visual structure</span>
+│   ├── <span class="node">Interaction[]</span>  <span class="leaf"># event handlers</span>
+│   └── <span class="node">Condition[]</span>    <span class="leaf"># conditional rendering</span>
+├── <span class="node">Component[]</span>   <span class="leaf"># reusable UI pieces</span>
+├── <span class="node">API[]</span>         <span class="leaf"># backend endpoints</span>
+│   ├── <span class="node">Auth</span>        <span class="leaf"># authentication requirement</span>
+│   ├── <span class="node">Input[]</span>     <span class="leaf"># accepted parameters</span>
+│   ├── <span class="node">Validation[]</span> <span class="leaf"># input checks</span>
+│   ├── <span class="node">Logic[]</span>     <span class="leaf"># business logic steps</span>
+│   └── <span class="node">Response</span>    <span class="leaf"># return value</span>
+├── <span class="node">Policy[]</span>      <span class="leaf"># authorization rules</span>
+├── <span class="node">Workflow[]</span>    <span class="leaf"># event-driven sequences</span>
+├── <span class="node">Integration[]</span> <span class="leaf"># third-party connections</span>
+├── <span class="node">Architecture</span>  <span class="leaf"># deployment architecture</span>
+├── <span class="node">Pipeline[]</span>    <span class="leaf"># CI/CD definitions</span>
+└── <span class="node">Environment[]</span> <span class="leaf"># deployment environments</span></pre></div>
+
+      <h3>Example IR Output</h3>
+
+      <p>Human source:</p>
+
+      <div class="code-block"><pre><span class="kw">api</span> GetUser:
+  <span class="kw">requires</span> <span class="kw">authentication</span>
+  <span class="kw">accepts</span> user_id
+  <span class="kw">fetch</span> the user by user_id
+  <span class="kw">if</span> user does <span class="kw">not</span> exist, <span class="kw">respond with</span> <span class="str">"not found"</span>
+  <span class="kw">respond with</span> the user profile</pre></div>
+
+      <p>Intent IR (YAML):</p>
+
+      <div class="code-block"><pre><span class="yaml-key">type:</span> <span class="yaml-val">api</span>
+<span class="yaml-key">name:</span> <span class="yaml-val">GetUser</span>
+<span class="yaml-key">auth:</span>
+  <span class="yaml-key">required:</span> <span class="yaml-val">true</span>
+<span class="yaml-key">input:</span>
+  - <span class="yaml-key">name:</span> <span class="yaml-val">user_id</span>
+    <span class="yaml-key">type:</span> <span class="yaml-val">identifier</span>
+    <span class="yaml-key">required:</span> <span class="yaml-val">true</span>
+<span class="yaml-key">logic:</span>
+  - <span class="yaml-key">type:</span> <span class="yaml-val">query</span>
+    <span class="yaml-key">entity:</span> <span class="yaml-val">User</span>
+    <span class="yaml-key">filter:</span> { <span class="yaml-key">id:</span> <span class="yaml-val">"$user_id"</span> }
+    <span class="yaml-key">assign:</span> <span class="yaml-val">"user"</span>
+  - <span class="yaml-key">type:</span> <span class="yaml-val">condition</span>
+    <span class="yaml-key">if:</span> { <span class="yaml-key">operator:</span> <span class="yaml-val">"not_exists"</span>, <span class="yaml-key">value:</span> <span class="yaml-val">"$user"</span> }
+    <span class="yaml-key">then:</span>
+      <span class="yaml-key">type:</span> <span class="yaml-val">respond</span>
+      <span class="yaml-key">status:</span> <span class="yaml-val">404</span>
+      <span class="yaml-key">body:</span> { <span class="yaml-key">message:</span> <span class="yaml-val">"not found"</span> }
+  - <span class="yaml-key">type:</span> <span class="yaml-val">respond</span>
+    <span class="yaml-key">status:</span> <span class="yaml-val">200</span>
+    <span class="yaml-key">body:</span> { <span class="yaml-key">data:</span> <span class="yaml-val">"$user.profile"</span> }</pre></div>
+
+      <!-- ── 6. LLM Connector ── -->
+      <h2 id="llm-connector">6. LLM Connector (Optional)</h2>
+
+      <p>The LLM connector is an optional plugin that enhances the developer experience.</p>
+
+      <h3>Configuration</h3>
+
+      <div class="code-block"><pre>connect to LLM:
+  provider <span class="kw">is</span> &lt;Provider&gt; <span class="kw">using</span> &lt;Model&gt;
+  use <span class="kw">for</span>: interpretation, suggestions, context</pre></div>
+
+      <h3>Capabilities</h3>
+
+      <ol>
+        <li><strong>Smart Interpretation:</strong> Converts freeform English into structured <code>.human</code> grammar</li>
+        <li><strong>Conversational Editing:</strong> Edit your app through natural dialogue</li>
+        <li><strong>Context Building:</strong> Understands entire project, answers questions, finds issues</li>
+        <li><strong>Pattern Suggestions:</strong> Recommends improvements based on project analysis</li>
+        <li><strong>Design Import Assist:</strong> Uses vision to interpret Figma files and screenshots</li>
+      </ol>
+
+      <h3>Boundary</h3>
+
+      <p>The LLM connector <strong>NEVER</strong>:</p>
+
+      <ul>
+        <li>Replaces the deterministic compiler</li>
+        <li>Is required for any core operation</li>
+        <li>Produces non-reproducible output (all suggestions are written to <code>.human</code> files)</li>
+        <li>Runs without explicit user opt-in</li>
+      </ul>
+
+      <!-- ── 7. CLI Reference ── -->
+      <h2 id="cli-reference">7. CLI Reference</h2>
+
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Command</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>human init &lt;name&gt;</code></td><td>Create new project</td></tr>
+          <tr><td><code>human build</code></td><td>Compile .human files to target code</td></tr>
+          <tr><td><code>human build --inspect</code></td><td>Show generated files without deploying</td></tr>
+          <tr><td><code>human run</code></td><td>Start development server</td></tr>
+          <tr><td><code>human check</code></td><td>Validate .human files</td></tr>
+          <tr><td><code>human test</code></td><td>Run all generated tests</td></tr>
+          <tr><td><code>human audit</code></td><td>Run security audit</td></tr>
+          <tr><td><code>human deploy</code></td><td>Deploy to configured environment</td></tr>
+          <tr><td><code>human eject</code></td><td>Export generated code as standalone project</td></tr>
+          <tr><td><code>human edit --with-llm</code></td><td>Start conversational editing session</td></tr>
+          <tr><td><code>human ask "&lt;question&gt;"</code></td><td>Ask LLM about your project</td></tr>
+          <tr><td><code>human suggest</code></td><td>Get improvement suggestions from LLM</td></tr>
+          <tr><td><code>human feature "&lt;name&gt;"</code></td><td>Create feature branch</td></tr>
+          <tr><td><code>human commit "&lt;message&gt;"</code></td><td>Test, lint, commit</td></tr>
+          <tr><td><code>human push</code></td><td>Push and trigger pipeline</td></tr>
+          <tr><td><code>human release "&lt;version&gt;"</code></td><td>Tag and deploy release</td></tr>
+          <tr><td><code>human rollback</code></td><td>Revert to last stable deployment</td></tr>
+          <tr><td><code>human integrate &lt;service&gt;</code></td><td>Add third-party integration</td></tr>
+          <tr><td><code>human plugin add &lt;plugin&gt;</code></td><td>Add compiler target plugin</td></tr>
+          <tr><td><code>human plugin list</code></td><td>List available plugins</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ── 8. Error Messages ── -->
+      <h2 id="error-messages">8. Error Messages</h2>
+
+      <p>All error messages are in plain English and suggest fixes in Human language.</p>
+
+      <h3>Examples</h3>
+
+      <div class="code-block"><pre><span class="cmt">Error:</span> Your Post <span class="kw">data</span> <span class="kw">has</span> a "category" field but no predefined
+categories. Consider adding:
+  <span class="kw">has a</span> category <span class="kw">which is either</span> <span class="str">"tech"</span> <span class="kw">or</span> <span class="str">"lifestyle"</span> <span class="kw">or</span> <span class="str">"news"</span>
+Or <span class="kw">if</span> categories <span class="kw">are</span> dynamic:
+  <span class="kw">has a</span> category <span class="kw">which is</span> text</pre></div>
+
+      <div class="code-block"><pre><span class="cmt">Error:</span> <span class="kw">api</span> DeletePost lets any authenticated user <span class="kw">delete</span> any post.
+You probably want to restrict this. Add:
+  <span class="kw">check</span> that current user <span class="kw">is</span> the author <span class="kw">or</span> an admin</pre></div>
+
+      <div class="code-block"><pre><span class="cmt">Error:</span> <span class="kw">page</span> Dashboard fetches transactions but <span class="kw">has</span> no loading state.
+Users will see a blank screen <span class="kw">while</span> <span class="kw">data</span> loads. Add:
+  <span class="kw">while</span> loading, <span class="kw">show</span> a skeleton screen</pre></div>
+
+      <div class="code-block"><pre><span class="cmt">Warning:</span> User <span class="kw">data</span> <span class="kw">has</span> 50,000+ rows but no indexes on frequently
+queried fields. Add to your <span class="kw">database</span> section:
+  index User by email
+  index User by created date</pre></div>
+
+      <!-- ── 9. Reserved Keywords ── -->
+      <h2 id="reserved-keywords">9. Reserved Keywords</h2>
+
+      <div class="code-block"><pre><span class="cmt"># Declarations</span>
+<span class="kw">app</span>, <span class="kw">data</span>, <span class="kw">page</span>, <span class="kw">component</span>, <span class="kw">api</span>, <span class="kw">service</span>, agent, <span class="kw">policy</span>, <span class="kw">workflow</span>
+<span class="kw">theme</span>, <span class="kw">architecture</span>, <span class="kw">environment</span>, <span class="kw">integrate</span>
+
+<span class="cmt"># Types</span>
+text, number, decimal, boolean, date, datetime, email, url, file,
+image, json
+
+<span class="cmt"># Relationships</span>
+<span class="kw">belongs to</span>, <span class="kw">has many</span>, <span class="kw">has a</span>, <span class="kw">has an</span>, <span class="kw">through</span>
+
+<span class="cmt"># Actions</span>
+<span class="kw">show</span>, <span class="kw">fetch</span>, <span class="kw">create</span>, <span class="kw">update</span>, <span class="kw">delete</span>, <span class="kw">send</span>, <span class="kw">respond</span>, <span class="kw">navigate</span>
+<span class="kw">check</span>, <span class="kw">validate</span>, <span class="kw">filter</span>, <span class="kw">sort</span>, <span class="kw">paginate</span>, <span class="kw">search</span>
+<span class="kw">publish</span>, <span class="kw">listen</span>, <span class="kw">notify</span>, <span class="kw">alert</span>, <span class="kw">log</span>, <span class="kw">track</span>
+
+<span class="cmt"># Conditions</span>
+<span class="kw">if</span>, <span class="kw">when</span>, <span class="kw">while</span>, <span class="kw">unless</span>, <span class="kw">until</span>, <span class="kw">after</span>, <span class="kw">before</span>, <span class="kw">every</span>
+
+<span class="cmt"># Modifiers</span>
+<span class="kw">requires</span>, <span class="kw">accepts</span>, <span class="kw">only</span>, <span class="kw">either</span>, <span class="kw">or</span>, <span class="kw">and</span>, <span class="kw">not</span>, <span class="kw">with</span>, <span class="kw">from</span>, <span class="kw">to</span>
+<span class="kw">using</span>, <span class="kw">in</span>, <span class="kw">on</span>, at, <span class="kw">for</span>, <span class="kw">by</span>, <span class="kw">as</span>, <span class="kw">is</span>, <span class="kw">are</span>, <span class="kw">the</span>, <span class="kw">a</span>, <span class="kw">an</span>
+
+<span class="cmt"># Quality</span>
+<span class="kw">test</span>, <span class="kw">audit</span>, <span class="kw">check</span>, verify, <span class="kw">ensure</span>, <span class="kw">must</span>, cannot, <span class="kw">limit</span>
+
+<span class="cmt"># Architecture</span>
+monolith, microservices, <span class="kw">serverless</span>, <span class="kw">gateway</span>, <span class="kw">broker</span>
+
+<span class="cmt"># DevOps</span>
+<span class="kw">deploy</span>, <span class="kw">build</span>, <span class="kw">run</span>, push, <span class="kw">release</span>, <span class="kw">rollback</span>, branch, <span class="kw">merge</span>
+<span class="kw">pipeline</span>, <span class="kw">monitor</span>, <span class="kw">alert</span>, <span class="kw">log</span></pre></div>
+
+      <!-- ── 10. Version History ── -->
+      <h2 id="version-history">10. Version History</h2>
+
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Version</th>
+            <th>Date</th>
+            <th>Changes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>0.1</td>
+            <td>2025-02-19</td>
+            <td>Initial specification</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="closing-quote"><em>Human: The first programming language designed for humans, not computers.</em></p>
+
+    </main>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       FOOTER
+       ══════════════════════════════════════════════ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-logo">human<span class="footer-cursor">_</span></div>
+      <nav class="footer-links">
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+        <a href="contributing.html">Contributing</a>
+        <a href="https://github.com/barun-bash/human/blob/main/MANIFESTO.md" target="_blank" rel="noopener">Manifesto</a>
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+      </nav>
+      <p class="footer-copy">MIT License &middot; Built with intent.</p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      // ── Sidebar active section tracking ──
+      var sidebarLinks = document.querySelectorAll('#sidebarNav a');
+      var sections = [];
+
+      sidebarLinks.forEach(function (link) {
+        var id = link.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ id: id, el: el, link: link });
+      });
+
+      function updateActive() {
+        var scrollY = window.scrollY + 100;
+        var current = sections[0];
+
+        for (var i = 0; i < sections.length; i++) {
+          if (sections[i].el.offsetTop <= scrollY) {
+            current = sections[i];
+          }
+        }
+
+        sidebarLinks.forEach(function (link) { link.classList.remove('active'); });
+        if (current) current.link.classList.add('active');
+      }
+
+      var ticking = false;
+      window.addEventListener('scroll', function () {
+        if (!ticking) {
+          window.requestAnimationFrame(function () {
+            updateActive();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      });
+
+      updateActive();
+    })();
+  </script>
+</body>
+</html>

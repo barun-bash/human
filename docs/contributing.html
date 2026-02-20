@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contributing — human_</title>
+  <meta name="description" content="Contributing guide for the Human programming language compiler. Learn how to set up, code, test, and submit pull requests.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230D0D0D'/><text x='4' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23F5F5F3'>h</text><text x='18' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23E85D3A'>_</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+    :root {
+      --bg: #0D0D0D;
+      --bg-raised: #141414;
+      --bg-surface: #1A1A1A;
+      --text: #E8E8E4;
+      --text-muted: #7A7A7A;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --accent: #E85D3A;
+      --accent-dark: #C44A2D;
+      --success: #2D8C5A;
+      --error: #C43030;
+      --font-logo: 'Nunito', sans-serif;
+      --font: 'Nunito Sans', system-ui, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: #F5F5F3; }
+
+    /* ── Animations ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+    .reveal-delay-5 { transition-delay: 0.5s; }
+
+    /* ══════════════════════════════════════════════
+       NAVBAR
+       ══════════════════════════════════════════════ */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      height: 60px;
+      display: flex;
+      align-items: center;
+    }
+    .navbar-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar-logo {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: -1px;
+      color: #F5F5F3;
+      text-decoration: none;
+    }
+    .navbar-logo:hover { color: #F5F5F3; }
+    .navbar-cursor { color: var(--accent); }
+    .navbar-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+    .navbar-links a {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .navbar-links a:hover { color: #F5F5F3; }
+    .navbar-links a.active { color: var(--accent); }
+    .navbar-links a.external::after {
+      content: '';
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      margin-left: 4px;
+      background: currentColor;
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 3h7v7m0-7L5 11' stroke='currentColor' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 3h7v7m0-7L5 11' stroke='currentColor' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      vertical-align: middle;
+    }
+
+    /* ══════════════════════════════════════════════
+       HERO
+       ══════════════════════════════════════════════ */
+    .hero {
+      padding: 96px 24px 72px;
+      text-align: center;
+    }
+    .hero-inner { max-width: 680px; margin: 0 auto; }
+    .hero h1 {
+      font-weight: 700;
+      font-size: clamp(32px, 5vw, 48px);
+      line-height: 1.2;
+      margin-bottom: 16px;
+      color: #F5F5F3;
+    }
+    .hero-accent { color: var(--accent); }
+    .hero p {
+      font-size: 19px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* ══════════════════════════════════════════════
+       SECTION CARDS
+       ══════════════════════════════════════════════ */
+    .content-section {
+      margin-bottom: 28px;
+    }
+    .card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px 40px;
+      transition: border-color 0.2s;
+    }
+    .card:hover {
+      border-color: var(--border-hover);
+    }
+    .card h2 {
+      font-weight: 700;
+      font-size: 24px;
+      color: #F5F5F3;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card h3 {
+      font-weight: 700;
+      font-size: 18px;
+      color: #F5F5F3;
+      margin-top: 28px;
+      margin-bottom: 12px;
+    }
+    .card h3:first-of-type {
+      margin-top: 0;
+    }
+    .card p {
+      font-size: 16px;
+      color: var(--text);
+      line-height: 1.65;
+      margin-bottom: 12px;
+    }
+    .card ul {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 16px;
+    }
+    .card ul li {
+      position: relative;
+      padding: 6px 0 6px 22px;
+      font-size: 16px;
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .card ul li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 14px;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+    .card a {
+      color: var(--accent);
+    }
+    .card a:hover {
+      color: #F5F5F3;
+    }
+
+    /* ── Code blocks ── */
+    .code-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      overflow-x: auto;
+      margin: 16px 0 20px;
+    }
+    .code-block pre {
+      font-family: var(--font-code);
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      margin: 0;
+      white-space: pre;
+    }
+    .code-block .comment { color: var(--text-muted); }
+    .code-block .cmd { color: var(--accent); }
+
+    /* ── Coding conventions list ── */
+    .conventions-list li {
+      padding: 8px 0 8px 22px !important;
+    }
+
+    /* ── Project structure (file tree) ── */
+    .file-tree {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 16px 0 8px;
+      overflow-x: auto;
+    }
+    .file-tree-item {
+      display: flex;
+      align-items: baseline;
+      padding: 4px 0;
+      font-family: var(--font-code);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .file-tree-path {
+      color: var(--accent);
+      white-space: nowrap;
+      min-width: 220px;
+    }
+    .file-tree-desc {
+      color: var(--text-muted);
+      padding-left: 16px;
+    }
+    .file-tree-connector {
+      color: var(--text-muted);
+      opacity: 0.4;
+      user-select: none;
+      margin-right: 6px;
+    }
+
+    /* ── PR steps (numbered) ── */
+    .pr-steps {
+      list-style: none;
+      padding: 0;
+      counter-reset: pr-step;
+    }
+    .pr-steps li {
+      position: relative;
+      padding: 14px 0 14px 56px !important;
+      border-bottom: 1px solid var(--border);
+    }
+    .pr-steps li:last-child {
+      border-bottom: none;
+    }
+    .pr-steps li::before {
+      counter-increment: pr-step;
+      content: counter(pr-step);
+      position: absolute;
+      left: 0;
+      top: 14px;
+      width: 36px;
+      height: 36px;
+      background: rgba(232, 93, 58, 0.08);
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--accent);
+      line-height: 1;
+      text-align: center;
+      padding-top: 1px;
+    }
+    .pr-steps li strong {
+      color: #F5F5F3;
+    }
+
+    /* ── Warning list (What NOT to Do) ── */
+    .warning-list li {
+      padding: 10px 0 10px 28px !important;
+      border-bottom: 1px solid rgba(196, 48, 48, 0.1);
+    }
+    .warning-list li:last-child {
+      border-bottom: none;
+    }
+    .warning-list li::before {
+      width: 8px !important;
+      height: 8px !important;
+      background: var(--error) !important;
+      border-radius: 2px !important;
+      top: 18px !important;
+      left: 2px !important;
+    }
+
+    /* ── License section ── */
+    .license-text {
+      font-size: 17px;
+      color: var(--text-muted);
+      line-height: 1.65;
+      text-align: center;
+      padding: 8px 0;
+    }
+    .license-text strong {
+      color: var(--text);
+    }
+
+    /* ══════════════════════════════════════════════
+       FOOTER
+       ══════════════════════════════════════════════ */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 56px 24px 40px;
+      text-align: center;
+      margin-top: 48px;
+    }
+    .footer-logo {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 26px;
+      letter-spacing: -1px;
+      margin-bottom: 24px;
+      color: #F5F5F3;
+    }
+    .footer-cursor { color: var(--accent); }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .footer-links a:hover { color: #F5F5F3; }
+    .footer-copy {
+      font-size: 13px;
+      color: rgba(122, 122, 122, 0.5);
+    }
+
+    /* ══════════════════════════════════════════════
+       RESPONSIVE
+       ══════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .card {
+        padding: 28px 24px;
+      }
+      .file-tree-path {
+        min-width: 160px;
+      }
+      .pr-steps li {
+        padding-left: 48px !important;
+      }
+      .navbar-links {
+        gap: 16px;
+      }
+      .navbar-links a {
+        font-size: 13px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .hero { padding: 64px 20px 48px; }
+      .hero p { font-size: 17px; }
+      .card {
+        padding: 24px 20px;
+        border-radius: 10px;
+      }
+      .card h2 { font-size: 21px; }
+      .code-block {
+        padding: 14px 16px;
+      }
+      .code-block pre {
+        font-size: 13px;
+      }
+      .file-tree {
+        padding: 14px 16px;
+      }
+      .file-tree-item {
+        flex-direction: column;
+        font-size: 13px;
+      }
+      .file-tree-path {
+        min-width: auto;
+      }
+      .file-tree-desc {
+        padding-left: 20px;
+        font-size: 12px;
+      }
+      .pr-steps li {
+        padding-left: 44px !important;
+      }
+      .pr-steps li::before {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
+      }
+      .navbar-links {
+        gap: 12px;
+      }
+      .navbar-links a {
+        font-size: 12px;
+      }
+      .footer-links { gap: 16px; }
+    }
+
+    @media (max-width: 420px) {
+      .navbar-links {
+        gap: 10px;
+      }
+      .navbar-links a.hide-mobile {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-logo">human<span class="navbar-cursor">_</span></a>
+      <div class="navbar-links">
+        <a href="language-spec.html" class="hide-mobile">Language Spec</a>
+        <a href="roadmap.html" class="hide-mobile">Roadmap</a>
+        <a href="contributing.html" class="active">Contributing</a>
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener" class="external">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-inner reveal">
+      <h1>Contributing to <span class="hero-accent">Human</span></h1>
+      <p>Thank you for your interest in contributing to the Human programming language compiler. Every contribution matters, and this guide will help you get started.</p>
+    </div>
+  </section>
+
+  <!-- CONTENT -->
+  <main class="container">
+
+    <!-- Setup -->
+    <section class="content-section reveal">
+      <div class="card">
+        <h2>Setup</h2>
+
+        <h3>Prerequisites</h3>
+        <ul>
+          <li>Go 1.21 or later</li>
+          <li>Git</li>
+          <li>Make (optional, but recommended)</li>
+        </ul>
+
+        <h3>Getting Started</h3>
+        <p>Clone the repository, build the compiler, and run the test suite to verify everything works.</p>
+        <div class="code-block">
+          <pre><span class="cmd">git</span> clone https://github.com/barun-bash/human.git
+<span class="cmd">cd</span> human
+<span class="cmd">make</span> build
+<span class="cmd">make</span> test</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Coding Conventions -->
+    <section class="content-section reveal reveal-delay-1">
+      <div class="card">
+        <h2>Coding Conventions</h2>
+        <ul class="conventions-list">
+          <li>Follow the <a href="https://github.com/golang-standards/project-layout" target="_blank" rel="noopener">Go standard project layout</a> (<code>cmd/</code>, <code>internal/</code>, <code>pkg/</code>)</li>
+          <li>All compiler internals go in <code>internal/</code> &mdash; these are not importable by external packages</li>
+          <li>Public IR types go in <code>pkg/humanir/</code> for plugin authors</li>
+          <li>Use Go's <code>testing</code> package. No external test frameworks.</li>
+          <li>Every package must have <code>*_test.go</code> files</li>
+          <li>No external dependencies unless absolutely necessary. Standard library preferred.</li>
+          <li>Error messages must be in plain English and suggest fixes in Human language</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Running Tests -->
+    <section class="content-section reveal reveal-delay-2">
+      <div class="card">
+        <h2>Running Tests</h2>
+
+        <div class="code-block">
+          <pre><span class="comment"># Run all tests</span>
+<span class="cmd">make</span> test
+
+<span class="comment"># Run tests with verbose output</span>
+<span class="cmd">go</span> test -v ./...
+
+<span class="comment"># Run tests for a specific package</span>
+<span class="cmd">go</span> test -v ./internal/lexer/
+
+<span class="comment"># Run tests with coverage</span>
+<span class="cmd">go</span> test -coverprofile=coverage.out ./...
+<span class="cmd">go</span> tool cover -html=coverage.out -o coverage.html</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Linting -->
+    <section class="content-section reveal reveal-delay-3">
+      <div class="card">
+        <h2>Linting</h2>
+        <p>Run the linter before submitting any changes to catch common issues early.</p>
+        <div class="code-block">
+          <pre><span class="cmd">make</span> lint
+<span class="comment"># or</span>
+<span class="cmd">go</span> vet ./...</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Project Structure -->
+    <section class="content-section reveal reveal-delay-4">
+      <div class="card">
+        <h2>Project Structure</h2>
+        <p>The compiler follows Go's standard project layout. Here's where everything lives.</p>
+        <div class="file-tree">
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>cmd/human/</span>
+            <span class="file-tree-desc">CLI entry point</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/lexer/</span>
+            <span class="file-tree-desc">Tokenizer</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/parser/</span>
+            <span class="file-tree-desc">Recursive descent parser + AST</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/ir/</span>
+            <span class="file-tree-desc">Intent IR definitions and builder</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/analyzer/</span>
+            <span class="file-tree-desc">Semantic analysis</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/codegen/</span>
+            <span class="file-tree-desc">Code generators (per target)</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/quality/</span>
+            <span class="file-tree-desc">Quality engine (tests, security, lint, QA)</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/errors/</span>
+            <span class="file-tree-desc">Error types and messages</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/config/</span>
+            <span class="file-tree-desc">Configuration loading</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pull Request Guidelines -->
+    <section class="content-section reveal reveal-delay-5">
+      <div class="card">
+        <h2>Pull Request Guidelines</h2>
+        <ol class="pr-steps">
+          <li><strong>One concern per PR.</strong> Keep pull requests focused on a single change.</li>
+          <li><strong>Write tests.</strong> Every new feature or bug fix should include tests.</li>
+          <li><strong>Run checks before submitting.</strong> Make sure <code>make test</code> and <code>make lint</code> pass.</li>
+          <li><strong>Write clear commit messages.</strong> Describe what changed and why.</li>
+          <li><strong>Test against the example.</strong> Use <code>examples/taskflow/app.human</code> as a smoke test for parser and lexer changes.</li>
+          <li><strong>Keep error messages human-friendly.</strong> If you add a new error, write it as advice from a helpful colleague, not a stack trace.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- What NOT to Do -->
+    <section class="content-section reveal">
+      <div class="card">
+        <h2>What NOT to Do</h2>
+        <ul class="warning-list">
+          <li>Do not add AI/LLM dependencies to the core compiler</li>
+          <li>Do not use external Go dependencies unless absolutely necessary</li>
+          <li>Do not generate code that requires a Human runtime</li>
+          <li>Do not skip quality checks</li>
+          <li>Do not make error messages technical &mdash; they should read like advice</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- License -->
+    <section class="content-section reveal">
+      <div class="card">
+        <h2>License</h2>
+        <p class="license-text">By contributing, you agree that your contributions will be licensed under the <strong>MIT License</strong>.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-logo">human<span class="footer-cursor">_</span></div>
+      <nav class="footer-links">
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+        <a href="contributing.html">Contributing</a>
+        <a href="https://github.com/barun-bash/human/blob/main/MANIFESTO.md" target="_blank" rel="noopener">Manifesto</a>
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+      </nav>
+      <p class="footer-copy">MIT License &middot; Built with intent.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var els = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window)) {
+        els.forEach(function (el) { el.classList.add('visible'); });
+        return;
+      }
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+      els.forEach(function (el) { obs.observe(el); });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roadmap — human_</title>
+  <meta name="description" content="The 52-week development roadmap for Human, the first programming language designed for humans, not computers. 14 phases from foundation to public launch.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230D0D0D'/><text x='4' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23F5F5F3'>h</text><text x='18' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23E85D3A'>_</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+    :root {
+      --bg: #0D0D0D;
+      --bg-raised: #141414;
+      --bg-surface: #1A1A1A;
+      --text: #E8E8E4;
+      --text-muted: #7A7A7A;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --accent: #E85D3A;
+      --accent-dark: #C44A2D;
+      --success: #2D8C5A;
+      --font-logo: 'Nunito', sans-serif;
+      --font: 'Nunito Sans', system-ui, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+    a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: #F5F5F3; }
+
+    /* ── Animations ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* ══════════════════════════════════════════════
+       NAVIGATION
+       ══════════════════════════════════════════════ */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      height: 60px;
+      display: flex;
+      align-items: center;
+    }
+    .nav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: -1px;
+      color: #F5F5F3;
+      text-decoration: none;
+    }
+    .nav-logo:hover { color: #F5F5F3; }
+    .nav-logo-cursor { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: #F5F5F3; }
+    .nav-links a.active { color: var(--accent); }
+    .nav-links a.nav-external::after {
+      content: '';
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      margin-left: 4px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3.5 1.5h7v7M10.5 1.5L1.5 10.5' stroke='%237A7A7A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-size: contain;
+      background-repeat: no-repeat;
+      vertical-align: middle;
+      opacity: 0.6;
+    }
+
+    /* ══════════════════════════════════════════════
+       HERO
+       ══════════════════════════════════════════════ */
+    .hero {
+      padding: 100px 24px 80px;
+      text-align: center;
+    }
+    .hero-inner { max-width: 700px; margin: 0 auto; }
+    .hero h1 {
+      font-weight: 700;
+      font-size: clamp(32px, 6vw, 52px);
+      line-height: 1.15;
+      margin-bottom: 20px;
+      color: #F5F5F3;
+    }
+    .hero-vision {
+      font-size: 20px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    .hero-sub {
+      font-size: 17px;
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+    .hero-sub strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ══════════════════════════════════════════════
+       TIMELINE
+       ══════════════════════════════════════════════ */
+    .timeline-section {
+      padding: 40px 24px 96px;
+    }
+
+    .timeline {
+      position: relative;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* The vertical connecting line */
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 28px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(
+        to bottom,
+        var(--accent) 0%,
+        var(--border-hover) 10%,
+        var(--border-hover) 90%,
+        var(--accent) 100%
+      );
+    }
+
+    /* Individual phase card */
+    .phase {
+      position: relative;
+      margin-bottom: 48px;
+      padding-left: 72px;
+    }
+    .phase:last-child { margin-bottom: 0; }
+
+    /* Phase number badge on the timeline line */
+    .phase-badge {
+      position: absolute;
+      left: 12px;
+      top: 24px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      z-index: 2;
+      box-shadow: 0 0 16px rgba(232, 93, 58, 0.2);
+    }
+
+    .phase-card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      transition: border-color 0.3s;
+    }
+    .phase-card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .phase-header {
+      margin-bottom: 24px;
+    }
+    .phase-title {
+      font-weight: 700;
+      font-size: 22px;
+      color: #F5F5F3;
+      margin-bottom: 4px;
+    }
+    .phase-weeks {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .phase-goal {
+      font-size: 16px;
+      color: var(--text-muted);
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    /* Sub-sections within a phase (Week X-Y groupings) */
+    .phase-subsection {
+      margin-bottom: 20px;
+    }
+    .phase-subsection:last-child { margin-bottom: 0; }
+    .phase-subsection-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.3px;
+    }
+
+    /* Task list */
+    .task-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 20px 0;
+    }
+    .task-list:last-child { margin-bottom: 0; }
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 5px 0;
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .task-checkbox {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid var(--text-muted);
+      border-radius: 3px;
+      margin-top: 3px;
+      opacity: 0.5;
+    }
+
+    /* Milestone */
+    .phase-milestone {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .milestone-icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      margin-top: 1px;
+    }
+    .milestone-text {
+      font-size: 15px;
+      font-weight: 600;
+      font-style: italic;
+      color: var(--accent);
+      line-height: 1.5;
+    }
+
+    /* ══════════════════════════════════════════════
+       SUCCESS METRICS
+       ══════════════════════════════════════════════ */
+    .metrics-section {
+      padding: 96px 24px;
+      border-top: 1px solid var(--border);
+    }
+    .metrics-section h2 {
+      font-weight: 700;
+      font-size: 32px;
+      text-align: center;
+      margin-bottom: 48px;
+      color: #F5F5F3;
+    }
+
+    .metrics-table-wrap {
+      max-width: 600px;
+      margin: 0 auto;
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .metrics-table thead th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      font-weight: 700;
+      padding: 16px 24px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+    }
+    .metrics-table tbody td {
+      padding: 14px 24px;
+      font-size: 15px;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    .metrics-table tbody tr:last-child td { border-bottom: none; }
+    .metrics-table tbody tr:hover { background: var(--bg-surface); }
+    .metrics-table .target-phase {
+      font-weight: 600;
+      color: var(--accent);
+      font-family: var(--font-code);
+      font-size: 13px;
+    }
+
+    /* ══════════════════════════════════════════════
+       PRINCIPLES
+       ══════════════════════════════════════════════ */
+    .principles-section {
+      padding: 96px 24px;
+      border-top: 1px solid var(--border);
+    }
+    .principles-section h2 {
+      font-weight: 700;
+      font-size: 32px;
+      text-align: center;
+      margin-bottom: 48px;
+      color: #F5F5F3;
+    }
+
+    .principles-list {
+      max-width: 760px;
+      margin: 0 auto;
+      list-style: none;
+      padding: 0;
+    }
+    .principle-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .principle-item:first-child { padding-top: 0; }
+    .principle-item:last-child { border-bottom: none; }
+    .principle-number {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(232, 93, 58, 0.1);
+      border: 1.5px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-top: 2px;
+    }
+    .principle-content {}
+    .principle-content strong {
+      display: block;
+      font-size: 17px;
+      color: #F5F5F3;
+      margin-bottom: 4px;
+    }
+    .principle-content span {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* ══════════════════════════════════════════════
+       FOOTER
+       ══════════════════════════════════════════════ */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 56px 24px 40px;
+      text-align: center;
+    }
+    .footer-logo {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 26px;
+      letter-spacing: -1px;
+      margin-bottom: 24px;
+      color: #F5F5F3;
+    }
+    .footer-cursor { color: var(--accent); }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .footer-links a:hover { color: #F5F5F3; }
+
+    .footer-copy {
+      font-size: 13px;
+      color: rgba(122, 122, 122, 0.5);
+    }
+
+    /* ══════════════════════════════════════════════
+       RESPONSIVE
+       ══════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .nav-links { gap: 18px; }
+      .nav-links a { font-size: 13px; }
+
+      .hero { padding: 72px 20px 56px; }
+      .hero-vision { font-size: 17px; }
+      .hero-sub { font-size: 15px; }
+
+      .timeline-section { padding: 24px 20px 64px; }
+
+      .timeline::before { left: 18px; }
+
+      .phase { padding-left: 52px; margin-bottom: 32px; }
+      .phase-badge {
+        left: 4px;
+        top: 20px;
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+      }
+
+      .phase-card { padding: 24px 20px; }
+      .phase-title { font-size: 19px; }
+      .task-item { font-size: 14px; }
+
+      .metrics-table thead th { padding: 12px 16px; }
+      .metrics-table tbody td { padding: 10px 16px; font-size: 14px; }
+
+      .footer-links { gap: 16px; }
+    }
+
+    @media (max-width: 480px) {
+      .nav-links { gap: 12px; }
+      .nav-links a { font-size: 12px; }
+      .nav-links a.nav-external::after { display: none; }
+
+      .hero { padding: 56px 16px 40px; }
+      .phase-card { padding: 20px 16px; }
+      .phase-subsection-title { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVIGATION -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">human<span class="nav-logo-cursor">_</span></a>
+      <div class="nav-links">
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html" class="active">Roadmap</a>
+        <a href="contributing.html">Contributing</a>
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener" class="nav-external">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-inner reveal">
+      <h1>Development Roadmap</h1>
+      <p class="hero-vision">Build the first programming language designed for humans, not computers.</p>
+      <p class="hero-sub"><strong>52-week plan</strong> across <strong>14 phases</strong>.</p>
+    </div>
+  </section>
+
+  <!-- TIMELINE -->
+  <section class="timeline-section">
+    <div class="container">
+      <div class="timeline">
+
+        <!-- ── Phase 1 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">1</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 1 - 4</div>
+              <h3 class="phase-title">Foundation</h3>
+              <p class="phase-goal">Parse a .human file and prove the grammar works.</p>
+            </div>
+
+            <div class="phase-subsection">
+              <div class="phase-subsection-title">Week 1-2: Lexer + Token System</div>
+              <ul class="task-list">
+                <li class="task-item"><span class="task-checkbox"></span>Define all token types</li>
+                <li class="task-item"><span class="task-checkbox"></span>Build lexer that tokenizes .human files</li>
+                <li class="task-item"><span class="task-checkbox"></span>Handle indentation-based scoping</li>
+                <li class="task-item"><span class="task-checkbox"></span>Handle section headers (&mdash;&mdash; name &mdash;&mdash;)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Handle strings, numbers, identifiers</li>
+                <li class="task-item"><span class="task-checkbox"></span>Handle keywords (case-insensitive)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Handle comments (#)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Write comprehensive lexer tests</li>
+                <li class="task-item"><span class="task-checkbox"></span>Test with sample .human files</li>
+              </ul>
+            </div>
+
+            <div class="phase-subsection">
+              <div class="phase-subsection-title">Week 3-4: Parser + AST</div>
+              <ul class="task-list">
+                <li class="task-item"><span class="task-checkbox"></span>Define all AST node types</li>
+                <li class="task-item"><span class="task-checkbox"></span>Build recursive descent parser</li>
+                <li class="task-item"><span class="task-checkbox"></span>Parse: app declaration</li>
+                <li class="task-item"><span class="task-checkbox"></span>Parse: data declarations (fields, types, relationships)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Parse: page declarations (display, interaction, conditions)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Parse: api declarations (input, validation, logic, response)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Parse: theme declaration</li>
+                <li class="task-item"><span class="task-checkbox"></span>Parse: security declaration</li>
+                <li class="task-item"><span class="task-checkbox"></span>Parse: database declaration</li>
+                <li class="task-item"><span class="task-checkbox"></span>Error recovery (skip to next declaration on error)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Human-readable error messages</li>
+                <li class="task-item"><span class="task-checkbox"></span>Write comprehensive parser tests</li>
+              </ul>
+            </div>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">Can parse a complete .human file into an AST</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 2 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">2</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 5 - 6</div>
+              <h3 class="phase-title">Intent IR</h3>
+              <p class="phase-goal">Transform AST into framework-agnostic representation.</p>
+            </div>
+
+            <ul class="task-list">
+              <li class="task-item"><span class="task-checkbox"></span>Define IR node types (Application, Data, Page, API, etc.)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Build AST &rarr; IR transformer</li>
+              <li class="task-item"><span class="task-checkbox"></span>Serialize IR to YAML</li>
+              <li class="task-item"><span class="task-checkbox"></span>Serialize IR to JSON</li>
+              <li class="task-item"><span class="task-checkbox"></span>Deserialize IR from YAML/JSON</li>
+              <li class="task-item"><span class="task-checkbox"></span>Validate IR completeness (every reference resolves)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Write IR tests</li>
+              <li class="task-item"><span class="task-checkbox"></span>Document IR schema</li>
+            </ul>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">.human file &rarr; AST &rarr; Intent IR (YAML) works end-to-end</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 3 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">3</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 7 - 10</div>
+              <h3 class="phase-title">First Code Generator &mdash; React + TypeScript</h3>
+              <p class="phase-goal">Generate a working React project from Intent IR.</p>
+            </div>
+
+            <div class="phase-subsection">
+              <div class="phase-subsection-title">Week 7-8: Project Scaffolding</div>
+              <ul class="task-list">
+                <li class="task-item"><span class="task-checkbox"></span>Generate package.json with correct dependencies</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate tsconfig.json</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate project structure (src/, pages/, components/, etc.)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate routing from page declarations</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate data types from data declarations</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate theme/styling from theme declaration (Tailwind)</li>
+              </ul>
+            </div>
+
+            <div class="phase-subsection">
+              <div class="phase-subsection-title">Week 9-10: Component + Page Generation</div>
+              <ul class="task-list">
+                <li class="task-item"><span class="task-checkbox"></span>Generate React components from component declarations</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate pages from page declarations</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate data fetching (hooks, API calls)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate forms from input statements</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate lists, cards, tables from display statements</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate event handlers from interaction statements</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate conditional rendering from condition statements</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate loading and error states</li>
+              </ul>
+            </div>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">.human file &rarr; working React + TypeScript project</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 4 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">4</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 11 - 14</div>
+              <h3 class="phase-title">First Backend Generator &mdash; Node + Express</h3>
+              <p class="phase-goal">Generate a working backend from Intent IR.</p>
+            </div>
+
+            <ul class="task-list">
+              <li class="task-item"><span class="task-checkbox"></span>Generate Express server setup</li>
+              <li class="task-item"><span class="task-checkbox"></span>Generate API routes from api declarations</li>
+              <li class="task-item"><span class="task-checkbox"></span>Generate input validation from check statements</li>
+              <li class="task-item"><span class="task-checkbox"></span>Generate data models (Prisma or TypeORM)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Generate database migrations</li>
+              <li class="task-item"><span class="task-checkbox"></span>Generate authentication middleware (JWT)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Generate authorization middleware (from policies)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Generate error handling</li>
+              <li class="task-item"><span class="task-checkbox"></span>Connect frontend to backend (API client generation)</li>
+            </ul>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">Full-stack app from .human files</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 5 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">5</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 15 - 18</div>
+              <h3 class="phase-title">Quality Engine</h3>
+              <p class="phase-goal">Mandatory quality guarantees.</p>
+            </div>
+
+            <div class="phase-subsection">
+              <div class="phase-subsection-title">Week 15-16: Auto Test Generation</div>
+              <ul class="task-list">
+                <li class="task-item"><span class="task-checkbox"></span>Generate unit tests for every API (Jest/Vitest)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate unit tests for every component (React Testing Library)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate edge case tests from field types</li>
+                <li class="task-item"><span class="task-checkbox"></span>Generate integration tests for API flows</li>
+                <li class="task-item"><span class="task-checkbox"></span>Coverage tracking and threshold enforcement</li>
+              </ul>
+            </div>
+
+            <div class="phase-subsection">
+              <div class="phase-subsection-title">Week 17: Security Audit</div>
+              <ul class="task-list">
+                <li class="task-item"><span class="task-checkbox"></span>Dependency vulnerability scanning</li>
+                <li class="task-item"><span class="task-checkbox"></span>Input sanitization verification</li>
+                <li class="task-item"><span class="task-checkbox"></span>Auth/authz coverage check</li>
+                <li class="task-item"><span class="task-checkbox"></span>Secret detection in generated code</li>
+                <li class="task-item"><span class="task-checkbox"></span>Security report generation</li>
+              </ul>
+            </div>
+
+            <div class="phase-subsection">
+              <div class="phase-subsection-title">Week 18: Code Quality + QA Trail</div>
+              <ul class="task-list">
+                <li class="task-item"><span class="task-checkbox"></span>Linting of generated code (ESLint config)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Duplication detection</li>
+                <li class="task-item"><span class="task-checkbox"></span>Performance pattern detection</li>
+                <li class="task-item"><span class="task-checkbox"></span>QA test plan generation</li>
+                <li class="task-item"><span class="task-checkbox"></span>Traceability matrix generation</li>
+              </ul>
+            </div>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">Nothing builds without passing all quality checks</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 6 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">6</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 19 - 20</div>
+              <h3 class="phase-title">CLI + Developer Experience</h3>
+              <p class="phase-goal">Polished command-line interface.</p>
+            </div>
+
+            <ul class="task-list">
+              <li class="task-item"><span class="task-checkbox"></span><code>human init</code> &mdash; interactive project creation</li>
+              <li class="task-item"><span class="task-checkbox"></span><code>human build</code> &mdash; compile to target</li>
+              <li class="task-item"><span class="task-checkbox"></span><code>human run</code> &mdash; development server</li>
+              <li class="task-item"><span class="task-checkbox"></span><code>human check</code> &mdash; validate .human files</li>
+              <li class="task-item"><span class="task-checkbox"></span><code>human test</code> &mdash; run generated tests</li>
+              <li class="task-item"><span class="task-checkbox"></span><code>human audit</code> &mdash; run security audit</li>
+              <li class="task-item"><span class="task-checkbox"></span><code>human deploy</code> &mdash; deploy to target</li>
+              <li class="task-item"><span class="task-checkbox"></span><code>human eject</code> &mdash; export as standalone project</li>
+              <li class="task-item"><span class="task-checkbox"></span>Colored terminal output</li>
+              <li class="task-item"><span class="task-checkbox"></span>Progress indicators</li>
+              <li class="task-item"><span class="task-checkbox"></span>Watch mode (rebuild on file change)</li>
+            </ul>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">Complete developer experience from init to deploy</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 7 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">7</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 21 - 24</div>
+              <h3 class="phase-title">Design Import</h3>
+              <p class="phase-goal">Figma and image files as input.</p>
+            </div>
+
+            <ul class="task-list">
+              <li class="task-item"><span class="task-checkbox"></span>Figma API integration (extract layers, styles, components)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Image analysis for screenshots/JPEGs (requires LLM vision)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Visual &rarr; component mapping</li>
+              <li class="task-item"><span class="task-checkbox"></span>Style extraction (colors, fonts, spacing)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Asset extraction (images, icons)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Component map caching (deterministic after first import)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Design enrichment via English statements</li>
+            </ul>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">Figma file + English &rarr; working React components</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 8 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">8</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 25 - 26</div>
+              <h3 class="phase-title">Second Frontend Target</h3>
+              <p class="phase-goal">Prove the IR is truly framework-agnostic.</p>
+            </div>
+
+            <ul class="task-list">
+              <li class="task-item"><span class="task-checkbox"></span>Build Angular or Vue code generator</li>
+              <li class="task-item"><span class="task-checkbox"></span>Same .human file produces both React and Angular/Vue</li>
+              <li class="task-item"><span class="task-checkbox"></span>All quality checks work for new target</li>
+              <li class="task-item"><span class="task-checkbox"></span>Document how to build a code generator plugin</li>
+            </ul>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">One .human source &rarr; multiple framework outputs</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 9 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">9</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 27 - 30</div>
+              <h3 class="phase-title">DevOps Generation</h3>
+              <p class="phase-goal">CI/CD, Docker, deployment from English.</p>
+            </div>
+
+            <ul class="task-list">
+              <li class="task-item"><span class="task-checkbox"></span>Generate GitHub Actions workflows from pipeline declarations</li>
+              <li class="task-item"><span class="task-checkbox"></span>Generate Dockerfiles and docker-compose</li>
+              <li class="task-item"><span class="task-checkbox"></span>Generate Terraform for cloud deployment</li>
+              <li class="task-item"><span class="task-checkbox"></span>Generate environment configurations</li>
+              <li class="task-item"><span class="task-checkbox"></span>Git workflow commands (human feature, human release, etc.)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Monitoring configuration generation</li>
+            </ul>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">Complete application lifecycle from .human files</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 10 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">10</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 31 - 34</div>
+              <h3 class="phase-title">Architecture Support</h3>
+              <p class="phase-goal">Monolith, microservices, serverless from one keyword.</p>
+            </div>
+
+            <ul class="task-list">
+              <li class="task-item"><span class="task-checkbox"></span>Monolith output (single project)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Microservices output (multiple projects, gateway, docker-compose)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Serverless output (Lambda/Cloud Functions)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Event-driven output (with message broker config)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Service-to-service communication generation</li>
+            </ul>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">Architecture as a first-class language feature</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 11 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">11</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 35 - 38</div>
+              <h3 class="phase-title">LLM Connector</h3>
+              <p class="phase-goal">Optional AI enhancement.</p>
+            </div>
+
+            <ul class="task-list">
+              <li class="task-item"><span class="task-checkbox"></span>LLM connector interface (provider-agnostic)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Anthropic Claude integration</li>
+              <li class="task-item"><span class="task-checkbox"></span>OpenAI integration</li>
+              <li class="task-item"><span class="task-checkbox"></span>Ollama (local) integration</li>
+              <li class="task-item"><span class="task-checkbox"></span>Smart interpretation (freeform &rarr; structured .human)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Conversational editing mode</li>
+              <li class="task-item"><span class="task-checkbox"></span>Context building (project-wide understanding)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Pattern suggestions</li>
+            </ul>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">AI-enhanced editing while maintaining deterministic compilation</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 12 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">12</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 39 - 42</div>
+              <h3 class="phase-title">Third-Party Integrations</h3>
+              <p class="phase-goal">First-class integration support.</p>
+            </div>
+
+            <ul class="task-list">
+              <li class="task-item"><span class="task-checkbox"></span>Integration declaration parser</li>
+              <li class="task-item"><span class="task-checkbox"></span>Built-in: Stripe</li>
+              <li class="task-item"><span class="task-checkbox"></span>Built-in: SendGrid / email</li>
+              <li class="task-item"><span class="task-checkbox"></span>Built-in: AWS S3 / file storage</li>
+              <li class="task-item"><span class="task-checkbox"></span>Built-in: OAuth providers (Google, GitHub, etc.)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Custom API integration from declarations</li>
+              <li class="task-item"><span class="task-checkbox"></span>OpenAPI/Swagger spec import</li>
+              <li class="task-item"><span class="task-checkbox"></span>Integration test generation (mocked)</li>
+            </ul>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">Third-party APIs usable in English</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 13 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">13</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 43 - 46</div>
+              <h3 class="phase-title">Plugin Ecosystem</h3>
+              <p class="phase-goal">Community can extend the language.</p>
+            </div>
+
+            <ul class="task-list">
+              <li class="task-item"><span class="task-checkbox"></span>Plugin interface specification</li>
+              <li class="task-item"><span class="task-checkbox"></span>Plugin loading system</li>
+              <li class="task-item"><span class="task-checkbox"></span>Plugin discovery and installation</li>
+              <li class="task-item"><span class="task-checkbox"></span>Plugin template / generator</li>
+              <li class="task-item"><span class="task-checkbox"></span>Documentation for plugin authors</li>
+              <li class="task-item"><span class="task-checkbox"></span>First community plugin examples</li>
+            </ul>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">Open ecosystem for new targets and integrations</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Phase 14 ── -->
+        <div class="phase reveal">
+          <div class="phase-badge">14</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-weeks">Weeks 47 - 52</div>
+              <h3 class="phase-title">Polish + Launch</h3>
+              <p class="phase-goal">Ready for public release.</p>
+            </div>
+
+            <ul class="task-list">
+              <li class="task-item"><span class="task-checkbox"></span>Comprehensive documentation website</li>
+              <li class="task-item"><span class="task-checkbox"></span>Tutorial: &ldquo;Build your first app in Human&rdquo;</li>
+              <li class="task-item"><span class="task-checkbox"></span>5+ complete example applications</li>
+              <li class="task-item"><span class="task-checkbox"></span>Performance optimization</li>
+              <li class="task-item"><span class="task-checkbox"></span>Error message review (every error is helpful)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Installation scripts (brew, apt, scoop, etc.)</li>
+              <li class="task-item"><span class="task-checkbox"></span>VS Code extension (syntax highlighting, autocomplete)</li>
+              <li class="task-item"><span class="task-checkbox"></span>Landing page and branding</li>
+              <li class="task-item"><span class="task-checkbox"></span>Open source release</li>
+            </ul>
+
+            <div class="phase-milestone">
+              <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
+              <span class="milestone-text">v1.0 public launch</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SUCCESS METRICS -->
+  <section class="metrics-section">
+    <div class="container">
+      <h2 class="reveal">Success Metrics</h2>
+      <div class="metrics-table-wrap reveal reveal-delay-1">
+        <table class="metrics-table">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Target</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Parse a .human file</td>
+              <td class="target-phase">Phase 1</td>
+            </tr>
+            <tr>
+              <td>Generate a running React app</td>
+              <td class="target-phase">Phase 3</td>
+            </tr>
+            <tr>
+              <td>Full-stack app from English</td>
+              <td class="target-phase">Phase 4</td>
+            </tr>
+            <tr>
+              <td>Quality guarantees enforced</td>
+              <td class="target-phase">Phase 5</td>
+            </tr>
+            <tr>
+              <td>Design-to-code pipeline</td>
+              <td class="target-phase">Phase 7</td>
+            </tr>
+            <tr>
+              <td>Multi-framework output</td>
+              <td class="target-phase">Phase 8</td>
+            </tr>
+            <tr>
+              <td>Public launch</td>
+              <td class="target-phase">Phase 14</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRINCIPLES THROUGHOUT -->
+  <section class="principles-section">
+    <div class="container">
+      <h2 class="reveal">Principles Throughout</h2>
+      <ol class="principles-list">
+        <li class="principle-item reveal">
+          <span class="principle-number">1</span>
+          <div class="principle-content">
+            <strong>Every phase produces something that works.</strong>
+            <span>No phase is &ldquo;just infrastructure.&rdquo;</span>
+          </div>
+        </li>
+        <li class="principle-item reveal">
+          <span class="principle-number">2</span>
+          <div class="principle-content">
+            <strong>Test everything.</strong>
+            <span>The compiler for a quality-enforced language must itself be well-tested.</span>
+          </div>
+        </li>
+        <li class="principle-item reveal">
+          <span class="principle-number">3</span>
+          <div class="principle-content">
+            <strong>Error messages are a feature.</strong>
+            <span>Every error helps the developer fix the problem.</span>
+          </div>
+        </li>
+        <li class="principle-item reveal">
+          <span class="principle-number">4</span>
+          <div class="principle-content">
+            <strong>Determinism is sacred.</strong>
+            <span>Same input, same output, always.</span>
+          </div>
+        </li>
+        <li class="principle-item reveal">
+          <span class="principle-number">5</span>
+          <div class="principle-content">
+            <strong>Ship examples.</strong>
+            <span>Every feature comes with a .human example that demonstrates it.</span>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-logo">human<span class="footer-cursor">_</span></div>
+      <nav class="footer-links">
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+        <a href="contributing.html">Contributing</a>
+        <a href="https://github.com/barun-bash/human/blob/main/MANIFESTO.md" target="_blank" rel="noopener">Manifesto</a>
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+      </nav>
+      <p class="footer-copy">MIT License &middot; Built with intent.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var els = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window)) {
+        els.forEach(function (el) { el.classList.add('visible'); });
+        return;
+      }
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+      els.forEach(function (el) { obs.observe(el); });
+    });
+  </script>
+</body>
+</html>
