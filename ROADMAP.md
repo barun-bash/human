@@ -97,11 +97,11 @@ English in → production-ready applications out.
 
 ---
 
-## Phase 5: Quality Engine (Weeks 15-18)
+## Phase 5: Quality Engine (Weeks 15-18) — Started
 **Goal: Mandatory quality guarantees**
 
 ### Week 15-16: Auto Test Generation
-- [ ] Generate unit tests for every API (Jest/Vitest)
+- [x] Generate unit tests for every API (Jest/Vitest)
 - [ ] Generate unit tests for every component (React Testing Library)
 - [ ] Generate edge case tests from field types
 - [ ] Generate integration tests for API flows
@@ -110,12 +110,12 @@ English in → production-ready applications out.
 ### Week 17: Security Audit
 - [ ] Dependency vulnerability scanning
 - [ ] Input sanitization verification
-- [ ] Auth/authz coverage check
-- [ ] Secret detection in generated code
-- [ ] Security report generation
+- [x] Auth/authz coverage check
+- [x] Secret detection in generated code
+- [x] Security report generation
 
 ### Week 18: Code Quality + QA Trail
-- [ ] Linting of generated code (ESLint config)
+- [x] Linting of generated code (ESLint config)
 - [ ] Duplication detection
 - [ ] Performance pattern detection
 - [ ] QA test plan generation
@@ -263,7 +263,7 @@ English in → production-ready applications out.
 
 ## Current Output
 
-Running `human build examples/taskflow/app.human` produces **27 files**:
+Running `human build examples/taskflow/app.human` produces **38 files**:
 
 | Generator | Files | Output |
 |-----------|-------|--------|
@@ -271,6 +271,7 @@ Running `human build examples/taskflow/app.human` produces **27 files**:
 | Node + Express | 13 | Prisma schema, auth middleware, error handler, route files, server |
 | Docker + Compose | 5 | Dockerfiles, docker-compose.yml, .env.example, package.json |
 | PostgreSQL | 2 | Migration (001_initial.sql), seed data |
+| Quality Engine | 11 | 8 test files, security-report.md, lint-report.md, build-report.md |
 
 ---
 
@@ -282,7 +283,7 @@ Running `human build examples/taskflow/app.human` produces **27 files**:
 | Generate a running React app | Phase 3 | ✅ Done |
 | Full-stack app from English | Phase 4 | ✅ Done |
 | Docker deployment config | Phase 9 | ✅ Done |
-| Quality guarantees enforced | Phase 5 | Upcoming |
+| Quality guarantees enforced | Phase 5 | ✅ Started |
 | Design-to-code pipeline | Phase 7 | Upcoming |
 | Multi-framework output | Phase 8 | Upcoming |
 | Public launch | Phase 14 | Upcoming |

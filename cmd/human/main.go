@@ -12,6 +12,7 @@ import (
 	"github.com/barun-bash/human/internal/codegen/react"
 	"github.com/barun-bash/human/internal/ir"
 	"github.com/barun-bash/human/internal/parser"
+	"github.com/barun-bash/human/internal/quality"
 )
 
 const version = "0.1.0-dev"
@@ -215,6 +216,15 @@ func cmdBuild() {
 		}
 		fmt.Printf("  postgres:     %s/\n", pgDir)
 	}
+
+	// Quality engine — always runs after code generators
+	outputDir := filepath.Join(".human", "output")
+	qResult, err := quality.Run(app, outputDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Quality engine error: %v\n", err)
+		os.Exit(1)
+	}
+	quality.PrintSummary(qResult)
 }
 
 func printIRSummary(app *ir.Application) {
