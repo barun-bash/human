@@ -118,7 +118,7 @@ The **Intent IR** is the key innovation — a typed, serializable, framework-agn
 
 ```bash
 # Install (requires Go 1.21+)
-go install github.com/barun-bash/human/cmd/human@v0.1.1
+go install github.com/barun-bash/human/cmd/human@v0.2.0
 
 # Make sure Go binaries are in your PATH
 export PATH="$PATH:$(go env GOPATH)/bin"
@@ -195,7 +195,7 @@ my-app/
 
 ## Project Status
 
-**[v0.1.1 released](https://github.com/barun-bash/human/releases/tag/v0.1.1)** — Lexer (47 tests), parser + Intent IR (66 tests), code generators for React/Node/PostgreSQL/Docker (57 tests), quality engine with test generation, security audit, and lint (26 tests), CLI commands (`check`, `build`, `build --inspect`, `version`), and project scaffolder that makes output runnable with `start.sh`. 196 tests passing. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full development plan.
+**[v0.2.0 released](https://github.com/barun-bash/human/releases/tag/v0.2.0)** — Phase 5 complete — 228+ tests, semantic analyzer, 47 files generated. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full development plan.
 
 ---
 
