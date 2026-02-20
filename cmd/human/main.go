@@ -379,10 +379,10 @@ func generateTemplate(name, platform, frontend, backend, database string) string
 
 	b.WriteString("# ── Build ──\n\n")
 	b.WriteString("build with:\n")
-	fmt.Fprintf(&b, "  frontend is %s\n", frontend)
-	fmt.Fprintf(&b, "  backend is %s\n", backend)
-	fmt.Fprintf(&b, "  database is %s\n", database)
-	b.WriteString("  deploy with Docker\n")
+	fmt.Fprintf(&b, "  frontend using %s\n", frontend)
+	fmt.Fprintf(&b, "  backend using %s\n", backend)
+	fmt.Fprintf(&b, "  database using %s\n", database)
+	b.WriteString("  deploy to Docker\n")
 
 	return b.String()
 }
