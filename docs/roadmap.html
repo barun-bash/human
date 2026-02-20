@@ -272,6 +272,49 @@
       margin-top: 3px;
       opacity: 0.5;
     }
+    .task-item.done .task-checkbox {
+      border-color: var(--success);
+      background: var(--success);
+      opacity: 1;
+      position: relative;
+    }
+    .task-item.done .task-checkbox::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 0px;
+      width: 6px;
+      height: 10px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    .task-item.done {
+      color: var(--text-muted);
+    }
+
+    /* Phase status badge */
+    .phase-status {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-left: 12px;
+      vertical-align: middle;
+    }
+    .phase-status.complete {
+      background: rgba(45, 140, 90, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(45, 140, 90, 0.3);
+    }
+    .phase-status.started {
+      background: rgba(232, 93, 58, 0.1);
+      color: var(--accent);
+      border: 1px solid rgba(232, 93, 58, 0.25);
+    }
 
     /* Milestone */
     .phase-milestone {
@@ -525,40 +568,40 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 1 - 4</div>
-              <h3 class="phase-title">Foundation</h3>
+              <h3 class="phase-title">Foundation <span class="phase-status complete">Complete</span></h3>
               <p class="phase-goal">Parse a .human file and prove the grammar works.</p>
             </div>
 
             <div class="phase-subsection">
               <div class="phase-subsection-title">Week 1-2: Lexer + Token System</div>
               <ul class="task-list">
-                <li class="task-item"><span class="task-checkbox"></span>Define all token types</li>
-                <li class="task-item"><span class="task-checkbox"></span>Build lexer that tokenizes .human files</li>
-                <li class="task-item"><span class="task-checkbox"></span>Handle indentation-based scoping</li>
-                <li class="task-item"><span class="task-checkbox"></span>Handle section headers (&mdash;&mdash; name &mdash;&mdash;)</li>
-                <li class="task-item"><span class="task-checkbox"></span>Handle strings, numbers, identifiers</li>
-                <li class="task-item"><span class="task-checkbox"></span>Handle keywords (case-insensitive)</li>
-                <li class="task-item"><span class="task-checkbox"></span>Handle comments (#)</li>
-                <li class="task-item"><span class="task-checkbox"></span>Write comprehensive lexer tests</li>
-                <li class="task-item"><span class="task-checkbox"></span>Test with sample .human files</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Define all token types</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Build lexer that tokenizes .human files</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Handle indentation-based scoping</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Handle section headers (&mdash;&mdash; name &mdash;&mdash;)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Handle strings, numbers, identifiers</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Handle keywords (case-insensitive)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Handle comments (#)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Write comprehensive lexer tests</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Test with sample .human files</li>
               </ul>
             </div>
 
             <div class="phase-subsection">
               <div class="phase-subsection-title">Week 3-4: Parser + AST</div>
               <ul class="task-list">
-                <li class="task-item"><span class="task-checkbox"></span>Define all AST node types</li>
-                <li class="task-item"><span class="task-checkbox"></span>Build recursive descent parser</li>
-                <li class="task-item"><span class="task-checkbox"></span>Parse: app declaration</li>
-                <li class="task-item"><span class="task-checkbox"></span>Parse: data declarations (fields, types, relationships)</li>
-                <li class="task-item"><span class="task-checkbox"></span>Parse: page declarations (display, interaction, conditions)</li>
-                <li class="task-item"><span class="task-checkbox"></span>Parse: api declarations (input, validation, logic, response)</li>
-                <li class="task-item"><span class="task-checkbox"></span>Parse: theme declaration</li>
-                <li class="task-item"><span class="task-checkbox"></span>Parse: security declaration</li>
-                <li class="task-item"><span class="task-checkbox"></span>Parse: database declaration</li>
-                <li class="task-item"><span class="task-checkbox"></span>Error recovery (skip to next declaration on error)</li>
-                <li class="task-item"><span class="task-checkbox"></span>Human-readable error messages</li>
-                <li class="task-item"><span class="task-checkbox"></span>Write comprehensive parser tests</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Define all AST node types</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Build recursive descent parser</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Parse: app declaration</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Parse: data declarations (fields, types, relationships)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Parse: page declarations (display, interaction, conditions)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Parse: api declarations (input, validation, logic, response)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Parse: theme declaration</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Parse: security declaration</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Parse: database declaration</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Error recovery (skip to next declaration on error)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Human-readable error messages</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Write comprehensive parser tests</li>
               </ul>
             </div>
 
@@ -575,18 +618,18 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 5 - 6</div>
-              <h3 class="phase-title">Intent IR</h3>
+              <h3 class="phase-title">Intent IR <span class="phase-status complete">Complete</span></h3>
               <p class="phase-goal">Transform AST into framework-agnostic representation.</p>
             </div>
 
             <ul class="task-list">
-              <li class="task-item"><span class="task-checkbox"></span>Define IR node types (Application, Data, Page, API, etc.)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Build AST &rarr; IR transformer</li>
-              <li class="task-item"><span class="task-checkbox"></span>Serialize IR to YAML</li>
-              <li class="task-item"><span class="task-checkbox"></span>Serialize IR to JSON</li>
-              <li class="task-item"><span class="task-checkbox"></span>Deserialize IR from YAML/JSON</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Define IR node types (Application, Data, Page, API, etc.)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Build AST &rarr; IR transformer</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Serialize IR to YAML</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Serialize IR to JSON</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Deserialize IR from YAML/JSON</li>
               <li class="task-item"><span class="task-checkbox"></span>Validate IR completeness (every reference resolves)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Write IR tests</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Write IR tests</li>
               <li class="task-item"><span class="task-checkbox"></span>Document IR schema</li>
             </ul>
 
@@ -603,7 +646,7 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 7 - 10</div>
-              <h3 class="phase-title">First Code Generator &mdash; React + TypeScript</h3>
+              <h3 class="phase-title">First Code Generator &mdash; React + TypeScript <span class="phase-status complete">Complete</span></h3>
               <p class="phase-goal">Generate a working React project from Intent IR.</p>
             </div>
 
@@ -612,9 +655,9 @@
               <ul class="task-list">
                 <li class="task-item"><span class="task-checkbox"></span>Generate package.json with correct dependencies</li>
                 <li class="task-item"><span class="task-checkbox"></span>Generate tsconfig.json</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate project structure (src/, pages/, components/, etc.)</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate routing from page declarations</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate data types from data declarations</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate project structure (src/, pages/, components/, etc.)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate routing from page declarations</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate data types from data declarations</li>
                 <li class="task-item"><span class="task-checkbox"></span>Generate theme/styling from theme declaration (Tailwind)</li>
               </ul>
             </div>
@@ -622,20 +665,20 @@
             <div class="phase-subsection">
               <div class="phase-subsection-title">Week 9-10: Component + Page Generation</div>
               <ul class="task-list">
-                <li class="task-item"><span class="task-checkbox"></span>Generate React components from component declarations</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate pages from page declarations</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate data fetching (hooks, API calls)</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate forms from input statements</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate lists, cards, tables from display statements</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate event handlers from interaction statements</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate conditional rendering from condition statements</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate loading and error states</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate React components from component declarations</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate pages from page declarations</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate data fetching (hooks, API calls)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate forms from input statements</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate lists, cards, tables from display statements</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate event handlers from interaction statements</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate conditional rendering from condition statements</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate loading and error states</li>
               </ul>
             </div>
 
             <div class="phase-milestone">
               <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
-              <span class="milestone-text">.human file &rarr; working React + TypeScript project</span>
+              <span class="milestone-text">.human file &rarr; React + TypeScript project (7 files generated)</span>
             </div>
           </div>
         </div>
@@ -646,25 +689,25 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 11 - 14</div>
-              <h3 class="phase-title">First Backend Generator &mdash; Node + Express</h3>
+              <h3 class="phase-title">First Backend Generator &mdash; Node + Express <span class="phase-status complete">Complete</span></h3>
               <p class="phase-goal">Generate a working backend from Intent IR.</p>
             </div>
 
             <ul class="task-list">
-              <li class="task-item"><span class="task-checkbox"></span>Generate Express server setup</li>
-              <li class="task-item"><span class="task-checkbox"></span>Generate API routes from api declarations</li>
-              <li class="task-item"><span class="task-checkbox"></span>Generate input validation from check statements</li>
-              <li class="task-item"><span class="task-checkbox"></span>Generate data models (Prisma or TypeORM)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Generate database migrations</li>
-              <li class="task-item"><span class="task-checkbox"></span>Generate authentication middleware (JWT)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate Express server setup</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate API routes from api declarations</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate input validation from check statements</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate data models (Prisma)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate database migrations (PostgreSQL)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate authentication middleware (JWT)</li>
               <li class="task-item"><span class="task-checkbox"></span>Generate authorization middleware (from policies)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Generate error handling</li>
-              <li class="task-item"><span class="task-checkbox"></span>Connect frontend to backend (API client generation)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate error handling</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Connect frontend to backend (API client generation)</li>
             </ul>
 
             <div class="phase-milestone">
               <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
-              <span class="milestone-text">Full-stack app from .human files</span>
+              <span class="milestone-text">Full-stack app from .human files (13 backend files generated)</span>
             </div>
           </div>
         </div>
@@ -675,14 +718,14 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 15 - 18</div>
-              <h3 class="phase-title">Quality Engine</h3>
+              <h3 class="phase-title">Quality Engine <span class="phase-status started">Started</span></h3>
               <p class="phase-goal">Mandatory quality guarantees.</p>
             </div>
 
             <div class="phase-subsection">
               <div class="phase-subsection-title">Week 15-16: Auto Test Generation</div>
               <ul class="task-list">
-                <li class="task-item"><span class="task-checkbox"></span>Generate unit tests for every API (Jest/Vitest)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate unit tests for every API (Jest/Vitest)</li>
                 <li class="task-item"><span class="task-checkbox"></span>Generate unit tests for every component (React Testing Library)</li>
                 <li class="task-item"><span class="task-checkbox"></span>Generate edge case tests from field types</li>
                 <li class="task-item"><span class="task-checkbox"></span>Generate integration tests for API flows</li>
@@ -695,16 +738,16 @@
               <ul class="task-list">
                 <li class="task-item"><span class="task-checkbox"></span>Dependency vulnerability scanning</li>
                 <li class="task-item"><span class="task-checkbox"></span>Input sanitization verification</li>
-                <li class="task-item"><span class="task-checkbox"></span>Auth/authz coverage check</li>
-                <li class="task-item"><span class="task-checkbox"></span>Secret detection in generated code</li>
-                <li class="task-item"><span class="task-checkbox"></span>Security report generation</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Auth/authz coverage check</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Secret detection in generated code</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Security report generation</li>
               </ul>
             </div>
 
             <div class="phase-subsection">
               <div class="phase-subsection-title">Week 18: Code Quality + QA Trail</div>
               <ul class="task-list">
-                <li class="task-item"><span class="task-checkbox"></span>Linting of generated code (ESLint config)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Linting of generated code (ESLint config)</li>
                 <li class="task-item"><span class="task-checkbox"></span>Duplication detection</li>
                 <li class="task-item"><span class="task-checkbox"></span>Performance pattern detection</li>
                 <li class="task-item"><span class="task-checkbox"></span>QA test plan generation</li>
@@ -731,9 +774,9 @@
 
             <ul class="task-list">
               <li class="task-item"><span class="task-checkbox"></span><code>human init</code> &mdash; interactive project creation</li>
-              <li class="task-item"><span class="task-checkbox"></span><code>human build</code> &mdash; compile to target</li>
+              <li class="task-item done"><span class="task-checkbox"></span><code>human build</code> &mdash; compile to target</li>
               <li class="task-item"><span class="task-checkbox"></span><code>human run</code> &mdash; development server</li>
-              <li class="task-item"><span class="task-checkbox"></span><code>human check</code> &mdash; validate .human files</li>
+              <li class="task-item done"><span class="task-checkbox"></span><code>human check</code> &mdash; validate .human files</li>
               <li class="task-item"><span class="task-checkbox"></span><code>human test</code> &mdash; run generated tests</li>
               <li class="task-item"><span class="task-checkbox"></span><code>human audit</code> &mdash; run security audit</li>
               <li class="task-item"><span class="task-checkbox"></span><code>human deploy</code> &mdash; deploy to target</li>
@@ -807,15 +850,15 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 27 - 30</div>
-              <h3 class="phase-title">DevOps Generation</h3>
+              <h3 class="phase-title">DevOps Generation <span class="phase-status started">Started</span></h3>
               <p class="phase-goal">CI/CD, Docker, deployment from English.</p>
             </div>
 
             <ul class="task-list">
               <li class="task-item"><span class="task-checkbox"></span>Generate GitHub Actions workflows from pipeline declarations</li>
-              <li class="task-item"><span class="task-checkbox"></span>Generate Dockerfiles and docker-compose</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate Dockerfiles and docker-compose</li>
               <li class="task-item"><span class="task-checkbox"></span>Generate Terraform for cloud deployment</li>
-              <li class="task-item"><span class="task-checkbox"></span>Generate environment configurations</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate environment configurations (.env.example)</li>
               <li class="task-item"><span class="task-checkbox"></span>Git workflow commands (human feature, human release, etc.)</li>
               <li class="task-item"><span class="task-checkbox"></span>Monitoring configuration generation</li>
             </ul>
@@ -952,7 +995,7 @@
               <li class="task-item"><span class="task-checkbox"></span>Error message review (every error is helpful)</li>
               <li class="task-item"><span class="task-checkbox"></span>Installation scripts (brew, apt, scoop, etc.)</li>
               <li class="task-item"><span class="task-checkbox"></span>VS Code extension (syntax highlighting, autocomplete)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Landing page and branding</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Landing page and branding</li>
               <li class="task-item"><span class="task-checkbox"></span>Open source release</li>
             </ul>
 
@@ -967,8 +1010,54 @@
     </div>
   </section>
 
-  <!-- SUCCESS METRICS -->
+  <!-- CURRENT OUTPUT -->
   <section class="metrics-section">
+    <div class="container">
+      <h2 class="reveal">Current Output</h2>
+      <p class="reveal" style="text-align:center; color:var(--text-muted); margin-bottom:36px; font-size:17px;">Running <code style="font-family:var(--font-code); background:var(--bg-surface); padding:2px 8px; border-radius:4px; font-size:15px; color:var(--accent);">human build examples/taskflow/app.human</code> produces <strong style="color:#F5F5F3;">38 files</strong>:</p>
+      <div class="metrics-table-wrap reveal reveal-delay-1">
+        <table class="metrics-table">
+          <thead>
+            <tr>
+              <th>Generator</th>
+              <th>Files</th>
+              <th>Output</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>React + TypeScript</td>
+              <td class="target-phase">7</td>
+              <td>Types, API client, pages, components, router</td>
+            </tr>
+            <tr>
+              <td>Node + Express</td>
+              <td class="target-phase">13</td>
+              <td>Prisma schema, auth middleware, error handler, route files, server</td>
+            </tr>
+            <tr>
+              <td>Docker + Compose</td>
+              <td class="target-phase">5</td>
+              <td>Dockerfiles, docker-compose.yml, .env.example, package.json</td>
+            </tr>
+            <tr>
+              <td>PostgreSQL</td>
+              <td class="target-phase">2</td>
+              <td>Migration (001_initial.sql), seed data</td>
+            </tr>
+            <tr>
+              <td>Quality Engine</td>
+              <td class="target-phase">11</td>
+              <td>8 test files, security-report.md, lint-report.md, build-report.md</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SUCCESS METRICS -->
+  <section class="metrics-section" style="border-top: 1px solid var(--border);">
     <div class="container">
       <h2 class="reveal">Success Metrics</h2>
       <div class="metrics-table-wrap reveal reveal-delay-1">
@@ -977,36 +1066,49 @@
             <tr>
               <th>Metric</th>
               <th>Target</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>Parse a .human file</td>
               <td class="target-phase">Phase 1</td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
             </tr>
             <tr>
               <td>Generate a running React app</td>
               <td class="target-phase">Phase 3</td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
             </tr>
             <tr>
               <td>Full-stack app from English</td>
               <td class="target-phase">Phase 4</td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
+            </tr>
+            <tr>
+              <td>Docker deployment config</td>
+              <td class="target-phase">Phase 9</td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
             </tr>
             <tr>
               <td>Quality guarantees enforced</td>
               <td class="target-phase">Phase 5</td>
+              <td><span style="color:var(--accent); font-weight:600;">Started</span></td>
             </tr>
             <tr>
               <td>Design-to-code pipeline</td>
               <td class="target-phase">Phase 7</td>
+              <td><span style="color:var(--text-muted);">Upcoming</span></td>
             </tr>
             <tr>
               <td>Multi-framework output</td>
               <td class="target-phase">Phase 8</td>
+              <td><span style="color:var(--text-muted);">Upcoming</span></td>
             </tr>
             <tr>
               <td>Public launch</td>
               <td class="target-phase">Phase 14</td>
+              <td><span style="color:var(--text-muted);">Upcoming</span></td>
             </tr>
           </tbody>
         </table>
