@@ -359,27 +359,26 @@ func prompt(scanner *bufio.Scanner, label string, options []string, defaultVal s
 func generateTemplate(name, platform, frontend, backend, database string) string {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "app %s\n", name)
-	fmt.Fprintf(&b, "  platform is %s\n\n", platform)
+	fmt.Fprintf(&b, "app %s is a %s application\n\n", name, platform)
 
 	b.WriteString("# ── Data Models ──\n\n")
-	b.WriteString("data User\n")
+	b.WriteString("data User:\n")
 	b.WriteString("  name is text, required\n")
 	b.WriteString("  email is email, required, unique\n")
 	b.WriteString("  password is text, required, encrypted\n\n")
 
 	b.WriteString("# ── Pages ──\n\n")
-	b.WriteString("page Home\n")
+	b.WriteString("page Home:\n")
 	b.WriteString("  show heading \"Welcome to " + name + "\"\n\n")
 
 	b.WriteString("# ── APIs ──\n\n")
-	b.WriteString("api SignUp\n")
+	b.WriteString("api SignUp:\n")
 	b.WriteString("  accepts name, email, password\n")
 	b.WriteString("  create User with name, email, password\n")
 	b.WriteString("  respond with success\n\n")
 
 	b.WriteString("# ── Build ──\n\n")
-	b.WriteString("build\n")
+	b.WriteString("build with:\n")
 	fmt.Fprintf(&b, "  frontend is %s\n", frontend)
 	fmt.Fprintf(&b, "  backend is %s\n", backend)
 	fmt.Fprintf(&b, "  database is %s\n", database)
