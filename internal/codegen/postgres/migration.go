@@ -37,7 +37,7 @@ func generateMigration(app *ir.Application) string {
 	if app.Database != nil && len(app.Database.Indexes) > 0 {
 		b.WriteString("-- ── Indexes ──\n\n")
 		for _, idx := range app.Database.Indexes {
-			writeCreateIndex(&b, idx)
+			writeCreateIndex(&b, idx, app)
 		}
 	}
 
@@ -152,16 +152,59 @@ func writeColumn(b *strings.Builder, f *ir.DataField, model *ir.DataModel) {
 
 // ── Index creation ──
 
-func writeCreateIndex(b *strings.Builder, idx *ir.Index) {
+func writeCreateIndex(b *strings.Builder, idx *ir.Index, app *ir.Application) {
 	table := toTableName(idx.Entity)
+
+	// Find the data model for this entity
+	var model *ir.DataModel
+	for _, m := range app.Data {
+		if strings.EqualFold(m.Name, idx.Entity) {
+			model = m
+			break
+		}
+	}
 
 	cols := make([]string, len(idx.Fields))
 	for i, f := range idx.Fields {
-		cols[i] = sanitizeIdentifier(f)
+		cols[i] = resolveColumnName(f, model)
 	}
 
 	indexName := fmt.Sprintf("idx_%s_%s", table, strings.Join(cols, "_"))
 	fmt.Fprintf(b, "CREATE INDEX %s ON %s (%s);\n", indexName, table, strings.Join(cols, ", "))
+}
+
+// resolveColumnName maps a raw IR index field name to its actual SQL column name.
+// It handles: belongs_to targets ("user" → "user_id"), field name matches
+// ("due date" → "due" if the field is named "due"), and plain identifiers.
+func resolveColumnName(rawField string, model *ir.DataModel) string {
+	if model == nil {
+		return sanitizeIdentifier(rawField)
+	}
+
+	// Check if rawField matches a belongs_to relation target (case-insensitive).
+	// e.g. "user" matches belongs_to User → produces "user_id"
+	for _, rel := range model.Relations {
+		if rel.Kind == "belongs_to" && strings.EqualFold(rel.Target, rawField) {
+			return toSnakeCase(rel.Target) + "_id"
+		}
+	}
+
+	// Check if rawField matches a DataModel field name (case-insensitive).
+	// Also handles prefix matches: "due date" matches field "due" (where "date"
+	// is the type that appeared in the natural English reference).
+	lower := strings.ToLower(rawField)
+	for _, field := range model.Fields {
+		fieldLower := strings.ToLower(field.Name)
+		if fieldLower == lower {
+			return sanitizeIdentifier(field.Name)
+		}
+		if strings.HasPrefix(lower, fieldLower+" ") {
+			return sanitizeIdentifier(field.Name)
+		}
+	}
+
+	// Fallback: sanitize the raw string
+	return sanitizeIdentifier(rawField)
 }
 
 // ── Foreign key collection ──

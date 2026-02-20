@@ -205,7 +205,8 @@ func TestGenerateMigration(t *testing.T) {
 			Engine: "PostgreSQL",
 			Indexes: []*ir.Index{
 				{Entity: "User", Fields: []string{"email"}},
-				{Entity: "Task", Fields: []string{"user_id", "status"}},
+				{Entity: "Task", Fields: []string{"user", "status"}},
+				{Entity: "Task", Fields: []string{"user", "due date"}},
 			},
 		},
 		Data: []*ir.DataModel{
@@ -312,12 +313,15 @@ func TestGenerateMigration(t *testing.T) {
 		t.Error("missing updated_at")
 	}
 
-	// Indexes
+	// Indexes — raw IR fields resolve: "user" → "user_id" (belongs_to), "due date" → "due" (field name match)
 	if !strings.Contains(output, "CREATE INDEX idx_users_email ON users (email)") {
 		t.Error("missing email index on users")
 	}
 	if !strings.Contains(output, "CREATE INDEX idx_tasks_user_id_status ON tasks (user_id, status)") {
-		t.Error("missing composite index on tasks")
+		t.Error("missing composite index on tasks (user_id, status)")
+	}
+	if !strings.Contains(output, "CREATE INDEX idx_tasks_user_id_due ON tasks (user_id, due)") {
+		t.Error("missing composite index on tasks (user_id, due)")
 	}
 
 	// Foreign key constraints
