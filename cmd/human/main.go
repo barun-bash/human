@@ -55,7 +55,7 @@ func main() {
 	case "audit":
 		cmdAudit()
 	case "deploy":
-		fmt.Println("human deploy — coming soon.")
+		cmdDeploy()
 	case "eject":
 		cmdEject()
 	default:
@@ -632,6 +632,210 @@ func stripGeneratedComments(content string) string {
 	return strings.Join(result, "\n")
 }
 
+// ── deploy ──
+
+func cmdDeploy() {
+	// Parse flags
+	dryRun := false
+	envName := ""
+	var file string
+	args := os.Args[2:]
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--dry-run":
+			dryRun = true
+		case "--env", "-e":
+			if i+1 < len(args) {
+				i++
+				envName = args[i]
+			} else {
+				fmt.Fprintln(os.Stderr, cli.Error("--env requires a value (e.g. --env staging)"))
+				os.Exit(1)
+			}
+		default:
+			if !strings.HasPrefix(args[i], "-") {
+				file = args[i]
+			}
+		}
+	}
+
+	// Auto-detect .human file if not provided
+	if file == "" {
+		matches, _ := filepath.Glob("*.human")
+		if len(matches) == 1 {
+			file = matches[0]
+		} else if len(matches) > 1 {
+			fmt.Fprintln(os.Stderr, cli.Error("Multiple .human files found. Specify which one to deploy."))
+			fmt.Fprintln(os.Stderr, "Usage: human deploy [--dry-run] [--env <name>] <file.human>")
+			os.Exit(1)
+		} else {
+			fmt.Fprintln(os.Stderr, cli.Error("No .human file found. Specify a file to deploy."))
+			fmt.Fprintln(os.Stderr, "Usage: human deploy [--dry-run] [--env <name>] <file.human>")
+			os.Exit(1)
+		}
+	}
+
+	outputDir := filepath.Join(".human", "output")
+
+	// Build the project
+	fmt.Println(cli.Info("Building before deploy..."))
+	if err := runBuild(file); err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Build failed: %v", err)))
+		os.Exit(1)
+	}
+
+	// Load the IR to read config
+	source, err := os.ReadFile(file)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error reading %s: %v", file, err)))
+		os.Exit(1)
+	}
+	prog, err := parser.Parse(string(source))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Parse error: %v", err)))
+		os.Exit(1)
+	}
+	app, err := ir.Build(prog)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("IR error: %v", err)))
+		os.Exit(1)
+	}
+
+	// Determine deploy target
+	deployTarget := ""
+	if app.Config != nil {
+		deployTarget = strings.ToLower(app.Config.Deploy)
+	}
+	if deployTarget == "" {
+		fmt.Fprintln(os.Stderr, cli.Error("No deployment target configured. Add 'deploy to Docker' in your build block."))
+		os.Exit(1)
+	}
+
+	// Print environment info if --env is used
+	if envName != "" {
+		found := false
+		for _, env := range app.Environments {
+			if strings.EqualFold(env.Name, envName) {
+				found = true
+				fmt.Println(cli.Info(fmt.Sprintf("Environment: %s", env.Name)))
+				for k, v := range env.Config {
+					fmt.Printf("  %s: %s\n", k, v)
+				}
+				break
+			}
+		}
+		if !found {
+			var available []string
+			for _, env := range app.Environments {
+				available = append(available, env.Name)
+			}
+			msg := fmt.Sprintf("Environment %q not found.", envName)
+			if len(available) > 0 {
+				msg += fmt.Sprintf(" Available: %s", strings.Join(available, ", "))
+			}
+			fmt.Fprintln(os.Stderr, cli.Error(msg))
+			os.Exit(1)
+		}
+	}
+
+	// Deploy based on target
+	switch {
+	case strings.Contains(deployTarget, "docker"):
+		deployDocker(app, outputDir, dryRun)
+	default:
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Unsupported deploy target: %s. Currently supported: Docker", app.Config.Deploy)))
+		os.Exit(1)
+	}
+}
+
+func deployDocker(app *ir.Application, outputDir string, dryRun bool) {
+	// Check docker-compose.yml exists
+	composePath := filepath.Join(outputDir, "docker-compose.yml")
+	if _, err := os.Stat(composePath); os.IsNotExist(err) {
+		fmt.Fprintln(os.Stderr, cli.Error("docker-compose.yml not found. Run 'human build <file>' first."))
+		os.Exit(1)
+	}
+
+	// Check that docker is available
+	if _, err := exec.LookPath("docker"); err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error("docker not found in PATH. Install Docker to deploy."))
+		os.Exit(1)
+	}
+
+	// Determine compose command (docker compose v2 or docker-compose v1)
+	composeCmd := []string{"docker", "compose"}
+	if err := exec.Command("docker", "compose", "version").Run(); err != nil {
+		// Try v1
+		if _, err := exec.LookPath("docker-compose"); err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error("Neither 'docker compose' nor 'docker-compose' found. Install Docker Compose."))
+			os.Exit(1)
+		}
+		composeCmd = []string{"docker-compose"}
+	}
+
+	// Check .env file
+	envPath := filepath.Join(outputDir, ".env")
+	envExamplePath := filepath.Join(outputDir, ".env.example")
+	if _, err := os.Stat(envPath); os.IsNotExist(err) {
+		if _, err := os.Stat(envExamplePath); err == nil {
+			fmt.Println(cli.Warn("No .env file found. Copying .env.example → .env"))
+			fmt.Println(cli.Warn("Review and update .env with production values before deploying to production."))
+			if !dryRun {
+				content, readErr := os.ReadFile(envExamplePath)
+				if readErr != nil {
+					fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error reading .env.example: %v", readErr)))
+					os.Exit(1)
+				}
+				if writeErr := os.WriteFile(envPath, content, 0644); writeErr != nil {
+					fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error creating .env: %v", writeErr)))
+					os.Exit(1)
+				}
+			}
+		}
+	}
+
+	// Build step
+	buildArgs := append(composeCmd, "build")
+	fmt.Println(cli.Info(fmt.Sprintf("Step 1/2: %s", strings.Join(buildArgs, " "))))
+	if dryRun {
+		fmt.Println(cli.Info("  (dry-run — skipped)"))
+	} else {
+		cmd := exec.Command(buildArgs[0], buildArgs[1:]...)
+		cmd.Dir = outputDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Docker build failed: %v", err)))
+			os.Exit(1)
+		}
+	}
+
+	// Up step
+	upArgs := append(composeCmd, "up", "-d")
+	fmt.Println(cli.Info(fmt.Sprintf("Step 2/2: %s", strings.Join(upArgs, " "))))
+	if dryRun {
+		fmt.Println(cli.Info("  (dry-run — skipped)"))
+	} else {
+		cmd := exec.Command(upArgs[0], upArgs[1:]...)
+		cmd.Dir = outputDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Docker deploy failed: %v", err)))
+			os.Exit(1)
+		}
+	}
+
+	if dryRun {
+		fmt.Println(cli.Success("Dry run complete — no changes were made."))
+	} else {
+		fmt.Println(cli.Success(fmt.Sprintf("Deployed %s via Docker.", app.Name)))
+		fmt.Println(cli.Info("  Run 'docker compose ps' in .human/output/ to check status."))
+		fmt.Println(cli.Info("  Run 'docker compose logs -f' to view logs."))
+		fmt.Println(cli.Info("  Run 'docker compose down' to stop."))
+	}
+}
+
 // ── build --watch ──
 
 func cmdBuildWatch(file string) {
@@ -823,7 +1027,9 @@ Commands:
   run                       Start the development server
   test                      Run generated tests
   audit                     Display security and quality report
-  deploy                    Deploy the application
+  deploy [file]             Deploy the application (Docker)
+  deploy --dry-run [file]   Show deploy steps without executing
+  deploy --env <name> [file]  Deploy with a specific environment
   eject [path]              Export as standalone code (default: ./output/)
 
 Flags:

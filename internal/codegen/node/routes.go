@@ -47,6 +47,14 @@ func generateRoute(ep *ir.Endpoint, app *ir.Application) string {
 		b.WriteString("import { authenticate } from '../middleware/auth';\n")
 	}
 
+	// Import authorize when policies exist and endpoint has auth
+	action := inferRouteAction(ep.Name)
+	model := inferRouteModel(ep.Name)
+	useAuthorize := len(app.Policies) > 0 && ep.Auth && action != "" && model != ""
+	if useAuthorize {
+		b.WriteString("import { authorize } from '../middleware/authorize';\n")
+	}
+
 	b.WriteString("\nconst prisma = new PrismaClient();\n")
 	b.WriteString("const router = Router();\n\n")
 
@@ -56,6 +64,9 @@ func generateRoute(ep *ir.Endpoint, app *ir.Application) string {
 	middlewares := []string{}
 	if ep.Auth {
 		middlewares = append(middlewares, "authenticate")
+	}
+	if useAuthorize {
+		middlewares = append(middlewares, fmt.Sprintf("authorize('%s', '%s')", action, model))
 	}
 
 	// Route handler
@@ -86,7 +97,7 @@ func generateRoute(ep *ir.Endpoint, app *ir.Application) string {
 	if len(ep.Validation) > 0 {
 		b.WriteString("    // Validation\n")
 		for _, v := range ep.Validation {
-			writeValidationCheck(&b, v)
+			writeValidationCheck(&b, v, ep)
 		}
 		b.WriteString("\n")
 	}
@@ -112,7 +123,7 @@ func generateRoute(ep *ir.Endpoint, app *ir.Application) string {
 }
 
 // writeValidationCheck writes a validation guard for a single rule.
-func writeValidationCheck(b *strings.Builder, v *ir.ValidationRule) {
+func writeValidationCheck(b *strings.Builder, v *ir.ValidationRule, ep *ir.Endpoint) {
 	field := sanitizeParamName(v.Field)
 
 	switch v.Rule {
@@ -152,8 +163,26 @@ func writeValidationCheck(b *strings.Builder, v *ir.ValidationRule) {
 		fmt.Fprintf(b, "    // TODO: validate that %s matches expected pattern\n", v.Field)
 
 	case "authorization":
-		b.WriteString("    // TODO: verify user authorization\n")
-		fmt.Fprintf(b, "    // Rule: current user %s\n", v.Value)
+		fmt.Fprintf(b, "    // Authorization: current user %s\n", v.Value)
+		lower := strings.ToLower(v.Value)
+		if strings.Contains(lower, "owner") || strings.Contains(lower, "their own") {
+			// Infer model from the endpoint name for the ownership query
+			authzModel := inferRouteModel(ep.Name)
+			if authzModel == "" {
+				authzModel = "record"
+			}
+			b.WriteString("    if (req.userRole !== 'Admin' && req.authzScope === 'own') {\n")
+			fmt.Fprintf(b, "      // Ownership check — verify %s belongs to the current user\n", authzModel)
+			fmt.Fprintf(b, "      const resource = await prisma.%s.findUnique({ where: { id: req.params.id || req.body.id } });\n", authzModel)
+			b.WriteString("      const ownerId = (resource as any)?.userId ?? (resource as any)?.user_id;\n")
+			b.WriteString("      if (!resource || (ownerId && ownerId !== req.userId)) {\n")
+			b.WriteString("        return res.status(403).json({ error: 'You can only access your own resources' });\n")
+			b.WriteString("      }\n")
+			b.WriteString("    }\n")
+		} else {
+			// Generic role-based check
+			b.WriteString("    // Role-based authorization enforced by authorize() middleware\n")
+		}
 	}
 }
 

@@ -89,11 +89,11 @@ English in → production-ready applications out.
 - [x] Generate data models (Prisma)
 - [x] Generate database migrations (PostgreSQL)
 - [x] Generate authentication middleware (JWT)
-- [ ] Generate authorization middleware (from policies)
+- [x] Generate authorization middleware (from policies)
 - [x] Generate error handling
 - [x] Connect frontend to backend (API client generation)
 
-### Milestone: ✅ Full-stack app from .human files (13 backend files generated)
+### Milestone: ✅ Full-stack app from .human files (15 backend files generated)
 
 ---
 
@@ -134,7 +134,7 @@ English in → production-ready applications out.
 - [x] `human check` — validate .human files
 - [x] `human test` — run generated tests
 - [x] `human audit` — run security audit
-- [ ] `human deploy` — deploy to target
+- [x] `human deploy` — deploy to target
 - [x] `human eject` — export as standalone project
 - [x] Colored terminal output
 - [ ] Progress indicators
@@ -264,12 +264,12 @@ English in → production-ready applications out.
 
 ## Current Output
 
-Running `human build examples/taskflow/app.human` produces **45 files**:
+Running `human build examples/taskflow/app.human` produces **47 files**:
 
 | Generator | Files | Output |
 |-----------|-------|--------|
 | React + TypeScript | 7 | Types, API client, pages, components, router |
-| Node + Express | 13 | Prisma schema, auth middleware, error handler, route files, server |
+| Node + Express | 15 | Prisma schema, auth + authorize middleware, policies, error handler, route files, server |
 | Docker + Compose | 5 | Dockerfiles, docker-compose.yml, .env.example, package.json |
 | PostgreSQL | 2 | Migration (001_initial.sql), seed data |
 | Quality Engine | 11 | 8 test files, security-report.md, lint-report.md, build-report.md |

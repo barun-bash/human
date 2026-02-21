@@ -796,6 +796,48 @@ func TestFullIntegration(t *testing.T) {
 		t.Error("errors.ts: missing database error handler from IR")
 	}
 
-	totalFiles := len(coreFiles) + len(expectedRoutes)
+	// Verify authorization middleware files (TaskFlow has 3 policies)
+	policyFiles := []string{
+		"src/middleware/policies.ts",
+		"src/middleware/authorize.ts",
+	}
+	for _, f := range policyFiles {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected policy file %s to exist", f)
+		}
+	}
+
+	// Verify policies.ts contains all 3 policies
+	policiesContent, err := os.ReadFile(filepath.Join(dir, "src", "middleware", "policies.ts"))
+	if err != nil {
+		t.Fatalf("reading policies.ts: %v", err)
+	}
+	policiesStr := string(policiesContent)
+	for _, policyName := range []string{"FreeUser", "ProUser", "Admin"} {
+		if !strings.Contains(policiesStr, policyName+":") {
+			t.Errorf("policies.ts: missing policy %s", policyName)
+		}
+	}
+
+	// Verify authorize.ts has the authorize function
+	authorizeContent, err := os.ReadFile(filepath.Join(dir, "src", "middleware", "authorize.ts"))
+	if err != nil {
+		t.Fatalf("reading authorize.ts: %v", err)
+	}
+	if !strings.Contains(string(authorizeContent), "export function authorize") {
+		t.Error("authorize.ts: missing authorize function")
+	}
+
+	// Verify routes with auth use authorize middleware
+	createTaskContent, err := os.ReadFile(filepath.Join(dir, "src", "routes", "create-task.ts"))
+	if err != nil {
+		t.Fatalf("reading create-task.ts: %v", err)
+	}
+	if !strings.Contains(string(createTaskContent), "authorize('create', 'task')") {
+		t.Error("create-task.ts: missing authorize middleware")
+	}
+
+	totalFiles := len(coreFiles) + len(expectedRoutes) + len(policyFiles)
 	t.Logf("Generated %d files to %s", totalFiles, dir)
 }

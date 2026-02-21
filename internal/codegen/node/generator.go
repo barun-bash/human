@@ -34,6 +34,12 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		filepath.Join(outputDir, "src", "server.ts"):                generateServer(app),
 	}
 
+	// Generate authorization middleware when policies are defined
+	if len(app.Policies) > 0 {
+		files[filepath.Join(outputDir, "src", "middleware", "policies.ts")] = generatePolicies(app)
+		files[filepath.Join(outputDir, "src", "middleware", "authorize.ts")] = generateAuthorize(app)
+	}
+
 	// One route file per endpoint
 	for _, ep := range app.APIs {
 		filename := toKebabCase(ep.Name) + ".ts"
