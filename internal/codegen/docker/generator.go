@@ -100,8 +100,9 @@ type EnvVar struct {
 // for a given integration type.  These aren't in integ.Credentials because the
 // generators emit them directly (e.g. process.env.AWS_REGION in storage.ts).
 func configEnvVars(integ *ir.Integration) []EnvVar {
-	switch integ.Type {
-	case "storage":
+	svc := strings.ToLower(integ.Service)
+	switch {
+	case integ.Type == "storage" && (strings.Contains(svc, "s3") || strings.Contains(svc, "aws")):
 		region := "us-east-1"
 		if v, ok := integ.Config["region"]; ok {
 			region = v

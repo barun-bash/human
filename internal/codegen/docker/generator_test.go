@@ -96,6 +96,39 @@ func TestCollectEnvVars(t *testing.T) {
 	}
 }
 
+func TestCollectEnvVarsCloudinaryNoAWS(t *testing.T) {
+	app := &ir.Application{
+		Name: "TestApp",
+		Integrations: []*ir.Integration{
+			{
+				Service:     "Cloudinary",
+				Type:        "storage",
+				Credentials: map[string]string{"api key": "CLOUDINARY_API_KEY", "secret": "CLOUDINARY_SECRET"},
+			},
+		},
+	}
+
+	vars := CollectEnvVars(app)
+	names := make(map[string]bool)
+	for _, v := range vars {
+		names[v.Name] = true
+	}
+
+	// Cloudinary should NOT get AWS-specific env vars
+	for _, unexpected := range []string{"AWS_REGION", "S3_BUCKET"} {
+		if names[unexpected] {
+			t.Errorf("Cloudinary should not have %q env var", unexpected)
+		}
+	}
+
+	// Should have Cloudinary credentials
+	for _, expected := range []string{"CLOUDINARY_API_KEY", "CLOUDINARY_SECRET"} {
+		if !names[expected] {
+			t.Errorf("missing env var %q", expected)
+		}
+	}
+}
+
 func TestEnvCategory(t *testing.T) {
 	tests := []struct {
 		name    string
