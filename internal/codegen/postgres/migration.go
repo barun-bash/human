@@ -39,6 +39,7 @@ func generateMigration(app *ir.Application) string {
 		for _, idx := range app.Database.Indexes {
 			writeCreateIndex(&b, idx, app)
 		}
+		b.WriteString("\n")
 	}
 
 	// 4. Foreign keys (separate pass so all tables exist first)
@@ -175,7 +176,8 @@ func writeCreateIndex(b *strings.Builder, idx *ir.Index, app *ir.Application) {
 
 // resolveColumnName maps a raw IR index field name to its actual SQL column name.
 // It handles: belongs_to targets ("user" → "user_id"), field name matches
-// ("due date" → "due" if the field is named "due"), and plain identifiers.
+// ("due date" → "due" if the field is named "due"), timestamp aliases
+// ("created" → "created_at"), and plain identifiers.
 func resolveColumnName(rawField string, model *ir.DataModel) string {
 	if model == nil {
 		return sanitizeIdentifier(rawField)
@@ -189,10 +191,19 @@ func resolveColumnName(rawField string, model *ir.DataModel) string {
 		}
 	}
 
+	// Handle timestamp aliases first: fields named "created"/"updated" are
+	// skipped by writeColumn and replaced with created_at/updated_at columns.
+	lower := strings.ToLower(rawField)
+	if lower == "created" || lower == "createdat" || lower == "created_at" {
+		return "created_at"
+	}
+	if lower == "updated" || lower == "updatedat" || lower == "updated_at" {
+		return "updated_at"
+	}
+
 	// Check if rawField matches a DataModel field name (case-insensitive).
 	// Also handles prefix matches: "due date" matches field "due" (where "date"
 	// is the type that appeared in the natural English reference).
-	lower := strings.ToLower(rawField)
 	for _, field := range model.Fields {
 		fieldLower := strings.ToLower(field.Name)
 		if fieldLower == lower {

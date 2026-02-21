@@ -66,11 +66,45 @@ func TestToTableName(t *testing.T) {
 		{"Task", "tasks"},
 		{"TaskTag", "task_tags"},
 		{"Tag", "tags"},
+		{"Category", "categories"},           // consonant + y → ies
+		{"ProductCategory", "product_categories"},
+		{"Address", "addresses"},             // ends in s → es
+		{"Match", "matches"},                 // ends in ch → es
+		{"Batch", "batches"},
+		{"Box", "boxes"},                     // ends in x → es
+		{"Buzz", "buzzes"},                   // ends in z → es
+		{"Wish", "wishes"},                   // ends in sh → es
+		{"Day", "days"},                      // vowel + y → just s
+		{"Key", "keys"},
 	}
 	for _, tt := range tests {
 		got := toTableName(tt.input)
 		if got != tt.want {
 			t.Errorf("toTableName(%q): got %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestPluralizeWord(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"user", "users"},
+		{"category", "categories"},
+		{"address", "addresses"},
+		{"match", "matches"},
+		{"box", "boxes"},
+		{"buzz", "buzzes"},
+		{"wish", "wishes"},
+		{"day", "days"},
+		{"key", "keys"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		got := pluralizeWord(tt.input)
+		if got != tt.want {
+			t.Errorf("pluralizeWord(%q): got %q, want %q", tt.input, got, tt.want)
 		}
 	}
 }
@@ -346,6 +380,120 @@ func TestGenerateMigration(t *testing.T) {
 	}
 }
 
+func TestResolveColumnNameTimestamps(t *testing.T) {
+	model := &ir.DataModel{
+		Name:   "Transaction",
+		Fields: []*ir.DataField{{Name: "amount", Type: "decimal"}},
+		Relations: []*ir.Relation{
+			{Kind: "belongs_to", Target: "Merchant"},
+		},
+	}
+
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"amount", "amount"},
+		{"Merchant", "merchant_id"},
+		{"created", "created_at"},
+		{"updated", "updated_at"},
+		{"createdAt", "created_at"},
+		{"updatedAt", "updated_at"},
+	}
+
+	for _, tt := range tests {
+		got := resolveColumnName(tt.input, model)
+		if got != tt.want {
+			t.Errorf("resolveColumnName(%q): got %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestGenerateMigrationWithCategory(t *testing.T) {
+	app := &ir.Application{
+		Database: &ir.DatabaseConfig{
+			Indexes: []*ir.Index{
+				{Entity: "Category", Fields: []string{"slug"}},
+			},
+		},
+		Data: []*ir.DataModel{
+			{
+				Name: "Category",
+				Fields: []*ir.DataField{
+					{Name: "name", Type: "text", Required: true, Unique: true},
+					{Name: "slug", Type: "text", Required: true, Unique: true},
+				},
+			},
+			{
+				Name: "Post",
+				Fields: []*ir.DataField{
+					{Name: "title", Type: "text", Required: true},
+				},
+				Relations: []*ir.Relation{
+					{Kind: "belongs_to", Target: "Category"},
+				},
+			},
+		},
+	}
+
+	output := generateMigration(app)
+
+	// Table name should be "categories", not "categorys"
+	if !strings.Contains(output, "CREATE TABLE categories (") {
+		t.Errorf("expected 'categories' table, not 'categorys'\n%s", output)
+	}
+	if strings.Contains(output, "categorys") {
+		t.Errorf("should not contain 'categorys'\n%s", output)
+	}
+
+	// FK should reference categories(id)
+	if !strings.Contains(output, "REFERENCES categories(id)") {
+		t.Errorf("FK should reference categories(id)\n%s", output)
+	}
+
+	// Index should be on categories table
+	if !strings.Contains(output, "ON categories (slug)") {
+		t.Errorf("index should be on categories table\n%s", output)
+	}
+
+	// ALTER TABLE should reference categories
+	if !strings.Contains(output, "REFERENCES categories(id)") {
+		t.Errorf("ALTER TABLE FK should reference categories(id)\n%s", output)
+	}
+}
+
+func TestGenerateMigrationTimestampIndex(t *testing.T) {
+	app := &ir.Application{
+		Database: &ir.DatabaseConfig{
+			Indexes: []*ir.Index{
+				{Entity: "Transaction", Fields: []string{"merchant", "created"}},
+			},
+		},
+		Data: []*ir.DataModel{
+			{Name: "Merchant", Fields: []*ir.DataField{{Name: "name", Type: "text", Required: true}}},
+			{
+				Name: "Transaction",
+				Fields: []*ir.DataField{
+					{Name: "amount", Type: "decimal", Required: true},
+				},
+				Relations: []*ir.Relation{
+					{Kind: "belongs_to", Target: "Merchant"},
+				},
+			},
+		},
+	}
+
+	output := generateMigration(app)
+
+	// "created" should resolve to "created_at"
+	if !strings.Contains(output, "merchant_id, created_at") {
+		t.Errorf("index should resolve 'created' to 'created_at'\n%s", output)
+	}
+	if strings.Contains(output, "(merchant_id, created)") {
+		t.Errorf("index should NOT have raw 'created' — should be 'created_at'\n%s", output)
+	}
+}
+
 func TestGenerateMigrationJoinTable(t *testing.T) {
 	app := &ir.Application{
 		Data: []*ir.DataModel{
@@ -557,6 +705,30 @@ func TestFullIntegration(t *testing.T) {
 	insertCount := strings.Count(seed, "INSERT INTO ")
 	if insertCount < 4 {
 		t.Errorf("seed: expected at least 4 INSERT INTO, got %d", insertCount)
+	}
+
+	// Verify no bad pluralization — should not contain "categorys" or "addresss"
+	if strings.Contains(mig, "categorys") {
+		t.Errorf("migration: should not contain 'categorys' — should be 'categories'\n%s", mig)
+	}
+
+	// Verify section separation: blank line between indexes and FK section
+	if strings.Contains(mig, ";\n-- ── Foreign Keys") {
+		t.Error("migration: missing blank line between indexes section and FK section")
+	}
+
+	// Verify all table names are validly pluralized
+	for _, tableName := range []string{"users", "tasks", "tags", "task_tags"} {
+		if !strings.Contains(mig, "CREATE TABLE "+tableName+" (") {
+			t.Errorf("migration: missing table %s", tableName)
+		}
+	}
+
+	// Verify seed SQL references correct table names
+	for _, tableName := range []string{"users", "tasks", "tags", "task_tags"} {
+		if !strings.Contains(seed, "INSERT INTO "+tableName) {
+			t.Errorf("seed: missing INSERT INTO %s", tableName)
+		}
 	}
 
 	t.Logf("Migration: %d bytes, Seed: %d bytes", len(mig), len(seed))

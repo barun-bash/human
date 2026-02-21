@@ -80,13 +80,36 @@ func toSnakeCase(s string) string {
 }
 
 // toTableName converts a model name to a plural snake_case table name.
-// "User" → "users", "TaskTag" → "task_tags"
+// "User" → "users", "TaskTag" → "task_tags", "Category" → "categories",
+// "Address" → "addresses"
 func toTableName(modelName string) string {
 	snake := toSnakeCase(modelName)
-	if strings.HasSuffix(snake, "s") {
-		return snake
+	// Pluralize only the last segment (after the last underscore)
+	parts := strings.Split(snake, "_")
+	parts[len(parts)-1] = pluralizeWord(parts[len(parts)-1])
+	return strings.Join(parts, "_")
+}
+
+// pluralizeWord applies basic English pluralization rules to a single word.
+func pluralizeWord(word string) string {
+	if word == "" {
+		return word
 	}
-	return snake + "s"
+	// Ends in consonant + "y" → replace "y" with "ies"
+	if strings.HasSuffix(word, "y") && len(word) > 1 && !isVowel(word[len(word)-2]) {
+		return word[:len(word)-1] + "ies"
+	}
+	// Ends in "s", "x", "z", "sh", "ch" → add "es"
+	if strings.HasSuffix(word, "s") || strings.HasSuffix(word, "x") ||
+		strings.HasSuffix(word, "z") || strings.HasSuffix(word, "sh") ||
+		strings.HasSuffix(word, "ch") {
+		return word + "es"
+	}
+	return word + "s"
+}
+
+func isVowel(b byte) bool {
+	return b == 'a' || b == 'e' || b == 'i' || b == 'o' || b == 'u'
 }
 
 // enumTypeName returns the PostgreSQL enum type name for a model field.
