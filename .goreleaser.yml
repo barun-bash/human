@@ -45,21 +45,22 @@ changelog:
       - Merge pull request
       - Merge branch
 
-brews:
-  - name: human
-    repository:
-      owner: barun-bash
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    directory: Formula
-    homepage: "https://github.com/barun-bash/human"
-    description: "Programming language where you write in English and get production-ready applications"
-    license: "MIT"
-    skip_upload: auto
-    test: |
-      system "#{bin}/human", "--version"
-    install: |
-      bin.install "human"
+# Homebrew formula publishing requires a PAT with repo scope stored as
+# HOMEBREW_TAP_TOKEN. Uncomment once the secret is configured:
+# brews:
+#   - name: human
+#     repository:
+#       owner: barun-bash
+#       name: homebrew-tap
+#       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+#     directory: Formula
+#     homepage: "https://github.com/barun-bash/human"
+#     description: "Programming language where you write in English and get production-ready applications"
+#     license: "MIT"
+#     test: |
+#       system "#{bin}/human", "--version"
+#     install: |
+#       bin.install "human"
 
 release:
   github:
