@@ -150,12 +150,14 @@ func backendLang(app *ir.Application) string {
 		return "node"
 	}
 	lower := strings.ToLower(app.Config.Backend)
-	// Check python before go — "django" contains the substring "go"
 	if strings.Contains(lower, "python") || strings.Contains(lower, "django") ||
 		strings.Contains(lower, "flask") || strings.Contains(lower, "fastapi") {
 		return "python"
 	}
-	if strings.Contains(lower, "go") {
+	// Match Go precisely to avoid false positives on substrings like "mongo".
+	if lower == "go" || strings.HasPrefix(lower, "go ") ||
+		strings.Contains(lower, "gin") || strings.Contains(lower, "fiber") ||
+		strings.Contains(lower, "golang") {
 		return "go"
 	}
 	return "node"

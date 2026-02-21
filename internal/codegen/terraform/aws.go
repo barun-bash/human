@@ -146,13 +146,20 @@ func generateAWSRDS(app *ir.Application) string {
 
 	// Security group for RDS
 	b.WriteString("resource \"aws_security_group\" \"rds\" {\n")
-	b.WriteString(fmt.Sprintf("  name   = \"%s-rds-${var.environment}\"\n", name))
-	b.WriteString("  vpc_id = aws_vpc.main.id\n\n")
+	b.WriteString(fmt.Sprintf("  name        = \"%s-rds-${var.environment}\"\n", name))
+	b.WriteString(fmt.Sprintf("  description = \"Allow %s traffic from ECS tasks\"\n", engine))
+	b.WriteString("  vpc_id      = aws_vpc.main.id\n\n")
 	b.WriteString("  ingress {\n")
 	b.WriteString(fmt.Sprintf("    from_port       = %s\n", port))
 	b.WriteString(fmt.Sprintf("    to_port         = %s\n", port))
 	b.WriteString("    protocol        = \"tcp\"\n")
 	b.WriteString("    security_groups = [aws_security_group.ecs.id]\n")
+	b.WriteString("  }\n\n")
+	b.WriteString("  egress {\n")
+	b.WriteString("    from_port   = 0\n")
+	b.WriteString("    to_port     = 0\n")
+	b.WriteString("    protocol    = \"-1\"\n")
+	b.WriteString("    cidr_blocks = [\"0.0.0.0/0\"]\n")
 	b.WriteString("  }\n")
 	b.WriteString("}\n\n")
 
@@ -274,8 +281,9 @@ func generateAWSNetworking(app *ir.Application) string {
 
 	// ECS security group
 	b.WriteString("resource \"aws_security_group\" \"ecs\" {\n")
-	b.WriteString(fmt.Sprintf("  name   = \"%s-ecs-${var.environment}\"\n", name))
-	b.WriteString("  vpc_id = aws_vpc.main.id\n\n")
+	b.WriteString(fmt.Sprintf("  name        = \"%s-ecs-${var.environment}\"\n", name))
+	b.WriteString("  description = \"Allow traffic from ALB to ECS tasks\"\n")
+	b.WriteString("  vpc_id      = aws_vpc.main.id\n\n")
 	b.WriteString("  ingress {\n")
 	b.WriteString("    from_port       = var.container_port\n")
 	b.WriteString("    to_port         = var.container_port\n")
@@ -292,8 +300,9 @@ func generateAWSNetworking(app *ir.Application) string {
 
 	// ALB
 	b.WriteString("resource \"aws_security_group\" \"alb\" {\n")
-	b.WriteString(fmt.Sprintf("  name   = \"%s-alb-${var.environment}\"\n", name))
-	b.WriteString("  vpc_id = aws_vpc.main.id\n\n")
+	b.WriteString(fmt.Sprintf("  name        = \"%s-alb-${var.environment}\"\n", name))
+	b.WriteString("  description = \"Allow HTTP/HTTPS traffic to the load balancer\"\n")
+	b.WriteString("  vpc_id      = aws_vpc.main.id\n\n")
 	b.WriteString("  ingress {\n")
 	b.WriteString("    from_port   = 80\n")
 	b.WriteString("    to_port     = 80\n")

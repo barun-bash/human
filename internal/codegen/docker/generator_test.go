@@ -49,6 +49,84 @@ func TestAppNameLower(t *testing.T) {
 	}
 }
 
+func TestBackendDir(t *testing.T) {
+	tests := []struct {
+		backend string
+		want    string
+	}{
+		{"Node with Express", "node"},
+		{"Python with FastAPI", "python"},
+		{"Go with Gin", "go"},
+		{"Go", "go"},
+		{"", "node"},
+	}
+	for _, tt := range tests {
+		app := &ir.Application{Config: &ir.BuildConfig{Backend: tt.backend}}
+		got := BackendDir(app)
+		if got != tt.want {
+			t.Errorf("BackendDir(%q): got %q, want %q", tt.backend, got, tt.want)
+		}
+	}
+}
+
+func TestBackendPort(t *testing.T) {
+	tests := []struct {
+		backend string
+		want    string
+	}{
+		{"Node with Express", "3000"},
+		{"Python with FastAPI", "8000"},
+		{"Go with Gin", "8080"},
+		{"", "3000"},
+	}
+	for _, tt := range tests {
+		app := &ir.Application{Config: &ir.BuildConfig{Backend: tt.backend}}
+		got := BackendPort(app)
+		if got != tt.want {
+			t.Errorf("BackendPort(%q): got %q, want %q", tt.backend, got, tt.want)
+		}
+	}
+}
+
+func TestFrontendDir(t *testing.T) {
+	tests := []struct {
+		frontend string
+		want     string
+	}{
+		{"React with TypeScript", "react"},
+		{"Vue with TypeScript", "vue"},
+		{"Angular with TypeScript", "angular"},
+		{"Svelte with TypeScript", "svelte"},
+		{"", "react"},
+	}
+	for _, tt := range tests {
+		app := &ir.Application{Config: &ir.BuildConfig{Frontend: tt.frontend}}
+		got := FrontendDir(app)
+		if got != tt.want {
+			t.Errorf("FrontendDir(%q): got %q, want %q", tt.frontend, got, tt.want)
+		}
+	}
+}
+
+func TestFrontendAPIEnvName(t *testing.T) {
+	tests := []struct {
+		frontend string
+		want     string
+	}{
+		{"React with TypeScript", "VITE_API_URL"},
+		{"Vue with TypeScript", "VITE_API_URL"},
+		{"Angular with TypeScript", "NG_APP_API_URL"},
+		{"Svelte with TypeScript", "VITE_API_URL"},
+	}
+	for _, tt := range tests {
+		app := &ir.Application{Config: &ir.BuildConfig{Frontend: tt.frontend}}
+		got := FrontendAPIEnvName(app)
+		if got != tt.want {
+			t.Errorf("FrontendAPIEnvName(%q): got %q, want %q", tt.frontend, got, tt.want)
+		}
+	}
+}
+
 func TestCollectEnvVars(t *testing.T) {
 	app := &ir.Application{
 		Name:   "TestApp",
@@ -94,6 +172,59 @@ func TestCollectEnvVars(t *testing.T) {
 		if v.Name == "AWS_REGION" && v.Example != "us-east-1" {
 			t.Errorf("AWS_REGION example: got %q, want %q", v.Example, "us-east-1")
 		}
+	}
+}
+
+func TestCollectEnvVarsPython(t *testing.T) {
+	app := &ir.Application{
+		Name:   "Blog",
+		Config: &ir.BuildConfig{Frontend: "Vue with TypeScript", Backend: "Python with FastAPI"},
+	}
+
+	vars := CollectEnvVars(app)
+	byName := make(map[string]EnvVar)
+	for _, v := range vars {
+		byName[v.Name] = v
+	}
+
+	// PORT should be 8000 for Python
+	if v, ok := byName["PORT"]; !ok || v.Example != "8000" {
+		t.Errorf("PORT example: got %q, want %q", byName["PORT"].Example, "8000")
+	}
+
+	// VITE_API_URL should reference port 8000
+	if v, ok := byName["VITE_API_URL"]; !ok || v.Example != "http://localhost:8000" {
+		t.Errorf("VITE_API_URL example: got %q, want %q", byName["VITE_API_URL"].Example, "http://localhost:8000")
+	}
+}
+
+func TestCollectEnvVarsAngular(t *testing.T) {
+	app := &ir.Application{
+		Name:   "Shop",
+		Config: &ir.BuildConfig{Frontend: "Angular with TypeScript", Backend: "Go with Gin"},
+	}
+
+	vars := CollectEnvVars(app)
+	names := make(map[string]bool)
+	for _, v := range vars {
+		names[v.Name] = true
+	}
+
+	// Angular should use NG_APP_API_URL, not VITE_API_URL
+	if names["VITE_API_URL"] {
+		t.Error("Angular app should not have VITE_API_URL")
+	}
+	if !names["NG_APP_API_URL"] {
+		t.Error("Angular app should have NG_APP_API_URL")
+	}
+
+	// PORT should be 8080 for Go
+	byName := make(map[string]EnvVar)
+	for _, v := range vars {
+		byName[v.Name] = v
+	}
+	if v, ok := byName["PORT"]; !ok || v.Example != "8080" {
+		t.Errorf("PORT example: got %q, want %q", byName["PORT"].Example, "8080")
 	}
 }
 
@@ -175,10 +306,10 @@ func TestEnvCategory(t *testing.T) {
 	}
 }
 
-// ── Backend Dockerfile ──
+// ── Backend Dockerfiles ──
 
-func TestGenerateBackendDockerfile(t *testing.T) {
-	app := &ir.Application{Name: "TestApp"}
+func TestGenerateBackendDockerfileNode(t *testing.T) {
+	app := &ir.Application{Name: "TestApp", Config: &ir.BuildConfig{Backend: "Node with Express"}}
 	output := generateBackendDockerfile(app)
 
 	checks := []struct {
@@ -203,10 +334,71 @@ func TestGenerateBackendDockerfile(t *testing.T) {
 	}
 }
 
-// ── Frontend Dockerfile ──
+func TestGenerateBackendDockerfilePython(t *testing.T) {
+	app := &ir.Application{Name: "TestApp", Config: &ir.BuildConfig{Backend: "Python with FastAPI"}}
+	output := generateBackendDockerfile(app)
 
-func TestGenerateFrontendDockerfile(t *testing.T) {
-	app := &ir.Application{Name: "TestApp"}
+	checks := []struct {
+		desc    string
+		pattern string
+	}{
+		{"Python base image", "FROM python:3.12-slim"},
+		{"multi-stage build", "AS builder"},
+		{"requirements.txt", "COPY requirements.txt"},
+		{"pip install", "pip install"},
+		{"expose 8000", "EXPOSE 8000"},
+		{"uvicorn CMD", "uvicorn"},
+	}
+
+	for _, c := range checks {
+		if !strings.Contains(output, c.pattern) {
+			t.Errorf("Python backend Dockerfile: missing %s (%q)", c.desc, c.pattern)
+		}
+	}
+
+	// Should NOT contain Node-specific things
+	if strings.Contains(output, "npm") {
+		t.Error("Python Dockerfile should not contain npm")
+	}
+	if strings.Contains(output, "prisma") {
+		t.Error("Python Dockerfile should not contain prisma")
+	}
+}
+
+func TestGenerateBackendDockerfileGo(t *testing.T) {
+	app := &ir.Application{Name: "TestApp", Config: &ir.BuildConfig{Backend: "Go with Gin"}}
+	output := generateBackendDockerfile(app)
+
+	checks := []struct {
+		desc    string
+		pattern string
+	}{
+		{"Go base image", "FROM golang:1.21-alpine"},
+		{"multi-stage build", "AS builder"},
+		{"go mod download", "go mod download"},
+		{"go build", "go build"},
+		{"CGO disabled", "CGO_ENABLED=0"},
+		{"alpine production", "FROM alpine:"},
+		{"expose 8080", "EXPOSE 8080"},
+		{"binary name", "testapp"},
+	}
+
+	for _, c := range checks {
+		if !strings.Contains(output, c.pattern) {
+			t.Errorf("Go backend Dockerfile: missing %s (%q)", c.desc, c.pattern)
+		}
+	}
+
+	// Should NOT contain Node-specific things
+	if strings.Contains(output, "npm") {
+		t.Error("Go Dockerfile should not contain npm")
+	}
+}
+
+// ── Frontend Dockerfiles ──
+
+func TestGenerateFrontendDockerfileVite(t *testing.T) {
+	app := &ir.Application{Name: "TestApp", Config: &ir.BuildConfig{Frontend: "React with TypeScript"}}
 	output := generateFrontendDockerfile(app)
 
 	checks := []struct {
@@ -236,6 +428,46 @@ func TestGenerateFrontendDockerfile(t *testing.T) {
 	buildIdx := strings.Index(output, "RUN npm run build")
 	if argIdx >= buildIdx {
 		t.Error("frontend Dockerfile: ARG VITE_API_URL must appear before RUN npm run build")
+	}
+}
+
+func TestGenerateFrontendDockerfileVue(t *testing.T) {
+	app := &ir.Application{Name: "TestApp", Config: &ir.BuildConfig{Frontend: "Vue with TypeScript"}}
+	output := generateFrontendDockerfile(app)
+
+	// Vue also uses Vite, so should have VITE_API_URL
+	if !strings.Contains(output, "ARG VITE_API_URL") {
+		t.Error("Vue frontend Dockerfile should have ARG VITE_API_URL")
+	}
+	if !strings.Contains(output, "COPY --from=builder /app/dist") {
+		t.Error("Vue frontend Dockerfile should copy dist/")
+	}
+}
+
+func TestGenerateFrontendDockerfileAngular(t *testing.T) {
+	app := &ir.Application{Name: "TestApp", Config: &ir.BuildConfig{Frontend: "Angular with TypeScript"}}
+	output := generateFrontendDockerfile(app)
+
+	checks := []struct {
+		desc    string
+		pattern string
+	}{
+		{"NG_APP_API_URL ARG", "ARG NG_APP_API_URL"},
+		{"NG_APP_API_URL ENV", "ENV NG_APP_API_URL=$NG_APP_API_URL"},
+		{"Angular dist path", "dist/app/browser"},
+		{"nginx", "FROM nginx:alpine"},
+		{"SPA routing", "try_files"},
+	}
+
+	for _, c := range checks {
+		if !strings.Contains(output, c.pattern) {
+			t.Errorf("Angular frontend Dockerfile: missing %s (%q)", c.desc, c.pattern)
+		}
+	}
+
+	// Should NOT have VITE references
+	if strings.Contains(output, "VITE_API_URL") {
+		t.Error("Angular Dockerfile should not reference VITE_API_URL")
 	}
 }
 
@@ -327,6 +559,66 @@ func TestGenerateDockerCompose(t *testing.T) {
 	}
 	if !strings.Contains(output, "taskflow-data:") {
 		t.Error("missing named volume definition")
+	}
+}
+
+func TestGenerateDockerComposePython(t *testing.T) {
+	app := &ir.Application{
+		Name:   "Blog",
+		Config: &ir.BuildConfig{Frontend: "Vue with TypeScript", Backend: "Python with FastAPI"},
+	}
+
+	output := generateDockerCompose(app)
+
+	// Backend should reference python directory and port 8000
+	if !strings.Contains(output, "context: ./python") {
+		t.Error("Python backend should have context: ./python")
+	}
+	if !strings.Contains(output, "8000:8000") {
+		t.Error("Python backend should map port 8000")
+	}
+	if !strings.Contains(output, `PORT: "8000"`) {
+		t.Error("Python backend should set PORT to 8000")
+	}
+
+	// Frontend should reference vue directory
+	if !strings.Contains(output, "context: ./vue") {
+		t.Error("Vue frontend should have context: ./vue")
+	}
+	if !strings.Contains(output, "VITE_API_URL: http://localhost:8000") {
+		t.Error("VITE_API_URL should reference port 8000")
+	}
+}
+
+func TestGenerateDockerComposeGo(t *testing.T) {
+	app := &ir.Application{
+		Name:   "Shop",
+		Config: &ir.BuildConfig{Frontend: "Angular with TypeScript", Backend: "Go with Gin"},
+	}
+
+	output := generateDockerCompose(app)
+
+	// Backend should reference go directory and port 8080
+	if !strings.Contains(output, "context: ./go") {
+		t.Error("Go backend should have context: ./go")
+	}
+	if !strings.Contains(output, "8080:8080") {
+		t.Error("Go backend should map port 8080")
+	}
+	if !strings.Contains(output, `PORT: "8080"`) {
+		t.Error("Go backend should set PORT to 8080")
+	}
+
+	// Frontend should reference angular directory
+	if !strings.Contains(output, "context: ./angular") {
+		t.Error("Angular frontend should have context: ./angular")
+	}
+	if !strings.Contains(output, "NG_APP_API_URL: http://localhost:8080") {
+		t.Error("NG_APP_API_URL should reference port 8080")
+	}
+	// Should NOT have VITE references
+	if strings.Contains(output, "VITE_API_URL") {
+		t.Error("Angular compose should not have VITE_API_URL")
 	}
 }
 
@@ -469,6 +761,69 @@ func TestGeneratePackageJSON(t *testing.T) {
 	}
 }
 
+func TestGeneratePackageJSONPython(t *testing.T) {
+	app := &ir.Application{
+		Name:   "Blog",
+		Config: &ir.BuildConfig{Backend: "Python with FastAPI"},
+	}
+	output := generatePackageJSON(app)
+
+	if !strings.Contains(output, "cd python && alembic upgrade head") {
+		t.Error("Python package.json should use alembic for db:migrate")
+	}
+	// Should NOT contain prisma or node references
+	if strings.Contains(output, "prisma") {
+		t.Error("Python package.json should not reference prisma")
+	}
+	if strings.Contains(output, "cd node") {
+		t.Error("Python package.json should not reference cd node")
+	}
+}
+
+func TestGeneratePackageJSONGo(t *testing.T) {
+	app := &ir.Application{
+		Name:   "Shop",
+		Config: &ir.BuildConfig{Backend: "Go with Gin"},
+	}
+	output := generatePackageJSON(app)
+
+	if !strings.Contains(output, "cd go && go run") {
+		t.Error("Go package.json should use go run for db tasks")
+	}
+	// Should NOT contain prisma
+	if strings.Contains(output, "prisma") {
+		t.Error("Go package.json should not reference prisma")
+	}
+}
+
+// ── .dockerignore ──
+
+func TestGenerateBackendDockerignore(t *testing.T) {
+	tests := []struct {
+		backend  string
+		contains string
+	}{
+		{"Node with Express", "node_modules"},
+		{"Python with FastAPI", "__pycache__"},
+		{"Go with Gin", ".env"},
+	}
+	for _, tt := range tests {
+		app := &ir.Application{Config: &ir.BuildConfig{Backend: tt.backend}}
+		output := generateBackendDockerignore(app)
+		if !strings.Contains(output, tt.contains) {
+			t.Errorf("%s .dockerignore should contain %q", tt.backend, tt.contains)
+		}
+	}
+}
+
+func TestGenerateFrontendDockerignore(t *testing.T) {
+	app := &ir.Application{}
+	output := generateFrontendDockerignore(app)
+	if !strings.Contains(output, "node_modules") {
+		t.Error("frontend .dockerignore should contain node_modules")
+	}
+}
+
 // ── Generate to Filesystem ──
 
 func TestGenerateWritesFiles(t *testing.T) {
@@ -496,13 +851,67 @@ func TestGenerateWritesFiles(t *testing.T) {
 
 	expectedFiles := []string{
 		"node/Dockerfile",
+		"node/.dockerignore",
 		"react/Dockerfile",
+		"react/.dockerignore",
 		"docker-compose.yml",
 		".env.example",
 		"package.json",
 	}
 
 	for _, f := range expectedFiles {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected file %s to exist", f)
+		}
+	}
+}
+
+func TestGenerateWritesFilesPython(t *testing.T) {
+	app := &ir.Application{
+		Name:     "Blog",
+		Platform: "web",
+		Config:   &ir.BuildConfig{Frontend: "Vue with TypeScript", Backend: "Python with FastAPI"},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Should have python and vue directories, not node and react
+	for _, f := range []string{"python/Dockerfile", "python/.dockerignore", "vue/Dockerfile", "vue/.dockerignore"} {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected file %s to exist", f)
+		}
+	}
+
+	// Should NOT have node/Dockerfile or react/Dockerfile
+	for _, f := range []string{"node/Dockerfile", "react/Dockerfile"} {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); err == nil {
+			t.Errorf("file %s should not exist for Python+Vue app", f)
+		}
+	}
+}
+
+func TestGenerateWritesFilesGo(t *testing.T) {
+	app := &ir.Application{
+		Name:     "Shop",
+		Platform: "web",
+		Config:   &ir.BuildConfig{Frontend: "Angular with TypeScript", Backend: "Go with Gin"},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Should have go and angular directories
+	for _, f := range []string{"go/Dockerfile", "go/.dockerignore", "angular/Dockerfile", "angular/.dockerignore"} {
 		path := filepath.Join(dir, f)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			t.Errorf("expected file %s to exist", f)
@@ -528,7 +937,7 @@ func TestGenerateWritesFilesAPIOnly(t *testing.T) {
 	}
 
 	// Should have backend files but NOT frontend Dockerfile
-	for _, f := range []string{"node/Dockerfile", "docker-compose.yml", ".env.example", "package.json"} {
+	for _, f := range []string{"node/Dockerfile", "node/.dockerignore", "docker-compose.yml", ".env.example", "package.json"} {
 		path := filepath.Join(dir, f)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			t.Errorf("expected file %s to exist", f)
@@ -569,10 +978,12 @@ func TestFullIntegration(t *testing.T) {
 		t.Fatalf("Generate: %v", err)
 	}
 
-	// Verify all 5 files exist
+	// Verify all files exist (including .dockerignore)
 	expectedFiles := []string{
 		"node/Dockerfile",
+		"node/.dockerignore",
 		"react/Dockerfile",
+		"react/.dockerignore",
 		"docker-compose.yml",
 		".env.example",
 		"package.json",
@@ -636,4 +1047,166 @@ func TestFullIntegration(t *testing.T) {
 	}
 
 	t.Logf("Generated %d files to %s", len(expectedFiles), dir)
+}
+
+// ── Full Integration Tests for Blog and Ecommerce ──
+
+func TestFullIntegrationBlog(t *testing.T) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
+	humanFile := filepath.Join(root, "examples", "blog", "app.human")
+
+	source, err := os.ReadFile(humanFile)
+	if err != nil {
+		t.Fatalf("failed to read app.human: %v", err)
+	}
+
+	prog, err := parser.Parse(string(source))
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	app, err := ir.Build(prog)
+	if err != nil {
+		t.Fatalf("IR build error: %v", err)
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Blog uses Python + Vue
+	expectedFiles := []string{
+		"python/Dockerfile",
+		"python/.dockerignore",
+		"vue/Dockerfile",
+		"vue/.dockerignore",
+		"docker-compose.yml",
+		".env.example",
+		"package.json",
+	}
+	for _, f := range expectedFiles {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected file %s to exist", f)
+		}
+	}
+
+	// Verify compose references python and vue
+	composeContent, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
+	if err != nil {
+		t.Fatalf("reading docker-compose.yml: %v", err)
+	}
+	compose := string(composeContent)
+	if !strings.Contains(compose, "context: ./python") {
+		t.Error("docker-compose.yml: should reference ./python")
+	}
+	if !strings.Contains(compose, "context: ./vue") {
+		t.Error("docker-compose.yml: should reference ./vue")
+	}
+	if !strings.Contains(compose, "8000:8000") {
+		t.Error("docker-compose.yml: should use port 8000 for Python")
+	}
+
+	// Verify Python Dockerfile
+	pyDF, err := os.ReadFile(filepath.Join(dir, "python", "Dockerfile"))
+	if err != nil {
+		t.Fatalf("reading python/Dockerfile: %v", err)
+	}
+	if !strings.Contains(string(pyDF), "python:3.12-slim") {
+		t.Error("python/Dockerfile: should use python:3.12-slim base image")
+	}
+	if !strings.Contains(string(pyDF), "uvicorn") {
+		t.Error("python/Dockerfile: should use uvicorn")
+	}
+}
+
+func TestFullIntegrationEcommerce(t *testing.T) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
+	humanFile := filepath.Join(root, "examples", "ecommerce", "app.human")
+
+	source, err := os.ReadFile(humanFile)
+	if err != nil {
+		t.Fatalf("failed to read app.human: %v", err)
+	}
+
+	prog, err := parser.Parse(string(source))
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	app, err := ir.Build(prog)
+	if err != nil {
+		t.Fatalf("IR build error: %v", err)
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Ecommerce uses Go + Angular
+	expectedFiles := []string{
+		"go/Dockerfile",
+		"go/.dockerignore",
+		"angular/Dockerfile",
+		"angular/.dockerignore",
+		"docker-compose.yml",
+		".env.example",
+		"package.json",
+	}
+	for _, f := range expectedFiles {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected file %s to exist", f)
+		}
+	}
+
+	// Verify compose references go and angular
+	composeContent, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
+	if err != nil {
+		t.Fatalf("reading docker-compose.yml: %v", err)
+	}
+	compose := string(composeContent)
+	if !strings.Contains(compose, "context: ./go") {
+		t.Error("docker-compose.yml: should reference ./go")
+	}
+	if !strings.Contains(compose, "context: ./angular") {
+		t.Error("docker-compose.yml: should reference ./angular")
+	}
+	if !strings.Contains(compose, "8080:8080") {
+		t.Error("docker-compose.yml: should use port 8080 for Go")
+	}
+	if !strings.Contains(compose, "NG_APP_API_URL") {
+		t.Error("docker-compose.yml: should use NG_APP_API_URL for Angular")
+	}
+	if strings.Contains(compose, "VITE_API_URL") {
+		t.Error("docker-compose.yml: should not use VITE_API_URL for Angular")
+	}
+
+	// Verify Go Dockerfile
+	goDF, err := os.ReadFile(filepath.Join(dir, "go", "Dockerfile"))
+	if err != nil {
+		t.Fatalf("reading go/Dockerfile: %v", err)
+	}
+	if !strings.Contains(string(goDF), "golang:1.21-alpine") {
+		t.Error("go/Dockerfile: should use golang base image")
+	}
+	if !strings.Contains(string(goDF), "go build") {
+		t.Error("go/Dockerfile: should use go build")
+	}
+
+	// Verify Angular Dockerfile
+	angDF, err := os.ReadFile(filepath.Join(dir, "angular", "Dockerfile"))
+	if err != nil {
+		t.Fatalf("reading angular/Dockerfile: %v", err)
+	}
+	if !strings.Contains(string(angDF), "NG_APP_API_URL") {
+		t.Error("angular/Dockerfile: should use NG_APP_API_URL")
+	}
+	if !strings.Contains(string(angDF), "dist/app/browser") {
+		t.Error("angular/Dockerfile: should copy from dist/app/browser")
+	}
 }

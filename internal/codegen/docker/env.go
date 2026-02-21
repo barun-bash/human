@@ -49,7 +49,7 @@ func envCategory(v EnvVar) string {
 		return "Authentication"
 	case strings.Contains(name, "PORT"):
 		return "Server"
-	case strings.Contains(name, "VITE"):
+	case strings.Contains(name, "VITE") || strings.Contains(name, "NG_APP"):
 		return "Frontend"
 	default:
 		if v.Comment != "" {

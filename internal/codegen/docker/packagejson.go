@@ -11,6 +11,7 @@ import (
 func generatePackageJSON(app *ir.Application) string {
 	var b strings.Builder
 	name := AppNameLower(app)
+	backendDir := BackendDir(app)
 
 	b.WriteString("{\n")
 	fmt.Fprintf(&b, "  \"name\": \"%s\",\n", name)
@@ -22,9 +23,20 @@ func generatePackageJSON(app *ir.Application) string {
 	b.WriteString("    \"build\": \"docker compose build\",\n")
 	b.WriteString("    \"start\": \"docker compose up -d\",\n")
 	b.WriteString("    \"stop\": \"docker compose down\",\n")
-	b.WriteString("    \"db:migrate\": \"cd node && npx prisma migrate deploy\",\n")
-	b.WriteString("    \"db:seed\": \"cd node && npx prisma db seed\",\n")
-	b.WriteString("    \"db:studio\": \"cd node && npx prisma studio\"\n")
+
+	// Database migration scripts depend on the backend runtime.
+	switch backendDir {
+	case "python":
+		fmt.Fprintf(&b, "    \"db:migrate\": \"cd %s && alembic upgrade head\",\n", backendDir)
+		fmt.Fprintf(&b, "    \"db:seed\": \"cd %s && python seed.py\"\n", backendDir)
+	case "go":
+		fmt.Fprintf(&b, "    \"db:migrate\": \"cd %s && go run ./migrations\",\n", backendDir)
+		fmt.Fprintf(&b, "    \"db:seed\": \"cd %s && go run ./seed\"\n", backendDir)
+	default:
+		fmt.Fprintf(&b, "    \"db:migrate\": \"cd %s && npx prisma migrate deploy\",\n", backendDir)
+		fmt.Fprintf(&b, "    \"db:seed\": \"cd %s && npx prisma db seed\",\n", backendDir)
+		fmt.Fprintf(&b, "    \"db:studio\": \"cd %s && npx prisma studio\"\n", backendDir)
+	}
 	b.WriteString("  }\n")
 	b.WriteString("}\n")
 

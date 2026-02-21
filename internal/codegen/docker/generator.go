@@ -16,16 +16,21 @@ type Generator struct{}
 // Generate writes Dockerfiles, docker-compose.yml, .env.example, and
 // a root package.json to outputDir.
 func (g Generator) Generate(app *ir.Application, outputDir string) error {
+	backendDir := BackendDir(app)
+
 	files := map[string]string{
-		filepath.Join(outputDir, "node", "Dockerfile"): generateBackendDockerfile(app),
-		filepath.Join(outputDir, "docker-compose.yml"): generateDockerCompose(app),
-		filepath.Join(outputDir, ".env.example"):       generateEnvExample(app),
-		filepath.Join(outputDir, "package.json"):       generatePackageJSON(app),
+		filepath.Join(outputDir, backendDir, "Dockerfile"):    generateBackendDockerfile(app),
+		filepath.Join(outputDir, backendDir, ".dockerignore"): generateBackendDockerignore(app),
+		filepath.Join(outputDir, "docker-compose.yml"):        generateDockerCompose(app),
+		filepath.Join(outputDir, ".env.example"):              generateEnvExample(app),
+		filepath.Join(outputDir, "package.json"):              generatePackageJSON(app),
 	}
 
 	// Only generate frontend Dockerfile when a frontend framework is configured.
 	if hasFrontend(app) {
-		files[filepath.Join(outputDir, "react", "Dockerfile")] = generateFrontendDockerfile(app)
+		feDir := FrontendDir(app)
+		files[filepath.Join(outputDir, feDir, "Dockerfile")] = generateFrontendDockerfile(app)
+		files[filepath.Join(outputDir, feDir, ".dockerignore")] = generateFrontendDockerignore(app)
 	}
 
 	for path, content := range files {
@@ -51,15 +56,17 @@ func writeFile(path, content string) error {
 // CollectEnvVars gathers all required environment variables from the IR.
 // Returns a sorted list of EnvVar entries.
 func CollectEnvVars(app *ir.Application) []EnvVar {
+	port := BackendPort(app)
 	vars := []EnvVar{
 		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@db:5432/" + DbName(app) + "?schema=public", Comment: "PostgreSQL connection string — use @localhost:5432 for local dev, @db:5432 for Docker"},
 		{Name: "JWT_SECRET", Example: "change-me-to-a-random-secret", Comment: "Secret for signing JWT tokens"},
-		{Name: "PORT", Example: "3000", Comment: "Backend server port"},
+		{Name: "PORT", Example: port, Comment: "Backend server port"},
 	}
 
-	// Only include VITE_API_URL when a frontend framework is configured.
+	// Only include frontend API URL env var when a frontend framework is configured.
 	if hasFrontend(app) {
-		vars = append(vars, EnvVar{Name: "VITE_API_URL", Example: "http://localhost:3000", Comment: "API URL for the React frontend"})
+		feEnvName := FrontendAPIEnvName(app)
+		vars = append(vars, EnvVar{Name: feEnvName, Example: "http://localhost:" + port, Comment: "API URL for the frontend"})
 	}
 
 	// Integration credentials and config-derived env vars
@@ -146,4 +153,75 @@ func AppNameLower(app *ir.Application) string {
 		return strings.ToLower(strings.ReplaceAll(app.Name, " ", "-"))
 	}
 	return "app"
+}
+
+// BackendDir returns the output subdirectory name for the backend
+// based on the configured backend framework.
+func BackendDir(app *ir.Application) string {
+	if app.Config == nil {
+		return "node"
+	}
+	lower := strings.ToLower(app.Config.Backend)
+	switch {
+	case strings.Contains(lower, "python") || strings.Contains(lower, "fastapi") || strings.Contains(lower, "django") || strings.Contains(lower, "flask"):
+		return "python"
+	case lower == "go" || strings.HasPrefix(lower, "go ") || strings.Contains(lower, "gin") || strings.Contains(lower, "fiber") || strings.Contains(lower, "golang"):
+		return "go"
+	default:
+		return "node"
+	}
+}
+
+// BackendPort returns the default port for the backend runtime.
+func BackendPort(app *ir.Application) string {
+	if app.Config == nil {
+		return "3000"
+	}
+	lower := strings.ToLower(app.Config.Backend)
+	switch {
+	case strings.Contains(lower, "python") || strings.Contains(lower, "fastapi") || strings.Contains(lower, "django") || strings.Contains(lower, "flask"):
+		return "8000"
+	case lower == "go" || strings.HasPrefix(lower, "go ") || strings.Contains(lower, "gin") || strings.Contains(lower, "fiber") || strings.Contains(lower, "golang"):
+		return "8080"
+	default:
+		return "3000"
+	}
+}
+
+// FrontendDir returns the output subdirectory name for the frontend
+// based on the configured frontend framework.
+func FrontendDir(app *ir.Application) string {
+	if app.Config == nil {
+		return "react"
+	}
+	lower := strings.ToLower(app.Config.Frontend)
+	switch {
+	case strings.Contains(lower, "vue"):
+		return "vue"
+	case strings.Contains(lower, "angular"):
+		return "angular"
+	case strings.Contains(lower, "svelte"):
+		return "svelte"
+	default:
+		return "react"
+	}
+}
+
+// FrontendAPIEnvName returns the environment variable name used to pass the
+// API URL to the frontend build. Vite-based frameworks (React, Vue, Svelte)
+// use VITE_API_URL; Angular uses NG_APP_API_URL.
+func FrontendAPIEnvName(app *ir.Application) string {
+	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Frontend), "angular") {
+		return "NG_APP_API_URL"
+	}
+	return "VITE_API_URL"
+}
+
+// frontendUsesVite returns true if the frontend framework uses Vite for bundling.
+func frontendUsesVite(app *ir.Application) bool {
+	if app.Config == nil {
+		return true
+	}
+	lower := strings.ToLower(app.Config.Frontend)
+	return !strings.Contains(lower, "angular")
 }
