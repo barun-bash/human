@@ -415,6 +415,169 @@ func TestGeneratePage(t *testing.T) {
 	}
 }
 
+// ── Page Generator with Data Model ──
+
+func TestGeneratePageWithModel(t *testing.T) {
+	page := &ir.Page{
+		Name: "Dashboard",
+		Content: []*ir.Action{
+			{Type: "display", Text: "show a hero section with the app name"},
+			{Type: "display", Text: "show a greeting with the user's name"},
+			{Type: "display", Text: "show a summary card with total tasks, completed tasks, and overdue tasks"},
+			{Type: "display", Text: "show a Get Started button"},
+			{Type: "loop", Text: "each task shows its title, status, priority, and due date"},
+			{Type: "condition", Text: "while loading, show a spinner"},
+			{Type: "condition", Text: "if no tasks match, show No tasks found. Create your first task!"},
+			{Type: "input", Text: "there is a search bar that filters tasks by title"},
+			{Type: "input", Text: "there is a floating button to add a new task"},
+		},
+	}
+
+	app := &ir.Application{
+		Name: "TaskFlow",
+		Data: []*ir.DataModel{
+			{
+				Name: "Task",
+				Fields: []*ir.DataField{
+					{Name: "title", Type: "text"},
+					{Name: "status", Type: "enum"},
+					{Name: "priority", Type: "enum"},
+					{Name: "due", Type: "date"},
+				},
+			},
+		},
+	}
+
+	output := generatePage(page, app)
+
+	// Model-aware state
+	if !strings.Contains(output, "useState<Task[]>") {
+		t.Error("missing typed Task[] state")
+	}
+	if !strings.Contains(output, "import { Task }") {
+		t.Error("missing Task type import")
+	}
+	if !strings.Contains(output, "useEffect") {
+		t.Error("missing useEffect for data fetching")
+	}
+
+	// Hero section renders as <section>
+	if !strings.Contains(output, `<section className="hero">`) {
+		t.Error("hero section should render as <section>")
+	}
+	if !strings.Contains(output, "<h1>TaskFlow</h1>") {
+		t.Error("hero section should include app name")
+	}
+
+	// Greeting renders as <h2>
+	if !strings.Contains(output, `className="greeting"`) {
+		t.Error("greeting should render with greeting class")
+	}
+
+	// Summary cards render as stat cards
+	if !strings.Contains(output, `className="summary-cards"`) {
+		t.Error("summary should render as summary-cards")
+	}
+	if !strings.Contains(output, `className="stat-card"`) {
+		t.Error("should have stat-card elements")
+	}
+
+	// Button display
+	if !strings.Contains(output, `<button className="btn">Get Started</button>`) {
+		t.Error("button display should render as <button>")
+	}
+
+	// Loop with typed fields
+	if !strings.Contains(output, "tasks.map((task)") {
+		t.Error("loop should use model-aware variable names")
+	}
+	if !strings.Contains(output, "task.title") {
+		t.Error("loop should reference task.title")
+	}
+	if !strings.Contains(output, "task.status") {
+		t.Error("loop should reference task.status")
+	}
+
+	// Loading spinner
+	if !strings.Contains(output, "loading &&") {
+		t.Error("loading state should render spinner")
+	}
+
+	// Empty state with custom message
+	if !strings.Contains(output, "tasks.length === 0") {
+		t.Error("empty state should check tasks.length")
+	}
+	if !strings.Contains(output, "No tasks found. Create your first task!") {
+		t.Error("empty state should use custom message")
+	}
+
+	// Search input
+	if !strings.Contains(output, `type="search"`) {
+		t.Error("search input should render as search type")
+	}
+
+	// FAB
+	if !strings.Contains(output, `className="fab"`) {
+		t.Error("floating button should render as FAB")
+	}
+}
+
+func TestGeneratePageProfile(t *testing.T) {
+	page := &ir.Page{
+		Name: "Profile",
+		Content: []*ir.Action{
+			{Type: "display", Text: "show the user's name, email, and avatar"},
+			{Type: "input", Text: "there is a form to update name and bio"},
+			{Type: "input", Text: "there is a file upload for avatar"},
+			{Type: "interact", Text: "clicking Save updates the user profile"},
+			{Type: "interact", Text: "clicking Change Password opens a password change form"},
+			{Type: "condition", Text: "if the update succeeds, show Profile updated successfully"},
+			{Type: "condition", Text: "if there is an error, show the error message"},
+		},
+	}
+
+	app := &ir.Application{}
+	output := generatePage(page, app)
+
+	// Field group for user's data
+	if !strings.Contains(output, `className="field-group"`) {
+		t.Error("user fields should render as field-group")
+	}
+	if !strings.Contains(output, "Name") && !strings.Contains(output, "name") {
+		t.Error("should display name field")
+	}
+
+	// Form
+	if !strings.Contains(output, "<form") {
+		t.Error("should render a form")
+	}
+
+	// File upload
+	if !strings.Contains(output, `type="file"`) {
+		t.Error("should render file upload input")
+	}
+
+	// Save button
+	if !strings.Contains(output, ">Save</button>") {
+		t.Error("should render Save button")
+	}
+
+	// Change Password button
+	if !strings.Contains(output, ">Change Password</button>") {
+		t.Error("should render Change Password button")
+	}
+
+	// Success message
+	if !strings.Contains(output, "Profile updated successfully") {
+		t.Error("should include custom success message")
+	}
+
+	// Error display
+	if !strings.Contains(output, "alert-error") {
+		t.Error("should render error alert")
+	}
+}
+
 // ── Component Generator ──
 
 func TestGenerateComponent(t *testing.T) {
@@ -424,14 +587,26 @@ func TestGenerateComponent(t *testing.T) {
 			{Name: "task", Type: "Task"},
 		},
 		Content: []*ir.Action{
-			{Type: "display", Text: "the task title in bold"},
+			{Type: "display", Text: "show the task title in bold"},
+			{Type: "display", Text: "show the status as a colored badge"},
+			{Type: "display", Text: "show the priority with an icon"},
+			{Type: "display", Text: "show the due date in relative format like due in 2 days"},
 			{Type: "condition", Text: "if task is overdue, show the due date in red"},
+			{Type: "interact", Text: "clicking the card triggers on_click"},
 		},
 	}
 
 	app := &ir.Application{
 		Data: []*ir.DataModel{
-			{Name: "Task"},
+			{
+				Name: "Task",
+				Fields: []*ir.DataField{
+					{Name: "title", Type: "text"},
+					{Name: "status", Type: "enum"},
+					{Name: "priority", Type: "enum"},
+					{Name: "due", Type: "date"},
+				},
+			},
 		},
 	}
 
@@ -456,6 +631,31 @@ func TestGenerateComponent(t *testing.T) {
 	}
 	if !strings.Contains(output, `className="task-card"`) {
 		t.Error("missing task-card className")
+	}
+
+	// Display JSX: title in bold → <strong>{task.title}</strong>
+	if !strings.Contains(output, "<strong>{task.title}</strong>") {
+		t.Error("title should render in bold with task.title")
+	}
+
+	// Display JSX: status as badge → <span className="badge">{task.status}</span>
+	if !strings.Contains(output, `<span className="badge">{task.status}</span>`) {
+		t.Error("status should render as badge")
+	}
+
+	// Display JSX: priority with icon
+	if !strings.Contains(output, "task.priority") {
+		t.Error("priority should reference task.priority")
+	}
+
+	// Display JSX: due date in relative format → <time>{task.due}</time>
+	if !strings.Contains(output, "<time>{task.due}</time>") {
+		t.Error("due date should render as <time> element")
+	}
+
+	// Condition: overdue → text-danger
+	if !strings.Contains(output, `className="text-danger"`) {
+		t.Error("overdue condition should render with text-danger")
 	}
 }
 

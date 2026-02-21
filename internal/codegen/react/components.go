@@ -54,12 +54,22 @@ func generateComponent(comp *ir.Component, app *ir.Application) string {
 		fmt.Fprintf(&b, "export default function %s() {\n", comp.Name)
 	}
 
+	// Build context for JSX generation
+	propsMap := make(map[string]string)
+	for _, p := range comp.Props {
+		propsMap[p.Name] = p.Type
+	}
+	ctx := &pageContext{
+		app:   app,
+		props: propsMap,
+	}
+
 	// Return JSX
 	b.WriteString("  return (\n")
 	fmt.Fprintf(&b, "    <div className=\"%s\">\n", toKebabCase(comp.Name))
 
 	for _, a := range comp.Content {
-		writePageAction(&b, a, "      ")
+		writePageAction(&b, a, "      ", ctx)
 	}
 
 	b.WriteString("    </div>\n")
