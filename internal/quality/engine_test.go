@@ -469,8 +469,19 @@ func TestRenderBuildSummary(t *testing.T) {
 	}
 
 	result := &Result{
-		TestFiles:        2,
-		TestCount:        5,
+		TestFiles:            2,
+		TestCount:            5,
+		ComponentTestFiles:   2,
+		ComponentTestCount:   4,
+		EdgeTestFiles:        1,
+		EdgeTestCount:        10,
+		IntegrationTestCount: 3,
+		Coverage: &CoverageReport{
+			EndpointsTested: 2, EndpointsTotal: 2,
+			PagesTested: 1, PagesTotal: 1,
+			FieldsTested: 3, FieldsTotal: 3,
+			Overall: 100,
+		},
 		SecurityFindings: []Finding{{Severity: "critical"}, {Severity: "warning"}},
 		LintWarnings:     []Warning{{Category: "empty"}},
 	}
@@ -485,14 +496,29 @@ func TestRenderBuildSummary(t *testing.T) {
 	if !strings.Contains(summary, "React with TypeScript") {
 		t.Error("missing frontend config")
 	}
-	if !strings.Contains(summary, "| Tests Generated | 5 |") {
-		t.Error("missing test count")
+	if !strings.Contains(summary, "| API Tests | 5 |") {
+		t.Error("missing API test count")
+	}
+	if !strings.Contains(summary, "| Component Tests | 4 |") {
+		t.Error("missing component test count")
+	}
+	if !strings.Contains(summary, "| Edge Case Tests | 10 |") {
+		t.Error("missing edge case test count")
+	}
+	if !strings.Contains(summary, "| Integration Tests | 3 |") {
+		t.Error("missing integration test count")
+	}
+	if !strings.Contains(summary, "**Total Tests**") {
+		t.Error("missing total tests row")
 	}
 	if !strings.Contains(summary, "| Security Critical | 1 |") {
 		t.Error("missing security critical count")
 	}
 	if !strings.Contains(summary, "| Lint Warnings | 1 |") {
 		t.Error("missing lint warning count")
+	}
+	if !strings.Contains(summary, "## Test Coverage") {
+		t.Error("missing test coverage section")
 	}
 }
 
@@ -570,9 +596,13 @@ func TestIsEnvVarName(t *testing.T) {
 
 func TestPrintSummary(t *testing.T) {
 	result := &Result{
-		TestCount:        10,
-		SecurityFindings: []Finding{{Severity: "critical"}, {Severity: "warning"}},
-		LintWarnings:     []Warning{{Category: "empty"}},
+		TestCount:            10,
+		ComponentTestCount:   5,
+		EdgeTestCount:        8,
+		IntegrationTestCount: 3,
+		Coverage:             &CoverageReport{Overall: 85},
+		SecurityFindings:     []Finding{{Severity: "critical"}, {Severity: "warning"}},
+		LintWarnings:         []Warning{{Category: "empty"}},
 	}
 
 	// Just verify it doesn't panic
@@ -606,6 +636,29 @@ func TestRunIntegration(t *testing.T) {
 		t.Error("expected tests generated")
 	}
 
+	// New result fields
+	if result.ComponentTestFiles == 0 {
+		t.Error("expected component test files generated")
+	}
+	if result.ComponentTestCount == 0 {
+		t.Error("expected component tests generated")
+	}
+	if result.EdgeTestFiles == 0 {
+		t.Error("expected edge test files generated")
+	}
+	if result.EdgeTestCount == 0 {
+		t.Error("expected edge tests generated")
+	}
+	if result.IntegrationTestCount == 0 {
+		t.Error("expected integration tests generated")
+	}
+	if result.Coverage == nil {
+		t.Fatal("expected coverage report")
+	}
+	if result.Coverage.Overall <= 0 {
+		t.Error("expected non-zero coverage")
+	}
+
 	// Should produce report files
 	reportFiles := []string{
 		filepath.Join(dir, "security-report.md"),
@@ -634,5 +687,238 @@ func TestRunIntegration(t *testing.T) {
 	}
 	if !strings.Contains(string(buildReport), "TaskFlow") {
 		t.Error("build report missing app name")
+	}
+	if !strings.Contains(string(buildReport), "Test Coverage") {
+		t.Error("build report missing Test Coverage section")
+	}
+	if !strings.Contains(string(buildReport), "Component Tests") {
+		t.Error("build report missing Component Tests row")
+	}
+	if !strings.Contains(string(buildReport), "Edge Case Tests") {
+		t.Error("build report missing Edge Case Tests row")
+	}
+	if !strings.Contains(string(buildReport), "Integration Tests") {
+		t.Error("build report missing Integration Tests row")
+	}
+}
+
+// ── New Security Checks ──
+
+func TestCheckInputSanitization(t *testing.T) {
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{Name: "Task", Fields: []*ir.DataField{
+				{Name: "title", Type: "text"},
+				{Name: "count", Type: "number"},
+			}},
+		},
+		APIs: []*ir.Endpoint{
+			{Name: "CreateTask", Params: []*ir.Param{{Name: "title"}, {Name: "count"}}},
+			{
+				Name:       "UpdateTask",
+				Params:     []*ir.Param{{Name: "title"}},
+				Validation: []*ir.ValidationRule{{Field: "title", Rule: "not_empty"}},
+			},
+		},
+	}
+
+	findings := checkInputSanitization(app)
+
+	// CreateTask has 'title' (text) without validation — should be flagged
+	// CreateTask has 'count' which is number type, not text — should not be flagged via model
+	// UpdateTask has 'title' with validation — should not be flagged
+	found := false
+	for _, f := range findings {
+		if f.Target == "CreateTask" && strings.Contains(f.Message, "title") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected sanitization warning for CreateTask title")
+	}
+
+	// UpdateTask should not be flagged (has validation)
+	for _, f := range findings {
+		if f.Target == "UpdateTask" {
+			t.Error("UpdateTask should not be flagged — it has validation")
+		}
+	}
+}
+
+func TestIsTextField(t *testing.T) {
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{Name: "User", Fields: []*ir.DataField{
+				{Name: "name", Type: "text"},
+				{Name: "age", Type: "number"},
+				{Name: "email", Type: "email"},
+				{Name: "website", Type: "url"},
+				{Name: "active", Type: "boolean"},
+			}},
+		},
+	}
+
+	tests := []struct {
+		param  string
+		expect bool
+	}{
+		{"name", true},     // text field in model
+		{"age", false},     // number field in model
+		{"email", true},    // email field in model
+		{"website", true},  // url field in model
+		{"active", false},  // boolean field in model
+		{"title", true},    // common text name fallback
+		{"description", true}, // common text name fallback
+		{"bio", true},      // common text name fallback
+		{"quantity", false}, // not in model, not a common text name
+	}
+
+	for _, tt := range tests {
+		got := isTextField(app, tt.param)
+		if got != tt.expect {
+			t.Errorf("isTextField(%q) = %v, want %v", tt.param, got, tt.expect)
+		}
+	}
+}
+
+func TestCheckCORSConfig(t *testing.T) {
+	// CORS mentioned but not enabled
+	app := &ir.Application{
+		Auth: &ir.Auth{
+			Rules: []*ir.Action{
+				{Type: "configure", Text: "CORS policy for frontend"},
+			},
+		},
+		APIs: []*ir.Endpoint{{Name: "GetTasks"}},
+	}
+
+	findings := checkCORSConfig(app)
+	if len(findings) == 0 {
+		t.Fatal("expected CORS warning")
+	}
+	if findings[0].Category != "cors" {
+		t.Errorf("expected cors category, got %s", findings[0].Category)
+	}
+}
+
+func TestCheckCORSConfig_NoMention(t *testing.T) {
+	// No CORS mentioned, APIs exist
+	app := &ir.Application{
+		APIs: []*ir.Endpoint{{Name: "GetTasks"}},
+	}
+
+	findings := checkCORSConfig(app)
+	if len(findings) == 0 {
+		t.Fatal("expected CORS info suggestion")
+	}
+	if findings[0].Severity != "info" {
+		t.Errorf("expected info severity, got %s", findings[0].Severity)
+	}
+}
+
+func TestCheckCORSConfig_Enabled(t *testing.T) {
+	// CORS properly enabled
+	app := &ir.Application{
+		Auth: &ir.Auth{
+			Rules: []*ir.Action{
+				{Type: "configure", Text: "enable cors for trusted origins"},
+			},
+		},
+	}
+
+	findings := checkCORSConfig(app)
+	if len(findings) != 0 {
+		t.Errorf("expected 0 findings for properly configured CORS, got %d", len(findings))
+	}
+}
+
+func TestCheckSecretPatterns(t *testing.T) {
+	app := &ir.Application{
+		Environments: []*ir.Environment{
+			{
+				Name: "production",
+				Config: map[string]string{
+					"url":     "https://example.com",
+					"api_key": "sk_live_abc123def456ghi789",
+				},
+			},
+		},
+	}
+
+	findings := checkSecretPatterns(app)
+	if len(findings) == 0 {
+		t.Fatal("expected secret pattern finding")
+	}
+	if findings[0].Severity != "critical" {
+		t.Errorf("expected critical severity, got %s", findings[0].Severity)
+	}
+	if findings[0].Category != "secrets" {
+		t.Errorf("expected secrets category, got %s", findings[0].Category)
+	}
+}
+
+func TestCheckSecretPatterns_Clean(t *testing.T) {
+	app := &ir.Application{
+		Environments: []*ir.Environment{
+			{
+				Name: "production",
+				Config: map[string]string{
+					"url":      "https://example.com",
+					"database": "postgres://localhost/app",
+				},
+			},
+		},
+	}
+
+	findings := checkSecretPatterns(app)
+	if len(findings) != 0 {
+		t.Errorf("expected 0 findings for clean config, got %d", len(findings))
+	}
+}
+
+func TestLooksLikeSecret(t *testing.T) {
+	tests := []struct {
+		input  string
+		expect bool
+	}{
+		{"sk_live_abc123", true},
+		{"sk_test_abc123", true},
+		{"AKIAIOSFODNN7EXAMPLE", true},
+		{"ghp_xxxxxxxxxxxxxxxxxxxx", true},
+		{"xoxb-token-value", true},
+		{"abcdefghijklmnopqrstuvwxyz123456", true},  // 32 chars alphanumeric
+		{"short", false},
+		{"https://example.com", false},              // contains special chars
+		{"SENDGRID_API_KEY", false},                  // env var name
+		{"normal value", false},
+	}
+
+	for _, tt := range tests {
+		got := looksLikeSecret(tt.input)
+		if got != tt.expect {
+			t.Errorf("looksLikeSecret(%q) = %v, want %v", tt.input, got, tt.expect)
+		}
+	}
+}
+
+func TestIsAlphanumeric(t *testing.T) {
+	tests := []struct {
+		input  string
+		expect bool
+	}{
+		{"abc123", true},
+		{"ABC_DEF", true},
+		{"test-value", true},
+		{"hello world", false},
+		{"has@symbol", false},
+		{"has.dot", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		got := isAlphanumeric(tt.input)
+		if got != tt.expect {
+			t.Errorf("isAlphanumeric(%q) = %v, want %v", tt.input, got, tt.expect)
+		}
 	}
 }

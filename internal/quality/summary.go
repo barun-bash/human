@@ -67,14 +67,29 @@ func renderBuildSummary(app *ir.Application, outputDir string, result *Result) s
 		}
 	}
 
+	totalTests := result.TestCount + result.ComponentTestCount + result.EdgeTestCount + result.IntegrationTestCount
+	totalFiles := result.TestFiles + result.ComponentTestFiles + result.EdgeTestFiles
+	if result.IntegrationTestCount > 0 {
+		totalFiles++
+	}
+
 	b.WriteString("| Metric | Count |\n")
 	b.WriteString("|--------|-------|\n")
-	fmt.Fprintf(&b, "| Tests Generated | %d |\n", result.TestCount)
-	fmt.Fprintf(&b, "| Test Files | %d |\n", result.TestFiles)
+	fmt.Fprintf(&b, "| API Tests | %d |\n", result.TestCount)
+	fmt.Fprintf(&b, "| Component Tests | %d |\n", result.ComponentTestCount)
+	fmt.Fprintf(&b, "| Edge Case Tests | %d |\n", result.EdgeTestCount)
+	fmt.Fprintf(&b, "| Integration Tests | %d |\n", result.IntegrationTestCount)
+	fmt.Fprintf(&b, "| **Total Tests** | **%d** |\n", totalTests)
+	fmt.Fprintf(&b, "| Test Files | %d |\n", totalFiles)
 	fmt.Fprintf(&b, "| Security Critical | %d |\n", criticals)
 	fmt.Fprintf(&b, "| Security Warnings | %d |\n", warnings)
 	fmt.Fprintf(&b, "| Lint Warnings | %d |\n", len(result.LintWarnings))
 	b.WriteString("\n")
+
+	// Coverage section
+	if result.Coverage != nil {
+		b.WriteString(renderCoverageSection(result.Coverage))
+	}
 
 	// Output directory
 	fmt.Fprintf(&b, "**Output:** `%s`\n", outputDir)

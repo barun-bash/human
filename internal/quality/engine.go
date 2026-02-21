@@ -12,10 +12,16 @@ import (
 
 // Result holds the output of the quality engine.
 type Result struct {
-	TestFiles       int
-	TestCount       int
-	SecurityFindings []Finding
-	LintWarnings     []Warning
+	TestFiles            int
+	TestCount            int
+	SecurityFindings     []Finding
+	LintWarnings         []Warning
+	ComponentTestFiles   int
+	ComponentTestCount   int
+	EdgeTestFiles        int
+	EdgeTestCount        int
+	IntegrationTestCount int
+	Coverage             *CoverageReport
 }
 
 // Finding is a security audit finding.
@@ -37,7 +43,7 @@ type Warning struct {
 func Run(app *ir.Application, outputDir string) (*Result, error) {
 	result := &Result{}
 
-	// 1. Generate tests
+	// 1. Generate API tests
 	testDir := filepath.Join(outputDir, "node", "src", "__tests__")
 	testFiles, testCount, err := generateTests(app, testDir)
 	if err != nil {
@@ -46,21 +52,47 @@ func Run(app *ir.Application, outputDir string) (*Result, error) {
 	result.TestFiles = testFiles
 	result.TestCount = testCount
 
-	// 2. Security check
+	// 2. Generate component tests
+	compFiles, compCount, err := generateComponentTests(app, testDir)
+	if err != nil {
+		return nil, fmt.Errorf("component test generation: %w", err)
+	}
+	result.ComponentTestFiles = compFiles
+	result.ComponentTestCount = compCount
+
+	// 3. Generate edge case tests
+	edgeFiles, edgeCount, err := generateEdgeTests(app, testDir)
+	if err != nil {
+		return nil, fmt.Errorf("edge test generation: %w", err)
+	}
+	result.EdgeTestFiles = edgeFiles
+	result.EdgeTestCount = edgeCount
+
+	// 4. Generate integration tests
+	integCount, err := generateIntegrationTests(app, testDir)
+	if err != nil {
+		return nil, fmt.Errorf("integration test generation: %w", err)
+	}
+	result.IntegrationTestCount = integCount
+
+	// 5. Security check
 	result.SecurityFindings = checkSecurity(app)
 	secReport := renderSecurityReport(app, result.SecurityFindings)
 	if err := writeFile(filepath.Join(outputDir, "security-report.md"), secReport); err != nil {
 		return nil, fmt.Errorf("security report: %w", err)
 	}
 
-	// 3. Lint check
+	// 6. Lint check
 	result.LintWarnings = checkLint(app)
 	lintReport := renderLintReport(app, result.LintWarnings)
 	if err := writeFile(filepath.Join(outputDir, "lint-report.md"), lintReport); err != nil {
 		return nil, fmt.Errorf("lint report: %w", err)
 	}
 
-	// 4. Build summary
+	// 7. Coverage
+	result.Coverage = calculateCoverage(app, result)
+
+	// 8. Build summary
 	summary := renderBuildSummary(app, outputDir, result)
 	if err := writeFile(filepath.Join(outputDir, "build-report.md"), summary); err != nil {
 		return nil, fmt.Errorf("build summary: %w", err)
@@ -81,8 +113,14 @@ func PrintSummary(result *Result) {
 		}
 	}
 
+	totalTests := result.TestCount + result.ComponentTestCount + result.EdgeTestCount + result.IntegrationTestCount
+
 	parts := []string{
-		fmt.Sprintf("%d tests generated", result.TestCount),
+		fmt.Sprintf("%d tests generated", totalTests),
+	}
+
+	if result.Coverage != nil {
+		parts = append(parts, fmt.Sprintf("%.0f%% coverage", result.Coverage.Overall))
 	}
 
 	if criticals > 0 {
