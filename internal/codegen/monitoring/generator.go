@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/barun-bash/human/internal/ir"
@@ -95,6 +97,17 @@ func appNameLower(app *ir.Application) string {
 	return "app"
 }
 
+// backendPort returns the default metrics port for the detected backend stack.
+func backendPort(app *ir.Application) string {
+	if isPythonBackend(app) {
+		return "8000"
+	}
+	if isGoBackend(app) {
+		return "8080"
+	}
+	return "3000" // Node default
+}
+
 // ── Prometheus ──
 
 func generatePrometheusConfig(app *ir.Application) string {
@@ -133,7 +146,7 @@ func generatePrometheusConfig(app *ir.Application) string {
 	b.WriteString("      - targets: [\"localhost:9090\"]\n\n")
 
 	// Backend application
-	port := "3000"
+	port := backendPort(app)
 	b.WriteString(fmt.Sprintf("  - job_name: %s\n", name))
 	b.WriteString("    metrics_path: /metrics\n")
 	b.WriteString("    static_configs:\n")
@@ -251,17 +264,47 @@ func titleCase(s string) string {
 	return s
 }
 
+// extractNumber finds the first numeric value in a string and returns it.
+// Returns the fallback if no number is found.
+func extractNumber(s string, fallback float64) float64 {
+	re := regexp.MustCompile(`(\d+(?:\.\d+)?)`)
+	match := re.FindString(s)
+	if match == "" {
+		return fallback
+	}
+	v, err := strconv.ParseFloat(match, 64)
+	if err != nil {
+		return fallback
+	}
+	return v
+}
+
+// containsThresholdKeyword returns true if the condition contains words that
+// indicate a threshold comparison (above, exceeds, over, greater than, etc.).
+func containsThresholdKeyword(lower string) bool {
+	for _, kw := range []string{"above", "exceeds", "exceed", "over", "greater than", "more than"} {
+		if strings.Contains(lower, kw) {
+			return true
+		}
+	}
+	return false
+}
+
 func conditionToPromQL(condition string) string {
 	lower := strings.ToLower(condition)
 	switch {
-	case strings.Contains(lower, "error rate") && strings.Contains(lower, "above"):
-		return "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m]) > 0.05"
+	case strings.Contains(lower, "error rate") && containsThresholdKeyword(lower):
+		threshold := extractNumber(lower, 5) / 100.0 // "5 percent" → 0.05
+		return fmt.Sprintf("rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m]) > %.2f", threshold)
 	case strings.Contains(lower, "response time") || strings.Contains(lower, "latency"):
-		return "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1"
-	case strings.Contains(lower, "cpu") && strings.Contains(lower, "above"):
-		return "process_cpu_seconds_total > 0.8"
-	case strings.Contains(lower, "memory") && strings.Contains(lower, "above"):
-		return "process_resident_memory_bytes / 1024 / 1024 > 512"
+		threshold := extractNumber(lower, 1)
+		return fmt.Sprintf("histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > %.0f", threshold)
+	case strings.Contains(lower, "cpu") && containsThresholdKeyword(lower):
+		threshold := extractNumber(lower, 80) / 100.0
+		return fmt.Sprintf("process_cpu_seconds_total > %.2f", threshold)
+	case strings.Contains(lower, "memory") && containsThresholdKeyword(lower):
+		threshold := extractNumber(lower, 512)
+		return fmt.Sprintf("process_resident_memory_bytes / 1024 / 1024 > %.0f", threshold)
 	case strings.Contains(lower, "disk"):
 		return "node_filesystem_avail_bytes / node_filesystem_size_bytes < 0.1"
 	default:
@@ -417,11 +460,11 @@ func generateMonitoringCompose(app *ir.Application) string {
 		b.WriteString("    restart: unless-stopped\n\n")
 	}
 
-	// Networks — use an external network so monitoring can reach the app containers
+	// Networks — a named network so monitoring and app containers can communicate.
+	// The network is created automatically if it does not exist.
 	b.WriteString("networks:\n")
 	b.WriteString("  default:\n")
-	b.WriteString(fmt.Sprintf("    name: %s-net\n", appNameLower(app)))
-	b.WriteString("    external: true\n\n")
+	b.WriteString(fmt.Sprintf("    name: %s-net\n\n", appNameLower(app)))
 
 	// Volumes
 	b.WriteString("volumes:\n")
@@ -595,9 +638,10 @@ func generatePythonMiddleware(app *ir.Application) string {
 	b.WriteString("            http_requests_total.labels(**labels).inc()\n")
 	b.WriteString("            http_request_duration.labels(**labels).observe(duration)\n\n")
 
-	b.WriteString("def metrics_endpoint(request):\n")
+	b.WriteString("async def metrics_endpoint(request):\n")
 	b.WriteString("    from starlette.responses import Response\n")
-	b.WriteString("    return Response(generate_latest(registry), media_type='text/plain')\n")
+	b.WriteString("    data = generate_latest(registry)\n")
+	b.WriteString("    return Response(content=data, media_type='text/plain; charset=utf-8')\n")
 
 	return b.String()
 }

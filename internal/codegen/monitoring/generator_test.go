@@ -321,6 +321,94 @@ func TestGoMiddleware(t *testing.T) {
 	}
 }
 
+// ── Backend port tests ──
+
+func TestBackendPortNode(t *testing.T) {
+	app := testApp()
+	port := backendPort(app)
+	if port != "3000" {
+		t.Errorf("Node backend port = %q, want \"3000\"", port)
+	}
+}
+
+func TestBackendPortPython(t *testing.T) {
+	app := testApp()
+	app.Config.Backend = "Python with FastAPI"
+	port := backendPort(app)
+	if port != "8000" {
+		t.Errorf("Python backend port = %q, want \"8000\"", port)
+	}
+}
+
+func TestBackendPortGo(t *testing.T) {
+	app := testApp()
+	app.Config.Backend = "Go with Gin"
+	port := backendPort(app)
+	if port != "8080" {
+		t.Errorf("Go backend port = %q, want \"8080\"", port)
+	}
+}
+
+func TestPrometheusConfigPythonPort(t *testing.T) {
+	app := testApp()
+	app.Config.Backend = "Python with FastAPI"
+	content := generatePrometheusConfig(app)
+
+	if !strings.Contains(content, "testapp-backend:8000") {
+		t.Error("Python backend should use port 8000 in Prometheus scrape target")
+	}
+}
+
+// ── conditionToPromQL tests ──
+
+func TestConditionToPromQLExceeds(t *testing.T) {
+	// "exceeds" should be recognized like "above"
+	result := conditionToPromQL("error rate exceeds 5 percent")
+	if strings.Contains(result, "TODO") {
+		t.Errorf("conditionToPromQL should handle 'exceeds': got %q", result)
+	}
+	if !strings.Contains(result, "0.05") {
+		t.Errorf("conditionToPromQL should extract 5%% as 0.05: got %q", result)
+	}
+}
+
+func TestConditionToPromQLResponseTimeThreshold(t *testing.T) {
+	result := conditionToPromQL("response time exceeds 2 seconds")
+	if !strings.Contains(result, "> 2") {
+		t.Errorf("conditionToPromQL should extract threshold 2: got %q", result)
+	}
+}
+
+func TestConditionToPromQLAbove(t *testing.T) {
+	result := conditionToPromQL("error rate is above 10%")
+	if !strings.Contains(result, "0.10") {
+		t.Errorf("conditionToPromQL should extract 10%% as 0.10: got %q", result)
+	}
+}
+
+// ── Monitoring compose network test ──
+
+func TestMonitoringComposeNetworkNotExternal(t *testing.T) {
+	app := testApp()
+	content := generateMonitoringCompose(app)
+
+	if strings.Contains(content, "external: true") {
+		t.Error("Monitoring compose network should not be external by default")
+	}
+}
+
+// ── Python middleware test ──
+
+func TestPythonMiddlewareAsyncEndpoint(t *testing.T) {
+	app := testApp()
+	app.Config.Backend = "Python with FastAPI"
+	content := generatePythonMiddleware(app)
+
+	if !strings.Contains(content, "async def metrics_endpoint") {
+		t.Error("Python metrics_endpoint should be async")
+	}
+}
+
 // ── Helper tests ──
 
 func TestSanitizeAlertName(t *testing.T) {
