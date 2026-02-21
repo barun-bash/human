@@ -1,0 +1,115 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Human",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#sectionHeaders"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#relationships"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#modifiers"
+    },
+    {
+      "include": "#actions"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "match": "#.*$",
+          "name": "comment.line.number-sign.human"
+        }
+      ]
+    },
+    "sectionHeaders": {
+      "patterns": [
+        {
+          "match": "──\s+.*\s+──",
+          "name": "entity.name.section.human"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "match": "^\s*(?i)(app|data|page|component|api|authentication|policy|theme|build with|when|architecture|integrate with|environment)\b",
+          "name": "keyword.control.declaration.human"
+        }
+      ]
+    },
+    "relationships": {
+      "patterns": [
+        {
+          "match": "(?i)\b(has a|has many|has many through|belongs to a|belongs to)\b",
+          "name": "keyword.operator.relationship.human"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "match": "(?i)\b(text|email|number|decimal|boolean|date|datetime|json|file|image|url|password)\b",
+          "name": "support.type.primitive.human"
+        }
+      ]
+    },
+    "modifiers": {
+      "patterns": [
+        {
+          "match": "(?i)\b(unique|optional|required|encrypted)\b",
+          "name": "storage.modifier.human"
+        }
+      ]
+    },
+    "actions": {
+      "patterns": [
+        {
+          "match": "(?i)\b(show|each|clicking|there is|if|while loading|check that|create|fetch|respond with|requires authentication|send|navigate to|navigates to|go to)\b",
+          "name": "keyword.control.action.human"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "begin": """,
+          "end": """,
+          "name": "string.quoted.double.human",
+          "patterns": [
+            {
+              "match": "\.",
+              "name": "constant.character.escape.human"
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "match": "\b\d+(\.\d+)?\b",
+          "name": "constant.numeric.human"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.human"
+}

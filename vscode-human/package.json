@@ -1,0 +1,48 @@
+{
+  "name": "human",
+  "displayName": "Human Language",
+  "description": "Syntax highlighting and snippets for .human files",
+  "version": "0.1.0",
+  "publisher": "barun-bash",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "human",
+        "aliases": ["Human", "human"],
+        "extensions": [".human"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "human",
+        "scopeName": "source.human",
+        "path": "./syntaxes/human.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "human",
+        "path": "./snippets/human.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "18.x",
+    "typescript": "^5.1.3"
+  }
+}

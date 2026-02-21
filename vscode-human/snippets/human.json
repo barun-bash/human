@@ -1,0 +1,84 @@
+{
+  "App Block": {
+    "prefix": "app",
+    "body": [
+      "app ${1:AppName} is a ${2:web application}"
+    ],
+    "description": "App declaration block"
+  },
+  "Data Block": {
+    "prefix": "data",
+    "body": [
+      "data ${1:ModelName}:",
+      "	has a ${2:name} which is ${3:text}",
+      "	belongs to a ${4:User}"
+    ],
+    "description": "Data model declaration block"
+  },
+  "Page Block": {
+    "prefix": "page",
+    "body": [
+      "page ${1:PageName}:",
+      "	show ${2:a list of items}",
+      "	clicking ${3:an item} navigates to ${4:DetailPage}"
+    ],
+    "description": "Page layout block"
+  },
+  "API Block": {
+    "prefix": "api",
+    "body": [
+      "api ${1:EndpointName}:",
+      "	requires authentication",
+      "	accepts ${2:field_name}",
+      "	check that ${2:field_name} is not empty",
+      "	${3:create} the ${4:ModelName} with the given fields",
+      "	respond with the created ${4:ModelName}"
+    ],
+    "description": "API endpoint declaration"
+  },
+  "Authentication Block": {
+    "prefix": "auth",
+    "body": [
+      "authentication:",
+      "	use jwt with expiration "7 days"",
+      "	rate limit all endpoints to 100 requests per minute"
+    ],
+    "description": "Authentication configuration"
+  },
+  "Policy Block": {
+    "prefix": "policy",
+    "body": [
+      "policy ${1:RoleName}:",
+      "	can ${2:create and read} ${3:ModelName}",
+      "	cannot delete ${3:ModelName}"
+    ],
+    "description": "Authorization policy block"
+  },
+  "Build With Block": {
+    "prefix": "build",
+    "body": [
+      "build with:",
+      "	frontend using ${1:React with TypeScript}",
+      "	backend using ${2:Node with Express}",
+      "	database using ${3:PostgreSQL}"
+    ],
+    "description": "Build configuration block"
+  },
+  "Theme Block": {
+    "prefix": "theme",
+    "body": [
+      "theme:",
+      "	primary color is "${1:#E85D3A}"",
+      "	font is "${2:Inter, sans-serif}""
+    ],
+    "description": "Theme definition block"
+  },
+  "Integration Block": {
+    "prefix": "integrate",
+    "body": [
+      "integrate with ${1:Service}:",
+      "	api key from environment ${2:API_KEY}"
+    ],
+    "description": "Third-party integration block"
+  }
+}
