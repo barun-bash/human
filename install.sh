@@ -187,6 +187,16 @@ main() {
   # Install
   info "Installing to ${INSTALL_DIR}/${BINARY_NAME}..."
 
+  # Create install directory if it doesn't exist (some Linux distros lack /usr/local/bin)
+  if [ ! -d "${INSTALL_DIR}" ]; then
+    if mkdir -p "${INSTALL_DIR}" 2>/dev/null; then
+      : # created successfully
+    else
+      info "Creating ${INSTALL_DIR} requires elevated permissions..."
+      sudo mkdir -p "${INSTALL_DIR}"
+    fi
+  fi
+
   if [ -w "${INSTALL_DIR}" ]; then
     mv "${TMPDIR}/${BINARY_NAME}" "${INSTALL_DIR}/${BINARY_NAME}"
     chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
