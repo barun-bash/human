@@ -17,11 +17,15 @@ type Generator struct{}
 // a root package.json to outputDir.
 func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	files := map[string]string{
-		filepath.Join(outputDir, "node", "Dockerfile"):  generateBackendDockerfile(app),
-		filepath.Join(outputDir, "react", "Dockerfile"): generateFrontendDockerfile(app),
-		filepath.Join(outputDir, "docker-compose.yml"):  generateDockerCompose(app),
-		filepath.Join(outputDir, ".env.example"):        generateEnvExample(app),
-		filepath.Join(outputDir, "package.json"):        generatePackageJSON(app),
+		filepath.Join(outputDir, "node", "Dockerfile"): generateBackendDockerfile(app),
+		filepath.Join(outputDir, "docker-compose.yml"): generateDockerCompose(app),
+		filepath.Join(outputDir, ".env.example"):       generateEnvExample(app),
+		filepath.Join(outputDir, "package.json"):       generatePackageJSON(app),
+	}
+
+	// Only generate frontend Dockerfile when a frontend framework is configured.
+	if hasFrontend(app) {
+		files[filepath.Join(outputDir, "react", "Dockerfile")] = generateFrontendDockerfile(app)
 	}
 
 	for path, content := range files {
@@ -51,7 +55,11 @@ func CollectEnvVars(app *ir.Application) []EnvVar {
 		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@db:5432/" + DbName(app) + "?schema=public", Comment: "PostgreSQL connection string — use @localhost:5432 for local dev, @db:5432 for Docker"},
 		{Name: "JWT_SECRET", Example: "change-me-to-a-random-secret", Comment: "Secret for signing JWT tokens"},
 		{Name: "PORT", Example: "3000", Comment: "Backend server port"},
-		{Name: "VITE_API_URL", Example: "http://localhost:3000", Comment: "API URL for the React frontend"},
+	}
+
+	// Only include VITE_API_URL when a frontend framework is configured.
+	if hasFrontend(app) {
+		vars = append(vars, EnvVar{Name: "VITE_API_URL", Example: "http://localhost:3000", Comment: "API URL for the React frontend"})
 	}
 
 	// Integration credentials and config-derived env vars
@@ -114,6 +122,14 @@ func configEnvVars(integ *ir.Integration) []EnvVar {
 	default:
 		return nil
 	}
+}
+
+// hasFrontend returns true when the app has a frontend framework configured.
+func hasFrontend(app *ir.Application) bool {
+	if app.Config == nil || app.Config.Frontend == "" {
+		return false
+	}
+	return strings.ToLower(app.Config.Frontend) != "none"
 }
 
 // DbName derives a database name from the application name.

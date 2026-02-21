@@ -56,18 +56,20 @@ func generateDockerCompose(app *ir.Application) string {
 	}
 	b.WriteString("\n")
 
-	// Frontend
-	b.WriteString("  frontend:\n")
-	b.WriteString("    build:\n")
-	b.WriteString("      context: ./react\n")
-	b.WriteString("      args:\n")
-	b.WriteString("        VITE_API_URL: http://localhost:3000\n")
-	b.WriteString("    restart: unless-stopped\n")
-	b.WriteString("    ports:\n")
-	b.WriteString("      - \"80:80\"\n")
-	b.WriteString("    depends_on:\n")
-	b.WriteString("      - backend\n")
-	b.WriteString("\n")
+	// Frontend (only when a frontend framework is configured)
+	if hasFrontend(app) {
+		b.WriteString("  frontend:\n")
+		b.WriteString("    build:\n")
+		b.WriteString("      context: ./react\n")
+		b.WriteString("      args:\n")
+		b.WriteString("        VITE_API_URL: http://localhost:3000\n")
+		b.WriteString("    restart: unless-stopped\n")
+		b.WriteString("    ports:\n")
+		b.WriteString("      - \"80:80\"\n")
+		b.WriteString("    depends_on:\n")
+		b.WriteString("      - backend\n")
+		b.WriteString("\n")
+	}
 
 	// Volumes
 	b.WriteString("volumes:\n")

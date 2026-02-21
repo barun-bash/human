@@ -150,12 +150,15 @@ cd .human/output && bash start.sh
 
 ## Supported Targets
 
-| Layer | Options |
-|-------|---------|
-| **Frontend** | React, Angular, Vue, Svelte, HTMX (all with TypeScript) |
-| **Backend** | Node (Express/Fastify), Python (FastAPI/Django), Go (Gin/Fiber), Rust (Axum) |
-| **Database** | PostgreSQL, MySQL, MongoDB, SQLite, Supabase |
-| **Deploy** | Vercel, AWS Lambda, GCP Cloud Run, Docker, Kubernetes |
+| Layer | Implemented | Planned |
+|-------|-------------|---------|
+| **Frontend** | React, Angular, Vue, Svelte (all with TypeScript) | HTMX |
+| **Backend** | Node + Express, Python + FastAPI, Go + Gin | Rust (Axum), Node + Fastify, Python + Django, Go + Fiber |
+| **Database** | PostgreSQL | MySQL, MongoDB, SQLite, Supabase |
+| **Infra** | Docker + Compose, Terraform (AWS ECS/RDS, GCP Cloud Run/SQL), GitHub Actions CI/CD | Kubernetes, Vercel, AWS Lambda |
+| **Monitoring** | Prometheus rules, Grafana dashboards | Datadog, PagerDuty |
+| **Integrations** | Stripe, SendGrid, AWS S3, OAuth (Google/GitHub), Slack | Twilio, Firebase, Supabase |
+| **Design Systems** | Material UI, Shadcn/ui, Ant Design, Chakra UI, Bootstrap, Tailwind CSS, Untitled UI | — |
 
 ---
 
@@ -208,7 +211,7 @@ my-app/
 
 ## Project Status
 
-**[v0.4.0 released](https://github.com/barun-bash/human/releases/tag/v0.4.0)** — 12+ code generators, semantic analyzer, LLM connector, Terraform and monitoring generators, 5 example apps. 260+ tests. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full development plan.
+**[v0.4.0 released](https://github.com/barun-bash/human/releases/tag/v0.4.0)** — Full-stack multi-framework output. 4 frontend frameworks, 3 backend languages, Terraform, monitoring, CI/CD, 7 design systems, 5 integrations, LLM connector, VS Code extension, 6 example apps. 600+ tests across 28 packages. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) and [Changelog](CHANGELOG.md) for details.
 
 ---
 
@@ -222,7 +225,8 @@ my-app/
 | [Roadmap](https://barun-bash.github.io/human/roadmap.html) | 52-week development plan |
 | [Manifesto](https://barun-bash.github.io/human/manifesto.html) | Why Human exists |
 | [Contributing](https://barun-bash.github.io/human/contributing.html) | How to contribute |
-| [Examples](examples/) | Sample applications (TaskFlow, Blog, E-commerce, SaaS, API-only) |
+| [Changelog](CHANGELOG.md) | Release history |
+| [Examples](examples/) | Sample applications (TaskFlow, Blog, E-commerce, SaaS, API-only, test-app) |
 
 ---
 

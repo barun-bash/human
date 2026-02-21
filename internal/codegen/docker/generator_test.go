@@ -51,7 +51,8 @@ func TestAppNameLower(t *testing.T) {
 
 func TestCollectEnvVars(t *testing.T) {
 	app := &ir.Application{
-		Name: "TestApp",
+		Name:   "TestApp",
+		Config: &ir.BuildConfig{Frontend: "React with TypeScript"},
 		Integrations: []*ir.Integration{
 			{
 				Service:     "SendGrid",
@@ -69,7 +70,7 @@ func TestCollectEnvVars(t *testing.T) {
 
 	vars := CollectEnvVars(app)
 
-	// Should include core vars + credential vars + storage config env vars
+	// Should include core vars + VITE_API_URL (has frontend) + credential vars + storage config env vars
 	names := make(map[string]bool)
 	for _, v := range vars {
 		names[v.Name] = true
@@ -92,6 +93,31 @@ func TestCollectEnvVars(t *testing.T) {
 	for _, v := range vars {
 		if v.Name == "AWS_REGION" && v.Example != "us-east-1" {
 			t.Errorf("AWS_REGION example: got %q, want %q", v.Example, "us-east-1")
+		}
+	}
+}
+
+func TestCollectEnvVarsAPIOnly(t *testing.T) {
+	app := &ir.Application{
+		Name:   "PayGate",
+		Config: &ir.BuildConfig{Backend: "Node with Express", Database: "PostgreSQL"},
+	}
+
+	vars := CollectEnvVars(app)
+	names := make(map[string]bool)
+	for _, v := range vars {
+		names[v.Name] = true
+	}
+
+	// API-only: should NOT have VITE_API_URL
+	if names["VITE_API_URL"] {
+		t.Error("API-only app should not have VITE_API_URL")
+	}
+
+	// Should still have backend vars
+	for _, expected := range []string{"DATABASE_URL", "JWT_SECRET", "PORT"} {
+		if !names[expected] {
+			t.Errorf("missing env var %q", expected)
 		}
 	}
 }
@@ -217,7 +243,8 @@ func TestGenerateFrontendDockerfile(t *testing.T) {
 
 func TestGenerateDockerCompose(t *testing.T) {
 	app := &ir.Application{
-		Name: "TaskFlow",
+		Name:   "TaskFlow",
+		Config: &ir.BuildConfig{Frontend: "React with TypeScript", Backend: "Node with Express"},
 		Integrations: []*ir.Integration{
 			{
 				Service:     "SendGrid",
@@ -303,11 +330,43 @@ func TestGenerateDockerCompose(t *testing.T) {
 	}
 }
 
+func TestGenerateDockerComposeAPIOnly(t *testing.T) {
+	app := &ir.Application{
+		Name:   "PayGate",
+		Config: &ir.BuildConfig{Backend: "Node with Express", Database: "PostgreSQL"},
+	}
+
+	output := generateDockerCompose(app)
+
+	// Should have db + backend
+	if !strings.Contains(output, "  db:") {
+		t.Error("missing db service")
+	}
+	if !strings.Contains(output, "  backend:") {
+		t.Error("missing backend service")
+	}
+
+	// Should NOT have frontend service
+	if strings.Contains(output, "  frontend:") {
+		t.Error("API-only app should not have frontend service")
+	}
+	if strings.Contains(output, "context: ./react") {
+		t.Error("API-only app should not have react build context")
+	}
+	if strings.Contains(output, "VITE_API_URL") {
+		t.Error("API-only app should not have VITE_API_URL")
+	}
+	if strings.Contains(output, "80:80") {
+		t.Error("API-only app should not have port 80 mapping")
+	}
+}
+
 // ── .env.example ──
 
 func TestGenerateEnvExample(t *testing.T) {
 	app := &ir.Application{
-		Name: "TaskFlow",
+		Name:   "TaskFlow",
+		Config: &ir.BuildConfig{Frontend: "React with TypeScript"},
 		Integrations: []*ir.Integration{
 			{
 				Service:     "SendGrid",
@@ -356,6 +415,32 @@ func TestGenerateEnvExample(t *testing.T) {
 	}
 }
 
+func TestGenerateEnvExampleAPIOnly(t *testing.T) {
+	app := &ir.Application{
+		Name:   "PayGate",
+		Config: &ir.BuildConfig{Backend: "Node with Express"},
+	}
+
+	output := generateEnvExample(app)
+
+	// Should have backend vars
+	if !strings.Contains(output, "DATABASE_URL=") {
+		t.Error("missing DATABASE_URL")
+	}
+	if !strings.Contains(output, "JWT_SECRET=") {
+		t.Error("missing JWT_SECRET")
+	}
+
+	// Should NOT have VITE_API_URL
+	if strings.Contains(output, "VITE_API_URL") {
+		t.Error("API-only app should not have VITE_API_URL")
+	}
+	// Should NOT have Frontend section header
+	if strings.Contains(output, "# Frontend") {
+		t.Error("API-only app should not have Frontend section")
+	}
+}
+
 // ── package.json ──
 
 func TestGeneratePackageJSON(t *testing.T) {
@@ -390,6 +475,7 @@ func TestGenerateWritesFiles(t *testing.T) {
 	app := &ir.Application{
 		Name:     "TestApp",
 		Platform: "web",
+		Config:   &ir.BuildConfig{Frontend: "React with TypeScript", Backend: "Node with Express"},
 		Database: &ir.DatabaseConfig{Engine: "PostgreSQL"},
 		Data: []*ir.DataModel{
 			{Name: "User"},
@@ -421,6 +507,38 @@ func TestGenerateWritesFiles(t *testing.T) {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			t.Errorf("expected file %s to exist", f)
 		}
+	}
+}
+
+func TestGenerateWritesFilesAPIOnly(t *testing.T) {
+	app := &ir.Application{
+		Name:     "PayGate",
+		Platform: "api",
+		Config:   &ir.BuildConfig{Backend: "Node with Express", Database: "PostgreSQL"},
+		Database: &ir.DatabaseConfig{Engine: "PostgreSQL"},
+		APIs: []*ir.Endpoint{
+			{Name: "CreateCharge"},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Should have backend files but NOT frontend Dockerfile
+	for _, f := range []string{"node/Dockerfile", "docker-compose.yml", ".env.example", "package.json"} {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected file %s to exist", f)
+		}
+	}
+
+	// react/Dockerfile should NOT exist
+	reactDF := filepath.Join(dir, "react", "Dockerfile")
+	if _, err := os.Stat(reactDF); err == nil {
+		t.Error("API-only app should not have react/Dockerfile")
 	}
 }
 
