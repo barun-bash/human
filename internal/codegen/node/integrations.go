@@ -16,6 +16,7 @@ func generateIntegrations(app *ir.Application) map[string]string {
 
 	files := make(map[string]string)
 	var exports []string
+	usedFilenames := make(map[string]bool)
 
 	for _, integ := range app.Integrations {
 		var content string
@@ -41,6 +42,13 @@ func generateIntegrations(app *ir.Application) map[string]string {
 			filename = toKebabCase(integ.Service) + ".ts"
 			content = generateGenericService(integ)
 		}
+
+		// If filename is already used (two integrations of same type),
+		// fall back to a service-specific filename.
+		if usedFilenames[filename] {
+			filename = toKebabCase(integ.Service) + ".ts"
+		}
+		usedFilenames[filename] = true
 
 		files["src/services/"+filename] = content
 		exports = append(exports, filename)

@@ -631,6 +631,16 @@ func buildIntegration(i *parser.IntegrationDeclaration) *Integration {
 			if tpl != "" {
 				integ.Templates = append(integ.Templates, tpl)
 			}
+
+		// Fallback: "<key> is <value>" captures into Config for any
+		// unmatched statement that uses the "is" pattern (e.g., "api key is sk_test").
+		case strings.Contains(lower, " is "):
+			parts := strings.SplitN(s.Text, " is ", 2)
+			if len(parts) == 2 {
+				key := strings.TrimSpace(parts[0])
+				val := strings.Trim(strings.TrimSpace(parts[1]), `"`)
+				integ.Config[key] = val
+			}
 		}
 	}
 

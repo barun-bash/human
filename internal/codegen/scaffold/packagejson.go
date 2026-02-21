@@ -234,9 +234,11 @@ func integrationDependencies(integrationType string) (deps, devDeps map[string]s
 		deps["passport"] = "^0.7.0"
 		deps["passport-google-oauth20"] = "^2.0.0"
 		deps["passport-github2"] = "^0.1.12"
+		deps["passport-facebook"] = "^3.0.0"
 		devDeps["@types/passport"] = "^1.0.16"
 		devDeps["@types/passport-google-oauth20"] = "^2.0.16"
 		devDeps["@types/passport-github2"] = "^1.2.9"
+		devDeps["@types/passport-facebook"] = "^3.0.0"
 	}
 
 	return

@@ -230,7 +230,7 @@ func InferIntegrationType(service string) string {
 	s := strings.ToLower(service)
 	switch {
 	case strings.Contains(s, "sendgrid") || strings.Contains(s, "mailgun") ||
-		strings.Contains(s, "ses") || strings.Contains(s, "postmark") ||
+		s == "ses" || s == "aws ses" || strings.Contains(s, "postmark") ||
 		strings.Contains(s, "mailchimp"):
 		return "email"
 	case strings.Contains(s, "s3") || strings.Contains(s, "gcs") ||

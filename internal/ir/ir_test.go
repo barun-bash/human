@@ -802,6 +802,26 @@ func TestBuildIntegrationEmailConfig(t *testing.T) {
 	}
 }
 
+func TestBuildIntegrationHardcodedValues(t *testing.T) {
+	source := `integrate with CustomAPI:
+  api key is "sk_test_12345"
+  base url is "https://api.example.com"
+  use for custom processing`
+
+	app := mustBuild(t, source)
+
+	integ := app.Integrations[0]
+	if integ.Config["api key"] != "sk_test_12345" {
+		t.Errorf("api key: got %q, want %q", integ.Config["api key"], "sk_test_12345")
+	}
+	if integ.Config["base url"] != "https://api.example.com" {
+		t.Errorf("base url: got %q", integ.Config["base url"])
+	}
+	if integ.Purpose != "custom processing" {
+		t.Errorf("purpose: got %q", integ.Purpose)
+	}
+}
+
 func TestInferIntegrationType(t *testing.T) {
 	tests := []struct {
 		service string
@@ -820,6 +840,9 @@ func TestInferIntegrationType(t *testing.T) {
 		{"Google", "oauth"},
 		{"GitHub", "oauth"},
 		{"Auth0", "oauth"},
+		{"AWS SES", "email"},
+		{"SES", "email"},
+		{"SessionManager", ""}, // should NOT match "ses"
 		{"CustomService", ""},
 	}
 

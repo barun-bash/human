@@ -540,41 +540,53 @@ func checkIntegrations(errs *cerr.CompilerErrors, app *ir.Application) {
 }
 
 func checkWorkflowIntegrationRefs(errs *cerr.CompilerErrors, app *ir.Application) {
-	if len(app.Workflows) == 0 {
+	if len(app.Workflows) == 0 && len(app.ErrorHandlers) == 0 {
 		return
 	}
 
 	// Build set of integration types present.
 	hasEmail := false
-	hasSlack := false
+	hasMessaging := false
 	for _, integ := range app.Integrations {
 		switch integ.Type {
 		case "email":
 			hasEmail = true
 		case "messaging":
-			if strings.Contains(strings.ToLower(integ.Service), "slack") {
-				hasSlack = true
-			}
+			hasMessaging = true
 		}
 	}
 
+	// Collect all action texts from workflows and error handlers.
+	type actionSource struct {
+		label string
+		text  string
+	}
+	var actions []actionSource
+
 	for _, wf := range app.Workflows {
 		for _, step := range wf.Steps {
-			text := step.Text
+			actions = append(actions, actionSource{label: fmt.Sprintf("Workflow %q", wf.Trigger), text: step.Text})
+		}
+	}
+	for _, eh := range app.ErrorHandlers {
+		for _, step := range eh.Steps {
+			actions = append(actions, actionSource{label: fmt.Sprintf("Error handler %q", eh.Condition), text: step.Text})
+		}
+	}
 
-			// W502: Workflow sends email but no email integration
-			if !hasEmail && sendEmailPattern.MatchString(text) {
-				errs.AddWarning("W502", fmt.Sprintf(
-					"Workflow %q sends email but no email integration is declared — add an 'integrate with SendGrid' (or similar) block",
-					wf.Trigger))
-			}
+	for _, a := range actions {
+		// W502: sends email but no email integration
+		if !hasEmail && sendEmailPattern.MatchString(a.text) {
+			errs.AddWarning("W502", fmt.Sprintf(
+				"%s sends email but no email integration is declared — add an 'integrate with SendGrid' (or similar) block",
+				a.label))
+		}
 
-			// W503: Workflow references Slack but no Slack integration
-			if !hasSlack && slackAlertPattern.MatchString(text) {
-				errs.AddWarning("W503", fmt.Sprintf(
-					"Workflow %q references Slack but no Slack integration is declared — add an 'integrate with Slack' block",
-					wf.Trigger))
-			}
+		// W503: references Slack but no messaging integration
+		if !hasMessaging && slackAlertPattern.MatchString(a.text) {
+			errs.AddWarning("W503", fmt.Sprintf(
+				"%s references Slack but no messaging integration is declared — add an 'integrate with Slack' (or similar) block",
+				a.label))
 		}
 	}
 }

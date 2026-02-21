@@ -642,6 +642,46 @@ func TestWorkflowSlackWithIntegration(t *testing.T) {
 	}
 }
 
+func TestErrorHandlerSlackNoIntegration(t *testing.T) {
+	app := minApp()
+	app.ErrorHandlers = []*ir.ErrorHandler{
+		{Condition: "database is unreachable", Steps: []*ir.Action{
+			{Type: "action", Text: "alert the engineering team via Slack"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W503")
+}
+
+func TestErrorHandlerSlackWithIntegration(t *testing.T) {
+	app := minApp()
+	app.Integrations = []*ir.Integration{
+		{Service: "Slack", Type: "messaging", Credentials: map[string]string{"api key": "SLACK_URL"}},
+	}
+	app.ErrorHandlers = []*ir.ErrorHandler{
+		{Condition: "database is unreachable", Steps: []*ir.Action{
+			{Type: "action", Text: "alert the engineering team via Slack"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W503" {
+			t.Errorf("unexpected W503 — Slack integration exists: %s", w.Message)
+		}
+	}
+}
+
+func TestErrorHandlerEmailNoIntegration(t *testing.T) {
+	app := minApp()
+	app.ErrorHandlers = []*ir.ErrorHandler{
+		{Condition: "payment fails", Steps: []*ir.Action{
+			{Type: "action", Text: "send notification to the admin"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W502")
+}
+
 // ── Test helpers ──
 
 func assertCode(t *testing.T, errs []*cerr.CompilerError, code string) {
