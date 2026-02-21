@@ -433,6 +433,109 @@ func TestAnalyzeTaskflowIR(t *testing.T) {
 	}
 }
 
+// ── Architecture validation ──
+
+func TestUnknownArchitectureStyle(t *testing.T) {
+	app := minApp()
+	app.Architecture = &ir.Architecture{Style: "microservise"} // typo
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W401")
+}
+
+func TestValidArchitectureStyle(t *testing.T) {
+	app := minApp()
+	app.Architecture = &ir.Architecture{Style: "microservices",
+		Services: []*ir.ServiceDef{{Name: "Svc1"}}}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W401" {
+			t.Errorf("unexpected W401 — microservices is valid: %s", w.Message)
+		}
+	}
+}
+
+func TestMicroservicesWithoutServices(t *testing.T) {
+	app := minApp()
+	app.Architecture = &ir.Architecture{Style: "microservices"}
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E401")
+}
+
+func TestMicroservicesWithServices(t *testing.T) {
+	app := minApp()
+	app.Architecture = &ir.Architecture{
+		Style:    "microservices",
+		Services: []*ir.ServiceDef{{Name: "UserService"}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, e := range errs.Errors() {
+		if e.Code == "E401" {
+			t.Errorf("unexpected E401 — services are defined: %s", e.Message)
+		}
+	}
+}
+
+func TestServiceReferencesUnknownModel(t *testing.T) {
+	app := minApp()
+	app.Architecture = &ir.Architecture{
+		Style: "microservices",
+		Services: []*ir.ServiceDef{
+			{Name: "Svc1", Models: []string{"Userr"}}, // typo
+		},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W402")
+}
+
+func TestServiceTalksToUnknown(t *testing.T) {
+	app := minApp()
+	app.Architecture = &ir.Architecture{
+		Style: "microservices",
+		Services: []*ir.ServiceDef{
+			{Name: "Svc1", TalksTo: []string{"Svc2"}},
+		},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W403")
+}
+
+func TestServiceTalksToValid(t *testing.T) {
+	app := minApp()
+	app.Architecture = &ir.Architecture{
+		Style: "microservices",
+		Services: []*ir.ServiceDef{
+			{Name: "Svc1", TalksTo: []string{"Svc2"}},
+			{Name: "Svc2"},
+		},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W403" {
+			t.Errorf("unexpected W403 — Svc2 exists: %s", w.Message)
+		}
+	}
+}
+
+func TestServerlessWithoutAPIs(t *testing.T) {
+	app := &ir.Application{
+		Name:         "TestApp",
+		Architecture: &ir.Architecture{Style: "serverless"},
+	}
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E402")
+}
+
+func TestServerlessWithAPIs(t *testing.T) {
+	app := minApp()
+	app.Architecture = &ir.Architecture{Style: "serverless"}
+	errs := Analyze(app, "test.human")
+	for _, e := range errs.Errors() {
+		if e.Code == "E402" {
+			t.Errorf("unexpected E402 — APIs are defined: %s", e.Message)
+		}
+	}
+}
+
 // ── Test helpers ──
 
 func assertCode(t *testing.T, errs []*cerr.CompilerError, code string) {

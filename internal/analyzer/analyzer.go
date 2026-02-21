@@ -60,6 +60,9 @@ func Analyze(app *ir.Application, file string) *cerr.CompilerErrors {
 	// 9. Design system validation
 	checkDesignSystem(errs, app)
 
+	// 10. Architecture validation
+	checkArchitecture(errs, app, models, modelList)
+
 	return errs
 }
 
@@ -422,4 +425,77 @@ func inferFramework(frontend string) string {
 		}
 	}
 	return ""
+}
+
+// ── Architecture validation ──
+
+func checkArchitecture(errs *cerr.CompilerErrors, app *ir.Application, models map[string]bool, modelList []string) {
+	if app.Architecture == nil {
+		return
+	}
+
+	// W401: Validate architecture style
+	validStyles := []string{"monolith", "microservices", "serverless", "event-driven"}
+	style := strings.ToLower(app.Architecture.Style)
+	styleValid := false
+	for _, v := range validStyles {
+		if style == v {
+			styleValid = true
+			break
+		}
+	}
+	if !styleValid && style != "" {
+		msg := fmt.Sprintf("Unknown architecture style %q", app.Architecture.Style)
+		if suggestion := cerr.FindClosest(app.Architecture.Style, validStyles, 0.4); suggestion != "" {
+			errs.AddWarningWithSuggestion("W401", msg,
+				fmt.Sprintf("Did you mean %q? Supported: %s", suggestion, strings.Join(validStyles, ", ")))
+		} else {
+			errs.AddWarning("W401",
+				fmt.Sprintf("%s. Supported: %s", msg, strings.Join(validStyles, ", ")))
+		}
+	}
+
+	// E401: Microservices must define at least one service
+	if strings.Contains(style, "microservice") && len(app.Architecture.Services) == 0 {
+		errs.AddError("E401", "Microservices architecture declared but no services are defined")
+	}
+
+	// W402: Service model references
+	for _, svc := range app.Architecture.Services {
+		for _, modelName := range svc.Models {
+			if !models[strings.ToLower(modelName)] {
+				msg := fmt.Sprintf("Service %q references model %q which does not exist", svc.Name, modelName)
+				if suggestion := cerr.FindClosest(modelName, modelList, suggestionThreshold); suggestion != "" {
+					errs.AddWarningWithSuggestion("W402", msg, fmt.Sprintf("Did you mean %q?", suggestion))
+				} else {
+					errs.AddWarning("W402", msg)
+				}
+			}
+		}
+	}
+
+	// W403: Service talks_to references
+	serviceNames := make(map[string]bool)
+	var serviceNameList []string
+	for _, svc := range app.Architecture.Services {
+		serviceNames[strings.ToLower(svc.Name)] = true
+		serviceNameList = append(serviceNameList, svc.Name)
+	}
+	for _, svc := range app.Architecture.Services {
+		for _, target := range svc.TalksTo {
+			if !serviceNames[strings.ToLower(target)] {
+				msg := fmt.Sprintf("Service %q talks to %q which is not defined", svc.Name, target)
+				if suggestion := cerr.FindClosest(target, serviceNameList, suggestionThreshold); suggestion != "" {
+					errs.AddWarningWithSuggestion("W403", msg, fmt.Sprintf("Did you mean %q?", suggestion))
+				} else {
+					errs.AddWarning("W403", msg)
+				}
+			}
+		}
+	}
+
+	// E402: Serverless without APIs
+	if strings.Contains(style, "serverless") && len(app.APIs) == 0 {
+		errs.AddError("E402", "Serverless architecture declared but no APIs are defined — each API becomes a Lambda function")
+	}
 }

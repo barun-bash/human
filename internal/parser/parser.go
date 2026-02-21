@@ -115,6 +115,11 @@ func (p *parser) parse() *Program {
 				prog.Build = decl
 			}
 
+		case lexer.TOKEN_ARCHITECTURE:
+			if decl := p.parseArchitectureDeclaration(); decl != nil {
+				prog.Architecture = decl
+			}
+
 		case lexer.TOKEN_IF:
 			if decl := p.parseErrorHandler(); decl != nil {
 				prog.ErrorHandlers = append(prog.ErrorHandlers, decl)
@@ -563,6 +568,41 @@ func (p *parser) parseErrorHandler() *ErrorHandlerDeclaration {
 	condition := p.collectUntilColon()
 	decl := &ErrorHandlerDeclaration{Condition: condition, Line: line}
 	decl.Statements = p.parseIndentedBody()
+	return decl
+}
+
+// parseArchitectureDeclaration parses: architecture: <style> [body]
+// The style is extracted from the text after the colon on the same line.
+// An optional indented body may follow with service/gateway definitions.
+func (p *parser) parseArchitectureDeclaration() *ArchitectureDeclaration {
+	line := p.peek().Line
+	p.advance() // consume ARCHITECTURE
+
+	// Consume colon
+	p.match(lexer.TOKEN_COLON)
+
+	// Collect the style from the rest of the line
+	style := strings.TrimSpace(p.collectRestOfLine())
+
+	decl := &ArchitectureDeclaration{Style: style, Line: line}
+
+	// Check for an optional indented body (microservices service defs, etc.)
+	p.skipNewlines()
+	if p.check(lexer.TOKEN_INDENT) {
+		p.advance() // consume INDENT
+		for !p.isAtEnd() && !p.check(lexer.TOKEN_DEDENT) {
+			if p.check(lexer.TOKEN_NEWLINE) {
+				p.advance()
+				continue
+			}
+			stmt := p.parseBodyStatement()
+			if stmt != nil {
+				decl.Statements = append(decl.Statements, stmt)
+			}
+		}
+		p.match(lexer.TOKEN_DEDENT)
+	}
+
 	return decl
 }
 

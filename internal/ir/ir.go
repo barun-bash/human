@@ -18,8 +18,10 @@ type Application struct {
 	Database      *DatabaseConfig `json:"database,omitempty"`
 	Integrations  []*Integration  `json:"integrations,omitempty"`
 	Environments  []*Environment  `json:"environments,omitempty"`
-	ErrorHandlers []*ErrorHandler `json:"error_handlers,omitempty"`
-	Pipelines     []*Pipeline     `json:"pipelines,omitempty"`
+	ErrorHandlers []*ErrorHandler  `json:"error_handlers,omitempty"`
+	Pipelines     []*Pipeline      `json:"pipelines,omitempty"`
+	Architecture  *Architecture    `json:"architecture,omitempty"`
+	Monitoring    []*MonitoringRule `json:"monitoring,omitempty"`
 }
 
 // ── Build Configuration ──
@@ -233,4 +235,42 @@ type Environment struct {
 type ErrorHandler struct {
 	Condition string    `json:"condition"`
 	Steps     []*Action `json:"steps,omitempty"`
+}
+
+// ── Architecture ──
+
+// Architecture describes the application's architectural style.
+type Architecture struct {
+	Style    string        `json:"style"`              // monolith, microservices, serverless
+	Services []*ServiceDef `json:"services,omitempty"` // for microservices
+	Gateway  *GatewayDef   `json:"gateway,omitempty"`  // for microservices
+	Broker   string        `json:"broker,omitempty"`   // message broker (e.g., RabbitMQ, Kafka)
+}
+
+// ServiceDef defines a microservice.
+type ServiceDef struct {
+	Name           string   `json:"name"`
+	Handles        string   `json:"handles,omitempty"`         // responsibility description
+	Port           int      `json:"port,omitempty"`
+	Models         []string `json:"models,omitempty"`          // data model names this service owns
+	HasOwnDatabase bool     `json:"has_own_database,omitempty"`
+	TalksTo        []string `json:"talks_to,omitempty"`        // other services it communicates with
+}
+
+// GatewayDef defines an API gateway for microservices.
+type GatewayDef struct {
+	Routes map[string]string `json:"routes,omitempty"` // path → service name
+	Rules  []string          `json:"rules,omitempty"`  // rate limiting, CORS, etc.
+}
+
+// ── Monitoring ──
+
+// MonitoringRule represents an observability directive.
+type MonitoringRule struct {
+	Kind      string `json:"kind"`                // track, alert, log
+	Metric    string `json:"metric,omitempty"`    // what to track/log
+	Channel   string `json:"channel,omitempty"`   // alert channel (e.g., "Slack")
+	Condition string `json:"condition,omitempty"` // alert trigger condition
+	Service   string `json:"service,omitempty"`   // log destination (e.g., "CloudWatch")
+	Duration  string `json:"duration,omitempty"`  // retention duration
 }

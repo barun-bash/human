@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -14,23 +15,29 @@ import (
 	"github.com/barun-bash/human/internal/analyzer"
 	"github.com/barun-bash/human/internal/cli"
 	"github.com/barun-bash/human/internal/codegen/angular"
+	"github.com/barun-bash/human/internal/codegen/architecture"
 	"github.com/barun-bash/human/internal/codegen/cicd"
 	"github.com/barun-bash/human/internal/codegen/docker"
 	"github.com/barun-bash/human/internal/codegen/gobackend"
+	"github.com/barun-bash/human/internal/codegen/monitoring"
 	"github.com/barun-bash/human/internal/codegen/node"
 	"github.com/barun-bash/human/internal/codegen/postgres"
 	"github.com/barun-bash/human/internal/codegen/python"
 	"github.com/barun-bash/human/internal/codegen/react"
 	"github.com/barun-bash/human/internal/codegen/scaffold"
 	"github.com/barun-bash/human/internal/codegen/svelte"
+	"github.com/barun-bash/human/internal/codegen/terraform"
 	"github.com/barun-bash/human/internal/codegen/vue"
+	"github.com/barun-bash/human/internal/config"
 	cerr "github.com/barun-bash/human/internal/errors"
 	"github.com/barun-bash/human/internal/ir"
+	"github.com/barun-bash/human/internal/llm"
+	_ "github.com/barun-bash/human/internal/llm/providers" // register providers
 	"github.com/barun-bash/human/internal/parser"
 	"github.com/barun-bash/human/internal/quality"
 )
 
-const version = "0.3.0"
+const version = "0.4.0"
 
 func main() {
 	// Parse global --no-color flag before command dispatch
@@ -62,6 +69,14 @@ func main() {
 		cmdDeploy()
 	case "eject":
 		cmdEject()
+	case "ask":
+		cmdAsk()
+	case "suggest":
+		cmdSuggest()
+	case "edit":
+		cmdEdit()
+	case "convert":
+		cmdConvert()
 	default:
 		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Unknown command: %s", args[0])))
 		fmt.Fprintln(os.Stderr)
@@ -303,6 +318,12 @@ func printIRSummary(app *ir.Application) {
 	}
 	if len(app.Environments) > 0 {
 		fmt.Printf("  environments: %d\n", len(app.Environments))
+	}
+	if app.Architecture != nil {
+		fmt.Printf("  architecture: %s\n", app.Architecture.Style)
+	}
+	if len(app.Monitoring) > 0 {
+		fmt.Printf("  monitoring:   %d rule(s)\n", len(app.Monitoring))
 	}
 }
 
@@ -673,10 +694,12 @@ func cmdDeploy() {
 
 	// Deploy based on target
 	switch {
+	case strings.Contains(deployTarget, "aws"), strings.Contains(deployTarget, "gcp"), strings.Contains(deployTarget, "terraform"):
+		deployTerraform(app, outputDir, envName, dryRun)
 	case strings.Contains(deployTarget, "docker"):
 		deployDocker(app, outputDir, dryRun)
 	default:
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Unsupported deploy target: %s. Currently supported: Docker", app.Config.Deploy)))
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Unsupported deploy target: %s. Supported: Docker, AWS, GCP", app.Config.Deploy)))
 		os.Exit(1)
 	}
 }
@@ -767,6 +790,91 @@ func deployDocker(app *ir.Application, outputDir string, dryRun bool) {
 		fmt.Println(cli.Info("  Run 'docker compose logs -f' to view logs."))
 		fmt.Println(cli.Info("  Run 'docker compose down' to stop."))
 	}
+}
+
+func deployTerraform(app *ir.Application, outputDir, envName string, dryRun bool) {
+	tfDir := filepath.Join(outputDir, "terraform")
+	if _, err := os.Stat(tfDir); os.IsNotExist(err) {
+		fmt.Fprintln(os.Stderr, cli.Error("Terraform files not found. Run 'human build <file>' first."))
+		os.Exit(1)
+	}
+
+	// Check terraform is installed
+	if _, err := exec.LookPath("terraform"); err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error("terraform not found in PATH. Install Terraform to deploy."))
+		os.Exit(1)
+	}
+
+	// Init
+	fmt.Println(cli.Info("Step 1/3: terraform init"))
+	if !dryRun {
+		cmd := exec.Command("terraform", "init")
+		cmd.Dir = tfDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("terraform init failed: %v", err)))
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println(cli.Info("  (dry-run — skipped)"))
+	}
+
+	// Plan
+	planArgs := []string{"plan"}
+	if envName != "" {
+		tfvars := filepath.Join("envs", strings.ToLower(envName)+".tfvars")
+		if _, err := os.Stat(filepath.Join(tfDir, tfvars)); err == nil {
+			planArgs = append(planArgs, "-var-file="+tfvars)
+		}
+	}
+	fmt.Println(cli.Info(fmt.Sprintf("Step 2/3: terraform %s", strings.Join(planArgs, " "))))
+	if !dryRun {
+		cmd := exec.Command("terraform", planArgs...)
+		cmd.Dir = tfDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("terraform plan failed: %v", err)))
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println(cli.Info("  (dry-run — showing plan only)"))
+		cmd := exec.Command("terraform", planArgs...)
+		cmd.Dir = tfDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		_ = cmd.Run()
+	}
+
+	// Apply (only if not dry-run)
+	if dryRun {
+		fmt.Println(cli.Success("Dry run complete — run without --dry-run to apply changes."))
+		return
+	}
+
+	applyArgs := []string{"apply", "-auto-approve"}
+	if envName != "" {
+		tfvars := filepath.Join("envs", strings.ToLower(envName)+".tfvars")
+		if _, err := os.Stat(filepath.Join(tfDir, tfvars)); err == nil {
+			applyArgs = append(applyArgs, "-var-file="+tfvars)
+		}
+	}
+	fmt.Println(cli.Info(fmt.Sprintf("Step 3/3: terraform %s", strings.Join(applyArgs, " "))))
+	cmd := exec.Command("terraform", applyArgs...)
+	cmd.Dir = tfDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("terraform apply failed: %v", err)))
+		os.Exit(1)
+	}
+
+	target := "cloud"
+	if app.Config != nil {
+		target = app.Config.Deploy
+	}
+	fmt.Println(cli.Success(fmt.Sprintf("Deployed %s via Terraform to %s.", app.Name, target)))
 }
 
 // ── build --watch ──
@@ -1013,6 +1121,41 @@ func runGenerators(app *ir.Application, outputDir string) ([]buildResult, error)
 		results = append(results, buildResult{"cicd", outputDir, countFiles(cicdDir)})
 	}
 
+	// Terraform — conditional on deploy config (aws, gcp, or terraform keyword)
+	if strings.Contains(deployLower, "aws") || strings.Contains(deployLower, "gcp") || strings.Contains(deployLower, "terraform") {
+		dir := filepath.Join(outputDir, "terraform")
+		g := terraform.Generator{}
+		if err := g.Generate(app, dir); err != nil {
+			return nil, fmt.Errorf("Terraform codegen: %w", err)
+		}
+		results = append(results, buildResult{"terraform", dir, countFiles(dir)})
+	}
+
+	// Architecture — conditional on architecture style
+	if app.Architecture != nil && app.Architecture.Style != "" {
+		g := architecture.Generator{}
+		if err := g.Generate(app, outputDir); err != nil {
+			return nil, fmt.Errorf("Architecture codegen: %w", err)
+		}
+		// Count files only if microservices or serverless generated something
+		archDir := filepath.Join(outputDir, "services")
+		fnDir := filepath.Join(outputDir, "functions")
+		archFiles := countFiles(archDir) + countFiles(fnDir) + countFiles(filepath.Join(outputDir, "gateway"))
+		if archFiles > 0 {
+			results = append(results, buildResult{"architecture", outputDir, archFiles})
+		}
+	}
+
+	// Monitoring — conditional on monitoring rules
+	if len(app.Monitoring) > 0 {
+		dir := filepath.Join(outputDir, "monitoring")
+		g := monitoring.Generator{}
+		if err := g.Generate(app, dir); err != nil {
+			return nil, fmt.Errorf("Monitoring codegen: %w", err)
+		}
+		results = append(results, buildResult{"monitoring", dir, countFiles(dir)})
+	}
+
 	// Quality engine — always runs after code generators
 	qResult, err := quality.Run(app, outputDir)
 	if err != nil {
@@ -1074,6 +1217,366 @@ func printBuildSummary(results []buildResult, outputDir string) {
 	fmt.Println(cli.Success(fmt.Sprintf("Build complete — %d files in %s/", total, outputDir)))
 }
 
+// ── LLM Commands ──
+
+// loadLLMConnector loads config, resolves the provider, and returns a ready Connector.
+// If no config exists and no env vars are set, it auto-prompts the user to choose a provider.
+func loadLLMConnector() (*llm.Connector, *config.LLMConfig) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = "."
+	}
+
+	cfg, err := config.Load(cwd)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Config error: %v", err)))
+		os.Exit(1)
+	}
+
+	// If no LLM config, try to auto-detect from environment variables.
+	if cfg.LLM == nil {
+		cfg.LLM = detectProviderFromEnv()
+	}
+
+	// If still no config, prompt the user.
+	if cfg.LLM == nil {
+		cfg.LLM = promptProviderSetup(cwd)
+	}
+
+	provider, err := llm.NewProvider(cfg.LLM)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+		os.Exit(1)
+	}
+
+	// One-time cost notice.
+	if cfg.LLM.Provider != "ollama" {
+		fmt.Fprintln(os.Stderr, cli.Info("Note: LLM calls use your API key and may incur costs."))
+	}
+
+	return llm.NewConnector(provider, cfg.LLM), cfg.LLM
+}
+
+// detectProviderFromEnv checks for API keys in environment variables and
+// returns a config if found, or nil.
+func detectProviderFromEnv() *config.LLMConfig {
+	if os.Getenv("ANTHROPIC_API_KEY") != "" {
+		cfg := config.DefaultLLMConfig("anthropic")
+		cfg.APIKey = os.Getenv("ANTHROPIC_API_KEY")
+		return cfg
+	}
+	if os.Getenv("OPENAI_API_KEY") != "" {
+		cfg := config.DefaultLLMConfig("openai")
+		cfg.APIKey = os.Getenv("OPENAI_API_KEY")
+		return cfg
+	}
+	return nil
+}
+
+// promptProviderSetup interactively asks the user which LLM provider to use
+// and saves the choice to .human/config.json.
+func promptProviderSetup(projectDir string) *config.LLMConfig {
+	fmt.Println(cli.Info("No LLM provider configured."))
+	fmt.Println()
+
+	scanner := bufio.NewScanner(os.Stdin)
+	choice := prompt(scanner, "LLM Provider", []string{"anthropic", "openai", "ollama"}, "anthropic")
+
+	llmCfg := config.DefaultLLMConfig(choice)
+
+	// Resolve API key.
+	key, err := config.ResolveAPIKey(choice)
+	if err != nil && choice != "ollama" {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+		os.Exit(1)
+	}
+	llmCfg.APIKey = key
+
+	// Save the choice.
+	cfg := &config.Config{LLM: llmCfg}
+	if err := config.Save(projectDir, cfg); err != nil {
+		fmt.Fprintln(os.Stderr, cli.Warn(fmt.Sprintf("Could not save config: %v", err)))
+	} else {
+		fmt.Println(cli.Success(fmt.Sprintf("Saved LLM config to .human/config.json (provider: %s, model: %s)", llmCfg.Provider, llmCfg.Model)))
+	}
+
+	return llmCfg
+}
+
+func cmdAsk() {
+	// Collect query from args.
+	args := os.Args[2:]
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "Usage: human ask \"<description>\"")
+		fmt.Fprintln(os.Stderr, "  Example: human ask \"describe a blog application with users and posts\"")
+		os.Exit(1)
+	}
+	query := strings.Join(args, " ")
+
+	connector, _ := loadLLMConnector()
+
+	// Set up context with Ctrl+C cancellation.
+	ctx, cancel := context.WithCancel(context.Background())
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	go func() {
+		<-sigCh
+		cancel()
+	}()
+
+	fmt.Println(cli.Info("Generating .human code..."))
+	fmt.Println()
+
+	// Stream the response.
+	ch, err := connector.AskStream(ctx, query)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+		os.Exit(1)
+	}
+
+	var fullText strings.Builder
+	for chunk := range ch {
+		if chunk.Err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(chunk.Err.Error()))
+			os.Exit(1)
+		}
+		fmt.Print(chunk.Delta)
+		fullText.WriteString(chunk.Delta)
+		if chunk.Usage != nil {
+			fmt.Fprintf(os.Stderr, "\n\n%s\n",
+				cli.Info(fmt.Sprintf("Tokens: %d in / %d out", chunk.Usage.InputTokens, chunk.Usage.OutputTokens)))
+		}
+	}
+	fmt.Println()
+
+	// Post-stream validation.
+	fmt.Println()
+	code := fullText.String()
+	valid, parseErr := llm.ValidateCode(code)
+	if valid {
+		fmt.Println(cli.Success("Generated code is valid .human syntax."))
+	} else {
+		fmt.Println(cli.Warn(fmt.Sprintf("Generated code has syntax issues: %s", parseErr)))
+		fmt.Println(cli.Info("The code may need manual adjustments."))
+	}
+}
+
+func cmdSuggest() {
+	args := os.Args[2:]
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "Usage: human suggest <file.human>")
+		os.Exit(1)
+	}
+	file := args[0]
+
+	source, err := os.ReadFile(file)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error reading %s: %v", file, err)))
+		os.Exit(1)
+	}
+
+	connector, _ := loadLLMConnector()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	go func() {
+		<-sigCh
+		cancel()
+	}()
+
+	fmt.Println(cli.Info(fmt.Sprintf("Analyzing %s...", file)))
+	fmt.Println()
+
+	result, err := connector.Suggest(ctx, string(source))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+		os.Exit(1)
+	}
+
+	if len(result.Suggestions) == 0 {
+		// No structured suggestions — print the raw response.
+		fmt.Println(result.RawResponse)
+	} else {
+		// Group by category.
+		categories := map[string][]string{}
+		order := []string{}
+		for _, s := range result.Suggestions {
+			if _, exists := categories[s.Category]; !exists {
+				order = append(order, s.Category)
+			}
+			categories[s.Category] = append(categories[s.Category], s.Text)
+		}
+
+		for _, cat := range order {
+			fmt.Printf("\n%s\n", cli.Info(strings.ToUpper(cat)))
+			for _, text := range categories[cat] {
+				fmt.Printf("  • %s\n", text)
+			}
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "\n%s\n",
+		cli.Info(fmt.Sprintf("Tokens: %d in / %d out", result.Usage.InputTokens, result.Usage.OutputTokens)))
+}
+
+func cmdEdit() {
+	// Parse flags.
+	var file string
+	for _, arg := range os.Args[2:] {
+		if !strings.HasPrefix(arg, "-") {
+			file = arg
+		}
+	}
+
+	if file == "" {
+		fmt.Fprintln(os.Stderr, "Usage: human edit <file.human>")
+		fmt.Fprintln(os.Stderr, "  Interactive editing session with LLM assistance.")
+		os.Exit(1)
+	}
+
+	source, err := os.ReadFile(file)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error reading %s: %v", file, err)))
+		os.Exit(1)
+	}
+
+	connector, llmCfg := loadLLMConnector()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	go func() {
+		<-sigCh
+		cancel()
+	}()
+
+	currentSource := string(source)
+	var history []llm.Message
+	var totalInput, totalOutput int
+
+	scanner := bufio.NewScanner(os.Stdin)
+
+	fmt.Println(cli.Info(fmt.Sprintf("Editing %s with %s (%s)", file, llmCfg.Provider, llmCfg.Model)))
+	fmt.Println(cli.Info("Type your edit instructions, 'save' to write changes, 'quit' to exit."))
+	fmt.Println()
+
+	for {
+		fmt.Print("edit> ")
+		if !scanner.Scan() {
+			break
+		}
+		instruction := strings.TrimSpace(scanner.Text())
+
+		if instruction == "" {
+			continue
+		}
+
+		switch strings.ToLower(instruction) {
+		case "quit", "exit", "q":
+			fmt.Printf("\n%s\n", cli.Info(fmt.Sprintf("Session tokens: %d in / %d out", totalInput, totalOutput)))
+			return
+		case "save", "s":
+			if err := os.WriteFile(file, []byte(currentSource), 0644); err != nil {
+				fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error writing %s: %v", file, err)))
+			} else {
+				fmt.Println(cli.Success(fmt.Sprintf("Saved %s", file)))
+			}
+			continue
+		case "show":
+			fmt.Println()
+			fmt.Println(currentSource)
+			fmt.Println()
+			continue
+		}
+
+		fmt.Println(cli.Info("Editing..."))
+
+		result, err := connector.Edit(ctx, currentSource, instruction, history)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+			continue
+		}
+
+		totalInput += result.Usage.InputTokens
+		totalOutput += result.Usage.OutputTokens
+
+		fmt.Println()
+		fmt.Println(result.Code)
+		fmt.Println()
+
+		if result.Valid {
+			fmt.Println(cli.Success("Valid .human syntax."))
+		} else {
+			fmt.Println(cli.Warn(fmt.Sprintf("Syntax issue: %s", result.ParseError)))
+		}
+
+		// Ask to accept.
+		fmt.Print("Accept? (y/n): ")
+		if scanner.Scan() {
+			answer := strings.ToLower(strings.TrimSpace(scanner.Text()))
+			if answer == "y" || answer == "yes" {
+				currentSource = result.Code
+				fmt.Println(cli.Success("Change applied."))
+
+				// Add to history.
+				history = append(history,
+					llm.Message{Role: llm.RoleUser, Content: instruction},
+					llm.Message{Role: llm.RoleAssistant, Content: result.RawResponse},
+				)
+			} else {
+				fmt.Println(cli.Info("Change discarded."))
+			}
+		}
+		fmt.Println()
+	}
+}
+
+func cmdConvert() {
+	args := os.Args[2:]
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "Usage: human convert \"<description>\"")
+		fmt.Fprintln(os.Stderr, "  Converts a natural language description to .human code.")
+		fmt.Fprintln(os.Stderr, "  Future: will also support design file import (Figma, images).")
+		os.Exit(1)
+	}
+
+	// For now, convert uses the same pipeline as ask.
+	query := strings.Join(args, " ")
+
+	connector, _ := loadLLMConnector()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	go func() {
+		<-sigCh
+		cancel()
+	}()
+
+	fmt.Println(cli.Info("Converting to .human code..."))
+	fmt.Println(cli.Info("(Design file import is planned for a future release.)"))
+	fmt.Println()
+
+	result, err := connector.Ask(ctx, query)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+		os.Exit(1)
+	}
+
+	fmt.Println(result.Code)
+	fmt.Println()
+
+	if result.Valid {
+		fmt.Println(cli.Success("Generated code is valid .human syntax."))
+	} else {
+		fmt.Println(cli.Warn(fmt.Sprintf("Syntax issue: %s", result.ParseError)))
+	}
+
+	fmt.Fprintf(os.Stderr, "%s\n",
+		cli.Info(fmt.Sprintf("Tokens: %d in / %d out", result.Usage.InputTokens, result.Usage.OutputTokens)))
+}
+
 // ── Helpers ──
 
 // printDiagnostic prints a CompilerError with its suggestion (if any) to stderr.
@@ -1118,10 +1621,16 @@ Commands:
   run                       Start the development server
   test                      Run generated tests
   audit                     Display security and quality report
-  deploy [file]             Deploy the application (Docker)
+  deploy [file]             Deploy the application (Docker/AWS/GCP)
   deploy --dry-run [file]   Show deploy steps without executing
   deploy --env <name> [file]  Deploy with a specific environment
   eject [path]              Export as standalone code (default: ./output/)
+
+AI-Assisted (optional, requires API key or Ollama):
+  ask "<description>"       Generate .human code from English
+  suggest <file.human>      Get improvement suggestions for a file
+  edit <file.human>         Interactive AI-assisted editing session
+  convert "<description>"   Convert description to .human (design import planned)
 
 Flags:
   --no-color        Disable colored output

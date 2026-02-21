@@ -16,6 +16,7 @@ type Program struct {
 	Environments   []*EnvironmentDeclaration
 	ErrorHandlers  []*ErrorHandlerDeclaration
 	Build          *BuildDeclaration
+	Architecture   *ArchitectureDeclaration
 	Sections       []string     // section header names in order
 	Statements     []*Statement // top-level statements not in any block
 }
@@ -205,6 +206,18 @@ type ErrorHandlerDeclaration struct {
 //	  backend using Node with Express
 type BuildDeclaration struct {
 	Statements []*Statement
+	Line       int
+}
+
+// ArchitectureDeclaration represents the architecture style of the application.
+//
+//	architecture: monolith
+//	architecture: microservices
+//	  service UserService:
+//	    handles user management
+type ArchitectureDeclaration struct {
+	Style      string       // monolith, microservices, serverless, event-driven
+	Statements []*Statement // service definitions, gateway config, etc.
 	Line       int
 }
 

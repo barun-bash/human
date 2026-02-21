@@ -1,6 +1,7 @@
 package ir
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/barun-bash/human/internal/parser"
@@ -84,6 +85,18 @@ func Build(prog *parser.Program) (*Application, error) {
 	// Error handlers
 	for _, e := range prog.ErrorHandlers {
 		app.ErrorHandlers = append(app.ErrorHandlers, buildErrorHandler(e))
+	}
+
+	// Architecture
+	if prog.Architecture != nil {
+		app.Architecture = buildArchitecture(prog.Architecture)
+	}
+
+	// Monitoring (from top-level statements)
+	for _, s := range prog.Statements {
+		if rule := buildMonitoringRule(s); rule != nil {
+			app.Monitoring = append(app.Monitoring, rule)
+		}
 	}
 
 	return app, nil
@@ -718,6 +731,155 @@ func classifyAction(s *parser.Statement) *Action {
 	}
 
 	return action
+}
+
+// ── Architecture ──
+
+func buildArchitecture(a *parser.ArchitectureDeclaration) *Architecture {
+	arch := &Architecture{
+		Style: normalizeArchStyle(a.Style),
+	}
+
+	var currentService *ServiceDef
+	var inGateway bool
+
+	for _, s := range a.Statements {
+		lower := strings.ToLower(s.Text)
+
+		switch {
+		case strings.HasPrefix(lower, "service "):
+			// "service UserService:" or "service UserService"
+			name := strings.TrimSuffix(strings.TrimSpace(s.Text[len("service "):]), ":")
+			currentService = &ServiceDef{Name: name}
+			arch.Services = append(arch.Services, currentService)
+			inGateway = false
+
+		case strings.HasPrefix(lower, "gateway"):
+			arch.Gateway = &GatewayDef{
+				Routes: make(map[string]string),
+			}
+			currentService = nil
+			inGateway = true
+
+		case strings.HasPrefix(lower, "message broker using "):
+			arch.Broker = strings.TrimSpace(s.Text[len("message broker using "):])
+
+		case strings.HasPrefix(lower, "handles ") && currentService != nil:
+			currentService.Handles = strings.TrimSpace(s.Text[len("handles "):])
+
+		case strings.HasPrefix(lower, "runs on port ") && currentService != nil:
+			port := strings.TrimSpace(s.Text[len("runs on port "):])
+			if p, err := parseInt(port); err == nil {
+				currentService.Port = p
+			}
+
+		case strings.HasPrefix(lower, "has its own database") && currentService != nil:
+			currentService.HasOwnDatabase = true
+
+		case strings.HasPrefix(lower, "talks to ") && currentService != nil:
+			target := extractAfter(lower, "talks to ")
+			if idx := strings.Index(target, " to "); idx != -1 {
+				target = target[:idx]
+			}
+			currentService.TalksTo = append(currentService.TalksTo, strings.TrimSpace(target))
+
+		case strings.HasPrefix(lower, "routes ") && inGateway && arch.Gateway != nil:
+			// "routes /api/users to UserService"
+			rest := s.Text[len("routes "):]
+			if idx := strings.Index(strings.ToLower(rest), " to "); idx != -1 {
+				path := strings.TrimSpace(rest[:idx])
+				svc := strings.TrimSpace(rest[idx+4:])
+				arch.Gateway.Routes[path] = svc
+			}
+
+		case (strings.HasPrefix(lower, "handles ") || strings.Contains(lower, "rate limiting") || strings.Contains(lower, "cors")) && inGateway && arch.Gateway != nil:
+			arch.Gateway.Rules = append(arch.Gateway.Rules, s.Text)
+		}
+	}
+
+	return arch
+}
+
+func normalizeArchStyle(style string) string {
+	lower := strings.ToLower(strings.TrimSpace(style))
+	switch {
+	case strings.Contains(lower, "event-driven") || strings.Contains(lower, "event driven"):
+		return "microservices" // event-driven is a microservices variant
+	case strings.Contains(lower, "microservice"):
+		return "microservices"
+	case strings.Contains(lower, "serverless"):
+		return "serverless"
+	case strings.Contains(lower, "modular"):
+		return "monolith" // modular monolith treated as monolith
+	default:
+		return lower // monolith, hybrid, etc.
+	}
+}
+
+func parseInt(s string) (int, error) {
+	var n int
+	for _, c := range s {
+		if c >= '0' && c <= '9' {
+			n = n*10 + int(c-'0')
+		} else {
+			break
+		}
+	}
+	if n == 0 && s != "0" {
+		return 0, fmt.Errorf("not a number: %s", s)
+	}
+	return n, nil
+}
+
+// ── Monitoring ──
+
+func buildMonitoringRule(s *parser.Statement) *MonitoringRule {
+	lower := strings.ToLower(s.Text)
+
+	switch {
+	case strings.HasPrefix(lower, "track "):
+		return &MonitoringRule{
+			Kind:   "track",
+			Metric: strings.TrimSpace(s.Text[len("track "):]),
+		}
+
+	case strings.HasPrefix(lower, "alert "):
+		rule := &MonitoringRule{Kind: "alert"}
+		// "alert on Slack if error rate exceeds 5 percent"
+		text := s.Text[len("alert "):]
+		if idx := strings.Index(strings.ToLower(text), " on "); idx != -1 {
+			rest := text[idx+4:]
+			if ifIdx := strings.Index(strings.ToLower(rest), " if "); ifIdx != -1 {
+				rule.Channel = strings.TrimSpace(rest[:ifIdx])
+				rule.Condition = strings.TrimSpace(rest[ifIdx+4:])
+			} else {
+				rule.Channel = strings.TrimSpace(rest)
+			}
+		} else if idx := strings.Index(strings.ToLower(text), " if "); idx != -1 {
+			rule.Condition = strings.TrimSpace(text[idx+4:])
+		}
+		return rule
+
+	case strings.HasPrefix(lower, "log "):
+		rule := &MonitoringRule{Kind: "log"}
+		// "log all api requests to CloudWatch"
+		text := s.Text[len("log "):]
+		if idx := strings.Index(strings.ToLower(text), " to "); idx != -1 {
+			rule.Metric = strings.TrimSpace(text[:idx])
+			rule.Service = strings.TrimSpace(text[idx+4:])
+		} else {
+			rule.Metric = strings.TrimSpace(text)
+		}
+		return rule
+
+	case strings.HasPrefix(lower, "keep logs for "):
+		return &MonitoringRule{
+			Kind:     "log",
+			Duration: strings.TrimSpace(s.Text[len("keep logs for "):]),
+		}
+	}
+
+	return nil
 }
 
 // ── String helpers ──
