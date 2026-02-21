@@ -14,6 +14,7 @@ import (
 	"github.com/barun-bash/human/internal/analyzer"
 	"github.com/barun-bash/human/internal/cli"
 	cerr "github.com/barun-bash/human/internal/errors"
+	"github.com/barun-bash/human/internal/codegen/cicd"
 	"github.com/barun-bash/human/internal/codegen/docker"
 	"github.com/barun-bash/human/internal/codegen/node"
 	"github.com/barun-bash/human/internal/codegen/postgres"
@@ -299,6 +300,17 @@ func cmdBuild() {
 			os.Exit(1)
 		}
 		fmt.Println(cli.Info(fmt.Sprintf("  postgres:     %s/", pgDir)))
+	}
+
+	// CI/CD — always runs, adapts to detected stack
+	{
+		cicdDir := filepath.Join(".human", "output")
+		g := cicd.Generator{}
+		if err := g.Generate(app, cicdDir); err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("CI/CD codegen error: %v", err)))
+			os.Exit(1)
+		}
+		fmt.Println(cli.Info(fmt.Sprintf("  cicd:         %s/.github/", cicdDir)))
 	}
 
 	// Quality engine — always runs after code generators
@@ -741,6 +753,14 @@ func runBuild(file string) error {
 		g := postgres.Generator{}
 		if err := g.Generate(app, filepath.Join(".human", "output", "postgres")); err != nil {
 			return fmt.Errorf("postgres codegen: %w", err)
+		}
+	}
+
+	// CI/CD
+	{
+		g := cicd.Generator{}
+		if err := g.Generate(app, filepath.Join(".human", "output")); err != nil {
+			return fmt.Errorf("cicd codegen: %w", err)
 		}
 	}
 
