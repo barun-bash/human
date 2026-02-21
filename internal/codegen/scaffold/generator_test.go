@@ -250,6 +250,52 @@ func TestNodePackageJSON(t *testing.T) {
 	}
 }
 
+func TestNodePackageJSONWithIntegrations(t *testing.T) {
+	app := testApp()
+	app.Integrations = []*ir.Integration{
+		{Service: "SendGrid", Type: "email"},
+		{Service: "AWS S3", Type: "storage"},
+		{Service: "Stripe", Type: "payment"},
+		{Service: "Slack", Type: "messaging"},
+		{Service: "Google", Type: "oauth"},
+	}
+	output := generateNodePackageJSON(app)
+
+	integChecks := []struct {
+		desc    string
+		pattern string
+	}{
+		{"sendgrid", `"@sendgrid/mail"`},
+		{"s3 client", `"@aws-sdk/client-s3"`},
+		{"s3 presigner", `"@aws-sdk/s3-request-presigner"`},
+		{"stripe", `"stripe"`},
+		{"slack webhook", `"@slack/webhook"`},
+		{"passport", `"passport"`},
+		{"passport-google", `"passport-google-oauth20"`},
+		{"passport-github", `"passport-github2"`},
+		{"types/passport", `"@types/passport"`},
+	}
+
+	for _, c := range integChecks {
+		if !strings.Contains(output, c.pattern) {
+			t.Errorf("node package.json with integrations: missing %s (%q)", c.desc, c.pattern)
+		}
+	}
+}
+
+func TestNodePackageJSONNoIntegrations(t *testing.T) {
+	app := testApp()
+	output := generateNodePackageJSON(app)
+
+	// Without integrations, these should NOT appear
+	if strings.Contains(output, "@sendgrid") {
+		t.Error("unexpected sendgrid dependency without integration")
+	}
+	if strings.Contains(output, "stripe") {
+		t.Error("unexpected stripe dependency without integration")
+	}
+}
+
 // ── React package.json ──
 
 func TestReactPackageJSON(t *testing.T) {

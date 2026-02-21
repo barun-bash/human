@@ -690,6 +690,9 @@ func TestBuildIntegration(t *testing.T) {
 	if integ.Service != "SendGrid" {
 		t.Errorf("service: got %q", integ.Service)
 	}
+	if integ.Type != "email" {
+		t.Errorf("type: got %q, want %q", integ.Type, "email")
+	}
 	if integ.Credentials["api key"] != "SENDGRID_API_KEY" {
 		t.Errorf("credentials: got %v", integ.Credentials)
 	}
@@ -707,11 +710,126 @@ func TestBuildIntegrationMultipleCredentials(t *testing.T) {
 	app := mustBuild(t, source)
 
 	integ := app.Integrations[0]
+	if integ.Type != "storage" {
+		t.Errorf("type: got %q, want %q", integ.Type, "storage")
+	}
 	if integ.Credentials["api key"] != "AWS_ACCESS_KEY" {
 		t.Errorf("api key cred: got %v", integ.Credentials)
 	}
 	if integ.Credentials["secret"] != "AWS_SECRET_KEY" {
 		t.Errorf("secret cred: got %v", integ.Credentials)
+	}
+}
+
+func TestBuildIntegrationRichConfig(t *testing.T) {
+	source := `integrate with AWS S3:
+  api key from environment variable AWS_ACCESS_KEY
+  secret from environment variable AWS_SECRET_KEY
+  region is "us-east-1"
+  bucket is "user-uploads"
+  use for storing user avatars`
+
+	app := mustBuild(t, source)
+
+	integ := app.Integrations[0]
+	if integ.Type != "storage" {
+		t.Errorf("type: got %q, want %q", integ.Type, "storage")
+	}
+	if integ.Config["region"] != "us-east-1" {
+		t.Errorf("region: got %q", integ.Config["region"])
+	}
+	if integ.Config["bucket"] != "user-uploads" {
+		t.Errorf("bucket: got %q", integ.Config["bucket"])
+	}
+}
+
+func TestBuildIntegrationWebhookAndTemplates(t *testing.T) {
+	source := `integrate with Stripe:
+  api key from environment variable STRIPE_SECRET_KEY
+  webhook endpoint is "/webhooks/stripe"
+  use for processing payments`
+
+	app := mustBuild(t, source)
+
+	integ := app.Integrations[0]
+	if integ.Type != "payment" {
+		t.Errorf("type: got %q, want %q", integ.Type, "payment")
+	}
+	if integ.Config["webhook_endpoint"] != "/webhooks/stripe" {
+		t.Errorf("webhook_endpoint: got %q", integ.Config["webhook_endpoint"])
+	}
+}
+
+func TestBuildIntegrationSlackChannel(t *testing.T) {
+	source := `integrate with Slack:
+  api key from environment variable SLACK_WEBHOOK_URL
+  channel is "#engineering"
+  use for team notifications and alerts`
+
+	app := mustBuild(t, source)
+
+	integ := app.Integrations[0]
+	if integ.Type != "messaging" {
+		t.Errorf("type: got %q, want %q", integ.Type, "messaging")
+	}
+	if integ.Config["channel"] != "#engineering" {
+		t.Errorf("channel: got %q", integ.Config["channel"])
+	}
+}
+
+func TestBuildIntegrationEmailConfig(t *testing.T) {
+	source := `integrate with SendGrid:
+  api key from environment variable SENDGRID_API_KEY
+  sender email is "noreply@example.com"
+  template "welcome"
+  template "password-reset"
+  use for sending transactional emails`
+
+	app := mustBuild(t, source)
+
+	integ := app.Integrations[0]
+	if integ.Config["sender_email"] != "noreply@example.com" {
+		t.Errorf("sender_email: got %q", integ.Config["sender_email"])
+	}
+	if len(integ.Templates) != 2 {
+		t.Fatalf("templates: got %d, want 2", len(integ.Templates))
+	}
+	if integ.Templates[0] != "welcome" {
+		t.Errorf("template 0: got %q", integ.Templates[0])
+	}
+	if integ.Templates[1] != "password-reset" {
+		t.Errorf("template 1: got %q", integ.Templates[1])
+	}
+}
+
+func TestInferIntegrationType(t *testing.T) {
+	tests := []struct {
+		service string
+		want    string
+	}{
+		{"SendGrid", "email"},
+		{"Mailgun", "email"},
+		{"AWS S3", "storage"},
+		{"GCS", "storage"},
+		{"Cloudinary", "storage"},
+		{"Stripe", "payment"},
+		{"PayPal", "payment"},
+		{"Slack", "messaging"},
+		{"Discord", "messaging"},
+		{"Twilio", "messaging"},
+		{"Google", "oauth"},
+		{"GitHub", "oauth"},
+		{"Auth0", "oauth"},
+		{"CustomService", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.service, func(t *testing.T) {
+			got := InferIntegrationType(tt.service)
+			if got != tt.want {
+				t.Errorf("InferIntegrationType(%q) = %q, want %q", tt.service, got, tt.want)
+			}
+		})
 	}
 }
 

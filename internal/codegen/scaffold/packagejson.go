@@ -139,11 +139,45 @@ func generateRootPackageJSON(app *ir.Application) string {
 }
 
 // generateNodePackageJSON produces node/package.json with Express, Prisma,
-// and all backend dependencies.
+// and all backend dependencies. Integration-specific packages are injected
+// based on the app's integration declarations.
 func generateNodePackageJSON(app *ir.Application) string {
-	var b strings.Builder
 	name := appNameLower(app)
 
+	deps := map[string]string{
+		"@prisma/client": "^6.0.0",
+		"bcryptjs":       "^2.4.3",
+		"cors":           "^2.8.5",
+		"express":        "^4.21.0",
+		"jsonwebtoken":   "^9.0.0",
+	}
+	devDeps := map[string]string{
+		"@types/bcryptjs":      "^2.4.6",
+		"@types/cors":          "^2.8.17",
+		"@types/express":       "^5.0.0",
+		"@types/jest":          "^29.5.0",
+		"@types/jsonwebtoken":  "^9.0.7",
+		"@types/supertest":     "^6.0.0",
+		"jest":                 "^29.7.0",
+		"prisma":               "^6.0.0",
+		"supertest":            "^7.0.0",
+		"ts-jest":              "^29.2.0",
+		"ts-node":              "^10.9.0",
+		"typescript":           "^5.7.0",
+	}
+
+	// Inject integration-specific dependencies
+	for _, integ := range app.Integrations {
+		integDeps, integDevDeps := integrationDependencies(integ.Type)
+		for k, v := range integDeps {
+			deps[k] = v
+		}
+		for k, v := range integDevDeps {
+			devDeps[k] = v
+		}
+	}
+
+	var b strings.Builder
 	b.WriteString("{\n")
 	fmt.Fprintf(&b, "  \"name\": \"%s-backend\",\n", name)
 	b.WriteString("  \"version\": \"0.1.0\",\n")
@@ -154,30 +188,58 @@ func generateNodePackageJSON(app *ir.Application) string {
 	b.WriteString("    \"build\": \"tsc\",\n")
 	b.WriteString("    \"test\": \"jest\"\n")
 	b.WriteString("  },\n")
-	b.WriteString("  \"dependencies\": {\n")
-	b.WriteString("    \"@prisma/client\": \"^6.0.0\",\n")
-	b.WriteString("    \"bcryptjs\": \"^2.4.3\",\n")
-	b.WriteString("    \"cors\": \"^2.8.5\",\n")
-	b.WriteString("    \"express\": \"^4.21.0\",\n")
-	b.WriteString("    \"jsonwebtoken\": \"^9.0.0\"\n")
-	b.WriteString("  },\n")
-	b.WriteString("  \"devDependencies\": {\n")
-	b.WriteString("    \"@types/bcryptjs\": \"^2.4.6\",\n")
-	b.WriteString("    \"@types/cors\": \"^2.8.17\",\n")
-	b.WriteString("    \"@types/express\": \"^5.0.0\",\n")
-	b.WriteString("    \"@types/jest\": \"^29.5.0\",\n")
-	b.WriteString("    \"@types/jsonwebtoken\": \"^9.0.7\",\n")
-	b.WriteString("    \"@types/supertest\": \"^6.0.0\",\n")
-	b.WriteString("    \"jest\": \"^29.7.0\",\n")
-	b.WriteString("    \"prisma\": \"^6.0.0\",\n")
-	b.WriteString("    \"supertest\": \"^7.0.0\",\n")
-	b.WriteString("    \"ts-jest\": \"^29.2.0\",\n")
-	b.WriteString("    \"ts-node\": \"^10.9.0\",\n")
-	b.WriteString("    \"typescript\": \"^5.7.0\"\n")
-	b.WriteString("  }\n")
+
+	writeSortedDepsInline := func(label string, m map[string]string) {
+		fmt.Fprintf(&b, "  \"%s\": {\n", label)
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for i, k := range keys {
+			fmt.Fprintf(&b, "    \"%s\": \"%s\"", k, m[k])
+			if i < len(keys)-1 {
+				b.WriteString(",")
+			}
+			b.WriteString("\n")
+		}
+		b.WriteString("  }")
+	}
+
+	writeSortedDepsInline("dependencies", deps)
+	b.WriteString(",\n")
+	writeSortedDepsInline("devDependencies", devDeps)
+	b.WriteString("\n")
 	b.WriteString("}\n")
 
 	return b.String()
+}
+
+// integrationDependencies returns npm packages needed for a given integration type.
+func integrationDependencies(integrationType string) (deps, devDeps map[string]string) {
+	deps = make(map[string]string)
+	devDeps = make(map[string]string)
+
+	switch integrationType {
+	case "email":
+		deps["@sendgrid/mail"] = "^8.1.0"
+	case "storage":
+		deps["@aws-sdk/client-s3"] = "^3.700.0"
+		deps["@aws-sdk/s3-request-presigner"] = "^3.700.0"
+	case "payment":
+		deps["stripe"] = "^17.0.0"
+	case "messaging":
+		deps["@slack/webhook"] = "^7.0.0"
+	case "oauth":
+		deps["passport"] = "^0.7.0"
+		deps["passport-google-oauth20"] = "^2.0.0"
+		deps["passport-github2"] = "^0.1.12"
+		devDeps["@types/passport"] = "^1.0.16"
+		devDeps["@types/passport-google-oauth20"] = "^2.0.16"
+		devDeps["@types/passport-github2"] = "^1.2.9"
+	}
+
+	return
 }
 
 // generateReactPackageJSON produces react/package.json with React, Vite,

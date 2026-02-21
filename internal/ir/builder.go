@@ -579,7 +579,9 @@ func parseIndex(text string) *Index {
 func buildIntegration(i *parser.IntegrationDeclaration) *Integration {
 	integ := &Integration{
 		Service:     i.Service,
+		Type:        InferIntegrationType(i.Service),
 		Credentials: make(map[string]string),
+		Config:      make(map[string]string),
 	}
 
 	for _, s := range i.Statements {
@@ -598,10 +600,70 @@ func buildIntegration(i *parser.IntegrationDeclaration) *Integration {
 		// "use for sending transactional emails"
 		case strings.HasPrefix(lower, "use for "):
 			integ.Purpose = strings.TrimSpace(s.Text[len("use for "):])
+
+		// "sender email is ..." / "sender is ..."
+		case strings.Contains(lower, "sender email is ") || strings.Contains(lower, "sender is "):
+			integ.Config["sender_email"] = extractQuotedOrValue(s.Text, "is")
+
+		// "region is ..."
+		case strings.HasPrefix(lower, "region is "):
+			integ.Config["region"] = extractQuotedOrValue(s.Text, "is")
+
+		// "bucket is ..."
+		case strings.HasPrefix(lower, "bucket is "):
+			integ.Config["bucket"] = extractQuotedOrValue(s.Text, "is")
+
+		// "webhook endpoint is ..."
+		case strings.Contains(lower, "webhook endpoint is ") || strings.Contains(lower, "webhook is "):
+			integ.Config["webhook_endpoint"] = extractQuotedOrValue(s.Text, "is")
+
+		// "notify channel ..." / "channel is ..."
+		case strings.HasPrefix(lower, "notify channel ") || strings.HasPrefix(lower, "channel is "):
+			if strings.Contains(lower, " is ") {
+				integ.Config["channel"] = extractQuotedOrValue(s.Text, "is")
+			} else {
+				integ.Config["channel"] = extractQuotedOrValue(s.Text, "channel")
+			}
+
+		// "template ..." / "with template ..."
+		case strings.Contains(lower, "template "):
+			tpl := extractTemplateName(s.Text)
+			if tpl != "" {
+				integ.Templates = append(integ.Templates, tpl)
+			}
 		}
 	}
 
+	// Clean up empty maps.
+	if len(integ.Config) == 0 {
+		integ.Config = nil
+	}
+
 	return integ
+}
+
+// extractQuotedOrValue extracts the value after a separator keyword.
+// If the value is quoted, the quotes are stripped.
+func extractQuotedOrValue(text, sep string) string {
+	lower := strings.ToLower(text)
+	idx := strings.LastIndex(lower, strings.ToLower(sep)+" ")
+	if idx < 0 {
+		return ""
+	}
+	val := strings.TrimSpace(text[idx+len(sep)+1:])
+	return strings.Trim(val, `"`)
+}
+
+// extractTemplateName extracts a template name from statements like:
+// "template \"welcome\"" or "with template \"getting-started\""
+func extractTemplateName(text string) string {
+	lower := strings.ToLower(text)
+	idx := strings.Index(lower, "template ")
+	if idx < 0 {
+		return ""
+	}
+	rest := strings.TrimSpace(text[idx+len("template "):])
+	return strings.Trim(rest, `"`)
 }
 
 // ── Environments ──

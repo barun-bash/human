@@ -20,6 +20,12 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		filepath.Join(outputDir, "src", "routes"),
 		filepath.Join(outputDir, "src", "middleware"),
 	}
+
+	// Add services directory if integrations exist
+	if len(app.Integrations) > 0 {
+		dirs = append(dirs, filepath.Join(outputDir, "src", "services"))
+	}
+
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0755); err != nil {
 			return fmt.Errorf("creating directory %s: %w", d, err)
@@ -38,6 +44,11 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	if len(app.Policies) > 0 {
 		files[filepath.Join(outputDir, "src", "middleware", "policies.ts")] = generatePolicies(app)
 		files[filepath.Join(outputDir, "src", "middleware", "authorize.ts")] = generateAuthorize(app)
+	}
+
+	// Generate integration service files
+	for relPath, content := range generateIntegrations(app) {
+		files[filepath.Join(outputDir, relPath)] = content
 	}
 
 	// One route file per endpoint

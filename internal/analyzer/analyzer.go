@@ -63,6 +63,12 @@ func Analyze(app *ir.Application, file string) *cerr.CompilerErrors {
 	// 10. Architecture validation
 	checkArchitecture(errs, app, models, modelList)
 
+	// 11. Integration validation
+	checkIntegrations(errs, app)
+
+	// 12. Workflow-integration cross-references
+	checkWorkflowIntegrationRefs(errs, app)
+
 	return errs
 }
 
@@ -497,5 +503,78 @@ func checkArchitecture(errs *cerr.CompilerErrors, app *ir.Application, models ma
 	// E402: Serverless without APIs
 	if strings.Contains(style, "serverless") && len(app.APIs) == 0 {
 		errs.AddError("E402", "Serverless architecture declared but no APIs are defined — each API becomes a Lambda function")
+	}
+}
+
+// ── Integration validation ──
+
+var (
+	sendEmailPattern = regexp.MustCompile(`(?i)\bsend\s+(email|notification|welcome email|reminder email)\b`)
+	slackAlertPattern = regexp.MustCompile(`(?i)\b(alert|notify|message)\b.*\bslack\b|\bslack\b.*\b(alert|notify|message)\b`)
+)
+
+func checkIntegrations(errs *cerr.CompilerErrors, app *ir.Application) {
+	if len(app.Integrations) == 0 {
+		return
+	}
+
+	// E501: Duplicate service
+	seen := make(map[string]bool)
+	for _, integ := range app.Integrations {
+		lower := strings.ToLower(integ.Service)
+		if seen[lower] {
+			errs.AddError("E501", fmt.Sprintf("Duplicate integration: %q is declared more than once", integ.Service))
+		}
+		seen[lower] = true
+	}
+
+	// W501: Integration without credentials (except local services like Ollama)
+	localServices := map[string]bool{"ollama": true}
+	for _, integ := range app.Integrations {
+		if len(integ.Credentials) == 0 && !localServices[strings.ToLower(integ.Service)] {
+			errs.AddWarning("W501", fmt.Sprintf(
+				"Integration %q has no credentials configured — it will need API keys at runtime",
+				integ.Service))
+		}
+	}
+}
+
+func checkWorkflowIntegrationRefs(errs *cerr.CompilerErrors, app *ir.Application) {
+	if len(app.Workflows) == 0 {
+		return
+	}
+
+	// Build set of integration types present.
+	hasEmail := false
+	hasSlack := false
+	for _, integ := range app.Integrations {
+		switch integ.Type {
+		case "email":
+			hasEmail = true
+		case "messaging":
+			if strings.Contains(strings.ToLower(integ.Service), "slack") {
+				hasSlack = true
+			}
+		}
+	}
+
+	for _, wf := range app.Workflows {
+		for _, step := range wf.Steps {
+			text := step.Text
+
+			// W502: Workflow sends email but no email integration
+			if !hasEmail && sendEmailPattern.MatchString(text) {
+				errs.AddWarning("W502", fmt.Sprintf(
+					"Workflow %q sends email but no email integration is declared — add an 'integrate with SendGrid' (or similar) block",
+					wf.Trigger))
+			}
+
+			// W503: Workflow references Slack but no Slack integration
+			if !hasSlack && slackAlertPattern.MatchString(text) {
+				errs.AddWarning("W503", fmt.Sprintf(
+					"Workflow %q references Slack but no Slack integration is declared — add an 'integrate with Slack' block",
+					wf.Trigger))
+			}
+		}
 	}
 }

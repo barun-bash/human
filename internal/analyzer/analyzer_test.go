@@ -536,6 +536,112 @@ func TestServerlessWithAPIs(t *testing.T) {
 	}
 }
 
+// ── Integration validation ──
+
+func TestDuplicateIntegration(t *testing.T) {
+	app := minApp()
+	app.Integrations = []*ir.Integration{
+		{Service: "SendGrid", Type: "email"},
+		{Service: "SendGrid", Type: "email"},
+	}
+	errs := Analyze(app, "test.human")
+	assertCode(t, errs.Errors(), "E501")
+}
+
+func TestIntegrationNoDuplicateClean(t *testing.T) {
+	app := minApp()
+	app.Integrations = []*ir.Integration{
+		{Service: "SendGrid", Type: "email", Credentials: map[string]string{"api key": "SG_KEY"}},
+		{Service: "Stripe", Type: "payment", Credentials: map[string]string{"api key": "STRIPE_KEY"}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, e := range errs.Errors() {
+		if e.Code == "E501" {
+			t.Errorf("unexpected E501 — services are distinct: %s", e.Message)
+		}
+	}
+}
+
+func TestIntegrationNoCredentials(t *testing.T) {
+	app := minApp()
+	app.Integrations = []*ir.Integration{
+		{Service: "SendGrid", Type: "email"}, // no credentials
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W501")
+}
+
+func TestIntegrationNoCredentialsLocalService(t *testing.T) {
+	app := minApp()
+	app.Integrations = []*ir.Integration{
+		{Service: "Ollama"}, // local service, no credentials needed
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W501" {
+			t.Errorf("unexpected W501 — Ollama is local: %s", w.Message)
+		}
+	}
+}
+
+func TestWorkflowEmailNoIntegration(t *testing.T) {
+	app := minApp()
+	app.Workflows = []*ir.Workflow{
+		{Trigger: "user signs up", Steps: []*ir.Action{
+			{Type: "action", Text: "send welcome email with template welcome"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W502")
+}
+
+func TestWorkflowEmailWithIntegration(t *testing.T) {
+	app := minApp()
+	app.Integrations = []*ir.Integration{
+		{Service: "SendGrid", Type: "email", Credentials: map[string]string{"api key": "SG_KEY"}},
+	}
+	app.Workflows = []*ir.Workflow{
+		{Trigger: "user signs up", Steps: []*ir.Action{
+			{Type: "action", Text: "send welcome email with template welcome"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W502" {
+			t.Errorf("unexpected W502 — email integration exists: %s", w.Message)
+		}
+	}
+}
+
+func TestWorkflowSlackNoIntegration(t *testing.T) {
+	app := minApp()
+	app.Workflows = []*ir.Workflow{
+		{Trigger: "task becomes overdue", Steps: []*ir.Action{
+			{Type: "action", Text: "alert the admin via Slack"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W503")
+}
+
+func TestWorkflowSlackWithIntegration(t *testing.T) {
+	app := minApp()
+	app.Integrations = []*ir.Integration{
+		{Service: "Slack", Type: "messaging", Credentials: map[string]string{"api key": "SLACK_URL"}},
+	}
+	app.Workflows = []*ir.Workflow{
+		{Trigger: "task becomes overdue", Steps: []*ir.Action{
+			{Type: "action", Text: "alert the admin via Slack"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W503" {
+			t.Errorf("unexpected W503 — Slack integration exists: %s", w.Message)
+		}
+	}
+}
+
 // ── Test helpers ──
 
 func assertCode(t *testing.T, errs []*cerr.CompilerError, code string) {

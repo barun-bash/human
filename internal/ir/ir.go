@@ -1,5 +1,7 @@
 package ir
 
+import "strings"
+
 // Application is the root IR node representing a complete application.
 // It is framework-agnostic and serializable — given only this IR,
 // any code generator can produce a working application.
@@ -216,8 +218,37 @@ type Index struct {
 // Integration represents a third-party service connection.
 type Integration struct {
 	Service     string            `json:"service"`
+	Type        string            `json:"type,omitempty"`        // email, storage, payment, messaging, oauth
 	Credentials map[string]string `json:"credentials,omitempty"` // env var mappings
+	Config      map[string]string `json:"config,omitempty"`      // region, sender_email, bucket, webhook_endpoint, channel
+	Templates   []string          `json:"templates,omitempty"`   // email template names
 	Purpose     string            `json:"purpose,omitempty"`
+}
+
+// InferIntegrationType returns the integration type based on service name.
+func InferIntegrationType(service string) string {
+	s := strings.ToLower(service)
+	switch {
+	case strings.Contains(s, "sendgrid") || strings.Contains(s, "mailgun") ||
+		strings.Contains(s, "ses") || strings.Contains(s, "postmark") ||
+		strings.Contains(s, "mailchimp"):
+		return "email"
+	case strings.Contains(s, "s3") || strings.Contains(s, "gcs") ||
+		strings.Contains(s, "cloudinary") || strings.Contains(s, "minio"):
+		return "storage"
+	case strings.Contains(s, "stripe") || strings.Contains(s, "paypal") ||
+		strings.Contains(s, "braintree") || strings.Contains(s, "square"):
+		return "payment"
+	case strings.Contains(s, "slack") || strings.Contains(s, "discord") ||
+		strings.Contains(s, "twilio") || strings.Contains(s, "telegram"):
+		return "messaging"
+	case strings.Contains(s, "google") || strings.Contains(s, "github") ||
+		strings.Contains(s, "facebook") || strings.Contains(s, "auth0") ||
+		strings.Contains(s, "okta"):
+		return "oauth"
+	default:
+		return ""
+	}
 }
 
 // ── Deployment ──
