@@ -312,6 +312,60 @@ func conditionToPromQL(condition string) string {
 	}
 }
 
+// ── Tracking Metric Mapping ──
+
+// trackingToPromQL maps a monitoring "track" description to a real PromQL expression.
+func trackingToPromQL(metric string, appName string) string {
+	lower := strings.ToLower(metric)
+	switch {
+	case strings.Contains(lower, "response time"):
+		return fmt.Sprintf("histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{app=\"%s\"}[5m]))", appName)
+	case strings.Contains(lower, "error rate"):
+		return fmt.Sprintf("rate(http_requests_total{app=\"%s\",status=~\"5..\"}[5m]) / rate(http_requests_total{app=\"%s\"}[5m])", appName, appName)
+	case strings.Contains(lower, "active user"):
+		return fmt.Sprintf("app_active_users{app=\"%s\"}", appName)
+	default:
+		mn := customMetricName(metric)
+		return fmt.Sprintf("%s{app=\"%s\"}", mn, appName)
+	}
+}
+
+// trackingLegend returns a suitable Grafana legend format for a tracking metric.
+func trackingLegend(metric string) string {
+	lower := strings.ToLower(metric)
+	switch {
+	case strings.Contains(lower, "response time"):
+		return "p95"
+	case strings.Contains(lower, "error rate"):
+		return "{{path}}"
+	case strings.Contains(lower, "active user"):
+		return "active users"
+	default:
+		return customMetricName(metric)
+	}
+}
+
+// isStandardMetric returns true if the tracking description is already covered
+// by the standard http_requests_total and http_request_duration_seconds metrics.
+func isStandardMetric(metric string) bool {
+	lower := strings.ToLower(metric)
+	return strings.Contains(lower, "response time") || strings.Contains(lower, "error rate")
+}
+
+// customMetricName converts a tracking description to a valid Prometheus metric name.
+func customMetricName(metric string) string {
+	lower := strings.ToLower(metric)
+	switch {
+	case strings.Contains(lower, "active user"):
+		return "app_active_users"
+	default:
+		// Convert to snake_case, strip non-alphanumeric
+		name := strings.ToLower(strings.ReplaceAll(metric, " ", "_"))
+		name = regexp.MustCompile(`[^a-z0-9_]`).ReplaceAllString(name, "")
+		return name
+	}
+}
+
 // ── Grafana ──
 
 func generateGrafanaDatasource() string {
@@ -383,13 +437,14 @@ func generateGrafanaDashboard(app *ir.Application) string {
 	y := 16
 	for _, m := range app.Monitoring {
 		if m.Kind == "track" && m.Metric != "" {
-			metricName := strings.ToLower(strings.ReplaceAll(m.Metric, " ", "_"))
+			expr := strings.ReplaceAll(trackingToPromQL(m.Metric, name), `"`, `\"`)
+			legend := strings.ReplaceAll(trackingLegend(m.Metric), `"`, `\"`)
 			panel := fmt.Sprintf(`{
       "title": "%s",
       "type": "graph",
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": %d},
-      "targets": [{"expr": "%s{app=\"%s\"}", "legendFormat": "%s"}]
-    }`, m.Metric, y, metricName, name, metricName)
+      "targets": [{"expr": "%s", "legendFormat": "%s"}]
+    }`, m.Metric, y, expr, legend)
 			panels = append(panels, panel)
 			y += 8
 		}
@@ -506,13 +561,13 @@ func generateNodeMetrics(app *ir.Application) string {
 	b.WriteString("  registers: [register],\n")
 	b.WriteString("});\n")
 
-	// Custom metrics from monitoring rules
+	// Custom metrics from monitoring rules (skip metrics already covered by standard counters/histograms)
 	for _, m := range app.Monitoring {
-		if m.Kind == "track" && m.Metric != "" {
-			metricName := strings.ToLower(strings.ReplaceAll(m.Metric, " ", "_"))
-			varName := safeVarName(metricName)
-			b.WriteString(fmt.Sprintf("\nexport const %s = new Counter({\n", varName))
-			b.WriteString(fmt.Sprintf("  name: '%s',\n", metricName))
+		if m.Kind == "track" && m.Metric != "" && !isStandardMetric(m.Metric) {
+			mn := customMetricName(m.Metric)
+			varName := safeVarName(mn)
+			b.WriteString(fmt.Sprintf("\nexport const %s = new Gauge({\n", varName))
+			b.WriteString(fmt.Sprintf("  name: '%s',\n", mn))
 			b.WriteString(fmt.Sprintf("  help: '%s',\n", m.Metric))
 			b.WriteString("  registers: [register],\n")
 			b.WriteString("});\n")
@@ -589,11 +644,11 @@ func generatePythonMetrics(app *ir.Application) string {
 	b.WriteString(")\n")
 
 	for _, m := range app.Monitoring {
-		if m.Kind == "track" && m.Metric != "" {
-			metricName := strings.ToLower(strings.ReplaceAll(m.Metric, " ", "_"))
-			varName := safeVarName(metricName)
-			b.WriteString(fmt.Sprintf("\n%s = Counter(\n", varName))
-			b.WriteString(fmt.Sprintf("    '%s',\n", metricName))
+		if m.Kind == "track" && m.Metric != "" && !isStandardMetric(m.Metric) {
+			mn := customMetricName(m.Metric)
+			varName := safeVarName(mn)
+			b.WriteString(fmt.Sprintf("\n%s = Gauge(\n", varName))
+			b.WriteString(fmt.Sprintf("    '%s',\n", mn))
 			b.WriteString(fmt.Sprintf("    '%s',\n", m.Metric))
 			b.WriteString("    registry=registry,\n")
 			b.WriteString(")\n")
@@ -676,11 +731,11 @@ func generateGoMetrics(app *ir.Application) string {
 	b.WriteString("\t})\n")
 
 	for _, m := range app.Monitoring {
-		if m.Kind == "track" && m.Metric != "" {
-			metricName := strings.ToLower(strings.ReplaceAll(m.Metric, " ", "_"))
-			varName := safeVarName(titleCase(strings.ReplaceAll(m.Metric, " ", "")))
-			b.WriteString(fmt.Sprintf("\n\t%s = promauto.NewCounter(prometheus.CounterOpts{\n", varName))
-			b.WriteString(fmt.Sprintf("\t\tName: \"%s\",\n", metricName))
+		if m.Kind == "track" && m.Metric != "" && !isStandardMetric(m.Metric) {
+			mn := customMetricName(m.Metric)
+			varName := safeVarName(titleCase(strings.ReplaceAll(mn, "_", "")))
+			b.WriteString(fmt.Sprintf("\n\t%s = promauto.NewGauge(prometheus.GaugeOpts{\n", varName))
+			b.WriteString(fmt.Sprintf("\t\tName: \"%s\",\n", mn))
 			b.WriteString(fmt.Sprintf("\t\tHelp: \"%s\",\n", m.Metric))
 			b.WriteString("\t})\n")
 		}

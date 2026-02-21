@@ -409,6 +409,99 @@ func TestPythonMiddlewareAsyncEndpoint(t *testing.T) {
 	}
 }
 
+// ── Tracking metric mapping tests ──
+
+func TestTrackingToPromQLResponseTime(t *testing.T) {
+	expr := trackingToPromQL("response times for all api endpoints", "myapp")
+	if !strings.Contains(expr, "http_request_duration_seconds_bucket") {
+		t.Errorf("response time tracking should use duration histogram: got %q", expr)
+	}
+}
+
+func TestTrackingToPromQLErrorRate(t *testing.T) {
+	expr := trackingToPromQL("error rates per endpoint", "myapp")
+	if !strings.Contains(expr, "http_requests_total") {
+		t.Errorf("error rate tracking should use http_requests_total: got %q", expr)
+	}
+	if !strings.Contains(expr, "status=~\"5..\"") {
+		t.Errorf("error rate tracking should filter 5xx status: got %q", expr)
+	}
+}
+
+func TestTrackingToPromQLActiveUsers(t *testing.T) {
+	expr := trackingToPromQL("active users daily and monthly", "myapp")
+	if !strings.Contains(expr, "app_active_users") {
+		t.Errorf("active users should use app_active_users metric: got %q", expr)
+	}
+}
+
+func TestIsStandardMetric(t *testing.T) {
+	if !isStandardMetric("response times for all api endpoints") {
+		t.Error("response time should be standard")
+	}
+	if !isStandardMetric("error rates per endpoint") {
+		t.Error("error rate should be standard")
+	}
+	if isStandardMetric("page views") {
+		t.Error("page views should not be standard")
+	}
+	if isStandardMetric("active users daily and monthly") {
+		t.Error("active users should not be standard")
+	}
+}
+
+func TestNodeMetricsSkipsStandardTracking(t *testing.T) {
+	app := &ir.Application{
+		Name:   "TestApp",
+		Config: &ir.BuildConfig{Backend: "Node with Express"},
+		Monitoring: []*ir.MonitoringRule{
+			{Kind: "track", Metric: "response times for all api endpoints"},
+			{Kind: "track", Metric: "error rates per endpoint"},
+			{Kind: "track", Metric: "active users daily and monthly"},
+		},
+	}
+	content := generateNodeMetrics(app)
+
+	// Standard metrics should NOT create separate custom counters
+	if strings.Contains(content, "response_times_for_all_api_endpoints") {
+		t.Error("should not create custom metric for response times (already covered by http_request_duration_seconds)")
+	}
+	if strings.Contains(content, "error_rates_per_endpoint") {
+		t.Error("should not create custom metric for error rates (already covered by http_requests_total)")
+	}
+
+	// Business metric should be created as Gauge
+	if !strings.Contains(content, "app_active_users") {
+		t.Error("should create custom metric for active users")
+	}
+	if !strings.Contains(content, "new Gauge") {
+		t.Error("custom business metrics should be Gauge, not Counter")
+	}
+}
+
+func TestGrafanaDashboardUsesRealPromQL(t *testing.T) {
+	app := &ir.Application{
+		Name:   "TestApp",
+		Config: &ir.BuildConfig{Backend: "Node with Express"},
+		Monitoring: []*ir.MonitoringRule{
+			{Kind: "track", Metric: "response times for all api endpoints"},
+			{Kind: "track", Metric: "error rates per endpoint"},
+		},
+	}
+	content := generateGrafanaDashboard(app)
+
+	// Dashboard should use real PromQL, not fake metric names
+	if strings.Contains(content, "response_times_for_all_api_endpoints{") {
+		t.Error("dashboard should not use raw description as metric name")
+	}
+	if !strings.Contains(content, "http_request_duration_seconds_bucket") {
+		t.Error("response time panel should use duration histogram PromQL")
+	}
+	if !strings.Contains(content, "http_requests_total") {
+		t.Error("error rate panel should use http_requests_total PromQL")
+	}
+}
+
 // ── Helper tests ──
 
 func TestSanitizeAlertName(t *testing.T) {
