@@ -1,6 +1,6 @@
 // Single source of truth for version info across all docs pages.
 // Update this file when releasing a new version — all pages pick it up automatically.
-var HUMAN_VERSION = "0.4.0";
+var HUMAN_VERSION = "0.4.1";
 var HUMAN_VERSION_TAG = "v" + HUMAN_VERSION;
 var HUMAN_RELEASE_URL = "https://github.com/barun-bash/human/releases/tag/" + HUMAN_VERSION_TAG;
 var HUMAN_INSTALL_CMD = "go install github.com/barun-bash/human/cmd/human@" + HUMAN_VERSION_TAG;
