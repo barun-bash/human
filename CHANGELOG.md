@@ -4,6 +4,27 @@ All notable changes to the Human compiler are documented in this file.
 
 ---
 
+## v0.4.1 — 2026-02-21
+
+**Runtime correctness and framework-aware Docker generation.**
+
+### New Features
+- **Framework-aware Docker generation**: backend Dockerfile, context path, and port are now dynamic based on configured stack (`./node` at 3000, `./python` at 8000, `./go` at 8080)
+- **Python and Go backend Dockerfiles**: multi-stage builds for FastAPI (uvicorn) and Go (static binary)
+- **Angular-specific frontend Dockerfile**: uses `NG_APP_API_URL` instead of `VITE_API_URL`, copies from `dist/app/browser/`
+- **`.dockerignore` files** generated for all backend and frontend services (language-specific ignore patterns)
+- **Terraform generator** updated to use consistent backend dir/port helpers
+
+### Bug Fixes
+- **CI/CD generator**: fixed workflow YAML syntax, proper job dependencies, correct artifact paths
+- **Monitoring generator**: real PromQL expressions, proper metric types (`gauge` vs `counter`), valid Grafana dashboard JSON with correct panel structure
+- **Terraform generator**: valid HCL output, correct resource references, proper variable interpolation
+
+### Website
+- Updated project website to match v0.4.0 README: multi-framework output in example/how-it-works sections, separated implemented vs planned in supported targets, added Infrastructure/Integrations/Design Systems columns, fixed quick start output path
+
+---
+
 ## v0.4.0 — 2026-02-21
 
 **Full-stack multi-framework release.** The compiler now generates production-ready code across 4 frontend frameworks, 3 backend languages, and 10+ infrastructure targets. 600+ tests across 28 packages.
