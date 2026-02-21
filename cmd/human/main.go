@@ -1315,14 +1315,8 @@ func cmdAsk() {
 
 	connector, _ := loadLLMConnector()
 
-	// Set up context with Ctrl+C cancellation.
-	ctx, cancel := context.WithCancel(context.Background())
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt)
-	go func() {
-		<-sigCh
-		cancel()
-	}()
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
 
 	fmt.Println(cli.Info("Generating .human code..."))
 	fmt.Println()
@@ -1349,10 +1343,10 @@ func cmdAsk() {
 	}
 	fmt.Println()
 
-	// Post-stream validation.
+	// Post-stream validation: extract code from fences, then validate.
 	fmt.Println()
-	code := fullText.String()
-	valid, parseErr := llm.ValidateCode(code)
+	code, valid, parseErr := llm.ExtractAndValidate(fullText.String())
+	_ = code // code is displayed via streaming already
 	if valid {
 		fmt.Println(cli.Success("Generated code is valid .human syntax."))
 	} else {
@@ -1377,13 +1371,8 @@ func cmdSuggest() {
 
 	connector, _ := loadLLMConnector()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt)
-	go func() {
-		<-sigCh
-		cancel()
-	}()
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
 
 	fmt.Println(cli.Info(fmt.Sprintf("Analyzing %s...", file)))
 	fmt.Println()
@@ -1443,13 +1432,8 @@ func cmdEdit() {
 
 	connector, llmCfg := loadLLMConnector()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt)
-	go func() {
-		<-sigCh
-		cancel()
-	}()
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
 
 	currentSource := string(source)
 	var history []llm.Message
@@ -1546,13 +1530,8 @@ func cmdConvert() {
 
 	connector, _ := loadLLMConnector()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt)
-	go func() {
-		<-sigCh
-		cancel()
-	}()
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
 
 	fmt.Println(cli.Info("Converting to .human code..."))
 	fmt.Println(cli.Info("(Design file import is planned for a future release.)"))
