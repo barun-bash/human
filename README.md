@@ -10,7 +10,7 @@
   <br>
   Write in structured English. Get production-ready applications.
   <br><br>
-  <a href="https://github.com/barun-bash/human/releases/tag/v0.4.0"><img src="https://img.shields.io/badge/release-v0.4.0-E85D3A.svg" alt="v0.4.0"></a>&nbsp;
+  <a href="https://github.com/barun-bash/human/releases/tag/v0.4.1"><img src="https://img.shields.io/badge/release-v0.4.1-E85D3A.svg" alt="v0.4.1"></a>&nbsp;
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>&nbsp;
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8.svg" alt="Go 1.21+"></a>&nbsp;
   <a href="https://barun-bash.github.io/human/"><img src="https://img.shields.io/badge/website-live-E85D3A.svg" alt="Website"></a>
