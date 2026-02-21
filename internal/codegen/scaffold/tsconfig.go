@@ -23,7 +23,7 @@ func generateNodeTSConfig() string {
 	b.WriteString("    \"sourceMap\": true\n")
 	b.WriteString("  },\n")
 	b.WriteString("  \"include\": [\"src/**/*\"],\n")
-	b.WriteString("  \"exclude\": [\"node_modules\", \"dist\"]\n")
+	b.WriteString("  \"exclude\": [\"node_modules\", \"dist\", \"src/__tests__\"]\n")
 	b.WriteString("}\n")
 
 	return b.String()

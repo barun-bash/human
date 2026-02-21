@@ -154,6 +154,14 @@ func TestSanitizeParamName(t *testing.T) {
 }
 
 func TestInferModelFromAction(t *testing.T) {
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{Name: "User", Fields: []*ir.DataField{{Name: "email", Type: "email"}}},
+			{Name: "Task", Fields: []*ir.DataField{{Name: "title", Type: "text"}}},
+			{Name: "Tag", Fields: []*ir.DataField{{Name: "name", Type: "text"}}},
+		},
+	}
+
 	tests := []struct {
 		text string
 		want string
@@ -162,12 +170,28 @@ func TestInferModelFromAction(t *testing.T) {
 		{"fetch all tasks for the current user", "Task"},
 		{"update the Task", "Task"},
 		{"delete the Task", "Task"},
+		// These previously returned "Record" — now resolved via app.Data
+		{"fetch the user by email", "User"},
+		{"update the task with the given fields", "Task"},
 	}
 	for _, tt := range tests {
-		got := inferModelFromAction(tt.text)
+		got := inferModelFromAction(tt.text, app)
 		if got != tt.want {
 			t.Errorf("inferModelFromAction(%q): got %q, want %q", tt.text, got, tt.want)
 		}
+	}
+}
+
+func TestInferModelFromActionNilApp(t *testing.T) {
+	// With nil app, capitalized words still work
+	got := inferModelFromAction("create a User", nil)
+	if got != "User" {
+		t.Errorf("expected User, got %q", got)
+	}
+	// Without capitalized words and no app, falls back to "Record"
+	got = inferModelFromAction("sort by due date", nil)
+	if got != "Record" {
+		t.Errorf("expected Record, got %q", got)
 	}
 }
 
@@ -542,6 +566,12 @@ func TestGenerateRoute(t *testing.T) {
 	if !strings.Contains(output, "next(error)") {
 		t.Error("missing error forwarding to next()")
 	}
+
+	// No duplicate const result
+	count := strings.Count(output, "const result ")
+	if count > 1 {
+		t.Errorf("expected at most 1 'const result', got %d\n%s", count, output)
+	}
 }
 
 func TestGenerateRouteNoAuth(t *testing.T) {
@@ -569,6 +599,34 @@ func TestGenerateRouteNoAuth(t *testing.T) {
 	if !strings.Contains(output, "router.post(") {
 		t.Error("SignUp should use POST")
 	}
+
+	// Should have bcrypt import (SignUp endpoint)
+	if !strings.Contains(output, "import bcrypt from 'bcryptjs'") {
+		t.Error("SignUp should import bcrypt")
+	}
+
+	// Should have signToken import
+	if !strings.Contains(output, "import { signToken }") {
+		t.Error("SignUp should import signToken")
+	}
+
+	// Should hash password
+	if !strings.Contains(output, "bcrypt.hash(password, 12)") {
+		t.Error("SignUp should hash password with bcrypt")
+	}
+
+	// Should use hashedPassword in create
+	if !strings.Contains(output, "password: hashedPassword") {
+		t.Error("SignUp should use hashedPassword in create data")
+	}
+
+	// Should return token in response
+	if !strings.Contains(output, "signToken(result.id, result.role)") {
+		t.Error("SignUp response should include signToken call")
+	}
+	if !strings.Contains(output, "{ data: result, token }") {
+		t.Error("SignUp response should include token")
+	}
 }
 
 func TestGenerateRouteGet(t *testing.T) {
@@ -581,13 +639,460 @@ func TestGenerateRouteGet(t *testing.T) {
 		},
 	}
 
-	output := generateRoute(ep, &ir.Application{})
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{Name: "User"},
+			{
+				Name: "Task",
+				Relations: []*ir.Relation{
+					{Kind: "belongs_to", Target: "User"},
+				},
+			},
+		},
+	}
+
+	output := generateRoute(ep, app)
 
 	if !strings.Contains(output, "router.get(") {
 		t.Error("GetTasks should use GET")
 	}
-	if !strings.Contains(output, "prisma.task.findMany()") {
+	if !strings.Contains(output, "prisma.task.findMany(") {
 		t.Error("missing prisma.task.findMany call")
+	}
+	// Should have userId scoping since Task belongs_to User and endpoint has Auth
+	if !strings.Contains(output, "userId: req.userId") {
+		t.Errorf("GetTasks should scope by userId when auth=true and Task belongs_to User\n%s", output)
+	}
+}
+
+// ── SignUp Route Tests ──
+
+func TestGenerateRouteSignUp(t *testing.T) {
+	ep := &ir.Endpoint{
+		Name: "SignUp",
+		Auth: false,
+		Params: []*ir.Param{
+			{Name: "name"},
+			{Name: "email"},
+			{Name: "password"},
+		},
+		Validation: []*ir.ValidationRule{
+			{Field: "email", Rule: "valid_email"},
+			{Field: "email", Rule: "unique"},
+			{Field: "password", Rule: "min_length", Value: "8"},
+		},
+		Steps: []*ir.Action{
+			{Type: "create", Text: "create a User with the given fields"},
+			{Type: "respond", Text: "respond with the created user and auth token"},
+		},
+	}
+
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{
+				Name: "User",
+				Fields: []*ir.DataField{
+					{Name: "name", Type: "text"},
+					{Name: "email", Type: "email", Unique: true},
+					{Name: "password", Type: "text", Encrypted: true},
+				},
+			},
+		},
+	}
+
+	output := generateRoute(ep, app)
+
+	// bcrypt import
+	if !strings.Contains(output, "import bcrypt from 'bcryptjs'") {
+		t.Error("SignUp: missing bcrypt import")
+	}
+	// signToken import
+	if !strings.Contains(output, "import { signToken } from '../middleware/auth'") {
+		t.Error("SignUp: missing signToken import")
+	}
+	// Password hashing
+	if !strings.Contains(output, "bcrypt.hash(password, 12)") {
+		t.Errorf("SignUp: missing bcrypt.hash call\n%s", output)
+	}
+	// hashedPassword in create data
+	if !strings.Contains(output, "password: hashedPassword") {
+		t.Errorf("SignUp: should use hashedPassword in create data\n%s", output)
+	}
+	// Prisma model should be "user" not "record"
+	if strings.Contains(output, "prisma.record") {
+		t.Errorf("SignUp: should not contain prisma.record\n%s", output)
+	}
+	if !strings.Contains(output, "prisma.user.create(") {
+		t.Errorf("SignUp: should create on prisma.user\n%s", output)
+	}
+	// Token in response
+	if !strings.Contains(output, "signToken(") {
+		t.Errorf("SignUp: missing signToken in response\n%s", output)
+	}
+	if !strings.Contains(output, "token") {
+		t.Error("SignUp: response should include token")
+	}
+	// Unique validation should use "user" model (from app.Data)
+	if !strings.Contains(output, "prisma.user.findUnique") {
+		t.Errorf("SignUp: unique validation should use prisma.user.findUnique\n%s", output)
+	}
+}
+
+// ── Login Route Tests ──
+
+func TestGenerateRouteLogin(t *testing.T) {
+	ep := &ir.Endpoint{
+		Name: "Login",
+		Auth: false,
+		Params: []*ir.Param{
+			{Name: "email"},
+			{Name: "password"},
+		},
+		Steps: []*ir.Action{
+			{Type: "query", Text: "fetch the user by email"},
+			{Type: "condition", Text: "if user does not exist, respond with invalid credentials"},
+			{Type: "condition", Text: "if password does not match, respond with error"},
+			{Type: "respond", Text: "respond with the user and auth token"},
+		},
+	}
+
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{
+				Name: "User",
+				Fields: []*ir.DataField{
+					{Name: "email", Type: "email"},
+					{Name: "password", Type: "text", Encrypted: true},
+				},
+			},
+		},
+	}
+
+	output := generateRoute(ep, app)
+
+	// bcrypt import
+	if !strings.Contains(output, "import bcrypt from 'bcryptjs'") {
+		t.Errorf("Login: missing bcrypt import\n%s", output)
+	}
+	// signToken import
+	if !strings.Contains(output, "import { signToken }") {
+		t.Errorf("Login: missing signToken import\n%s", output)
+	}
+	// Should use findUnique, not findMany
+	if !strings.Contains(output, "findUnique") {
+		t.Errorf("Login: should use findUnique\n%s", output)
+	}
+	if strings.Contains(output, "findMany") {
+		t.Errorf("Login: should not use findMany\n%s", output)
+	}
+	// Should use prisma.user, not prisma.record
+	if strings.Contains(output, "prisma.record") {
+		t.Errorf("Login: should not contain prisma.record\n%s", output)
+	}
+	if !strings.Contains(output, "prisma.user.findUnique") {
+		t.Errorf("Login: should query prisma.user\n%s", output)
+	}
+	// Password comparison
+	if !strings.Contains(output, "bcrypt.compare") {
+		t.Errorf("Login: missing bcrypt.compare\n%s", output)
+	}
+	// Token generation
+	if !strings.Contains(output, "signToken(") {
+		t.Errorf("Login: missing signToken call\n%s", output)
+	}
+	// Error response for invalid credentials
+	if !strings.Contains(output, "401") {
+		t.Errorf("Login: missing 401 status for invalid credentials\n%s", output)
+	}
+	if !strings.Contains(output, "Invalid credentials") {
+		t.Errorf("Login: missing 'Invalid credentials' error message\n%s", output)
+	}
+}
+
+// ── Query Modifier Tests ──
+
+func TestQueryModifierSkipped(t *testing.T) {
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{
+				Name: "Task",
+				Relations: []*ir.Relation{
+					{Kind: "belongs_to", Target: "User"},
+				},
+			},
+		},
+	}
+
+	ep := &ir.Endpoint{
+		Name: "GetTasks",
+		Auth: true,
+		Steps: []*ir.Action{
+			{Type: "query", Text: "fetch all tasks for the current user"},
+			{Type: "query", Text: "sort by due date"},
+			{Type: "query", Text: "support filtering by status"},
+			{Type: "query", Text: "paginate with 20 per page"},
+			{Type: "respond", Text: "respond with tasks"},
+		},
+	}
+
+	output := generateRoute(ep, app)
+
+	// The main query should exist
+	if !strings.Contains(output, "prisma.task.findMany") {
+		t.Errorf("missing main findMany query\n%s", output)
+	}
+
+	// Modifiers should be TODO comments, not additional Prisma queries
+	if strings.Count(output, "prisma.task.findMany") > 1 {
+		t.Errorf("query modifiers should not generate additional findMany calls, got %d\n%s",
+			strings.Count(output, "prisma.task.findMany"), output)
+	}
+
+	// Modifiers should appear as TODO comments
+	if !strings.Contains(output, "// TODO: sort by due date") {
+		t.Errorf("missing TODO comment for sort modifier\n%s", output)
+	}
+	if !strings.Contains(output, "// TODO: support filtering by status") {
+		t.Errorf("missing TODO comment for filter modifier\n%s", output)
+	}
+	if !strings.Contains(output, "// TODO: paginate with 20 per page") {
+		t.Errorf("missing TODO comment for paginate modifier\n%s", output)
+	}
+
+	// No duplicate const result
+	count := strings.Count(output, "const result ")
+	if count > 1 {
+		t.Errorf("expected at most 1 'const result', got %d\n%s", count, output)
+	}
+}
+
+// ── Default Assignment Tests ──
+
+func TestDefaultAssignment(t *testing.T) {
+	ep := &ir.Endpoint{
+		Name: "CreateTask",
+		Auth: true,
+		Params: []*ir.Param{
+			{Name: "title"},
+			{Name: "status"},
+		},
+		Steps: []*ir.Action{
+			{Type: "update", Text: "set status to pending if not provided"},
+			{Type: "create", Text: "create a Task with the given fields"},
+			{Type: "respond", Text: "respond with the created task"},
+		},
+	}
+
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{Name: "Task", Fields: []*ir.DataField{{Name: "title", Type: "text"}, {Name: "status", Type: "text"}}},
+		},
+	}
+
+	output := generateRoute(ep, app)
+
+	// Should emit default assignment logic, not a Prisma update
+	if !strings.Contains(output, "if (!status)") {
+		t.Errorf("default assignment: missing status default check\n%s", output)
+	}
+	if !strings.Contains(output, "= 'pending'") {
+		t.Errorf("default assignment: missing default value 'pending'\n%s", output)
+	}
+	// Should NOT have prisma.X.update for the default step
+	if strings.Contains(output, "prisma.task.update(") || strings.Contains(output, "prisma.record.update(") {
+		t.Errorf("default assignment should not emit prisma.update\n%s", output)
+	}
+}
+
+// ── Field Name Mapping Tests ──
+
+func TestFieldNameMapping(t *testing.T) {
+	model := &ir.DataModel{
+		Name: "Task",
+		Fields: []*ir.DataField{
+			{Name: "title", Type: "text"},
+			{Name: "due", Type: "date"},
+			{Name: "status", Type: "enum"},
+		},
+	}
+
+	tests := []struct {
+		paramName string
+		wantField string
+		wantParam string
+	}{
+		{"title", "title", "title"},
+		{"due date", "due", "dueDate"}, // compound name maps to Prisma field "due"
+		{"status", "status", "status"},
+		{"unknown", "unknown", "unknown"},
+	}
+
+	for _, tt := range tests {
+		gotField, gotParam := mapParamToPrismaField(tt.paramName, model)
+		if gotField != tt.wantField || gotParam != tt.wantParam {
+			t.Errorf("mapParamToPrismaField(%q): got (%q, %q), want (%q, %q)",
+				tt.paramName, gotField, gotParam, tt.wantField, tt.wantParam)
+		}
+	}
+}
+
+func TestFieldNameMappingNilModel(t *testing.T) {
+	// With nil model, should just return sanitized name for both
+	gotField, gotParam := mapParamToPrismaField("due date", nil)
+	if gotField != "dueDate" || gotParam != "dueDate" {
+		t.Errorf("nil model: got (%q, %q), want (dueDate, dueDate)", gotField, gotParam)
+	}
+}
+
+// ── ID Parameter Resolution Tests ──
+
+func TestFindIdParam(t *testing.T) {
+	tests := []struct {
+		name   string
+		params []*ir.Param
+		want   string
+	}{
+		{"has task_id", []*ir.Param{{Name: "task_id"}, {Name: "title"}}, "task_id"},
+		{"no id param", []*ir.Param{{Name: "title"}, {Name: "status"}}, ""},
+		{"has id", []*ir.Param{{Name: "id"}, {Name: "title"}}, "id"},
+	}
+
+	for _, tt := range tests {
+		ep := &ir.Endpoint{Params: tt.params}
+		got := findIdParam(ep)
+		if got != tt.want {
+			t.Errorf("findIdParam(%s): got %q, want %q", tt.name, got, tt.want)
+		}
+	}
+}
+
+// ── Update and Delete ID Resolution Tests ──
+
+func TestUpdateUsesIdParam(t *testing.T) {
+	ep := &ir.Endpoint{
+		Name: "UpdateTask",
+		Auth: true,
+		Params: []*ir.Param{
+			{Name: "task_id"},
+			{Name: "title"},
+			{Name: "status"},
+		},
+		Steps: []*ir.Action{
+			{Type: "update", Text: "update the Task with the given fields"},
+			{Type: "respond", Text: "respond with the updated task"},
+		},
+	}
+
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{Name: "Task", Fields: []*ir.DataField{{Name: "title", Type: "text"}, {Name: "status", Type: "text"}}},
+		},
+	}
+
+	output := generateRoute(ep, app)
+
+	// Should use task_id, not req.params.id
+	if strings.Contains(output, "req.params.id") {
+		t.Errorf("UpdateTask should not use req.params.id\n%s", output)
+	}
+	if !strings.Contains(output, "where: { id: task_id }") {
+		t.Errorf("UpdateTask should use task_id from params\n%s", output)
+	}
+}
+
+func TestDeleteUsesIdParam(t *testing.T) {
+	ep := &ir.Endpoint{
+		Name: "DeleteTask",
+		Auth: true,
+		Params: []*ir.Param{
+			{Name: "task_id"},
+		},
+		Steps: []*ir.Action{
+			{Type: "delete", Text: "delete the Task"},
+			{Type: "respond", Text: "respond with success"},
+		},
+	}
+
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{Name: "Task"},
+		},
+	}
+
+	output := generateRoute(ep, app)
+
+	if strings.Contains(output, "req.params.id") {
+		t.Errorf("DeleteTask should not use req.params.id\n%s", output)
+	}
+	if !strings.Contains(output, "where: { id: task_id }") {
+		t.Errorf("DeleteTask should use task_id from params\n%s", output)
+	}
+}
+
+// ── userId Scoping Tests ──
+
+func TestUserIdScopingOnCreate(t *testing.T) {
+	ep := &ir.Endpoint{
+		Name: "CreateTask",
+		Auth: true,
+		Params: []*ir.Param{
+			{Name: "title"},
+		},
+		Steps: []*ir.Action{
+			{Type: "create", Text: "create a Task with the given fields"},
+			{Type: "respond", Text: "respond with the created task"},
+		},
+	}
+
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{Name: "User"},
+			{
+				Name: "Task",
+				Fields: []*ir.DataField{
+					{Name: "title", Type: "text"},
+				},
+				Relations: []*ir.Relation{
+					{Kind: "belongs_to", Target: "User"},
+				},
+			},
+		},
+	}
+
+	output := generateRoute(ep, app)
+
+	if !strings.Contains(output, "userId: req.userId") {
+		t.Errorf("CreateTask should include userId in create data when Task belongs_to User\n%s", output)
+	}
+}
+
+// ── Condition Step Tests ──
+
+func TestConditionStepNotFound(t *testing.T) {
+	ep := &ir.Endpoint{
+		Name: "GetProfile",
+		Auth: true,
+		Steps: []*ir.Action{
+			{Type: "query", Text: "fetch the User by user_id"},
+			{Type: "condition", Text: "if user does not exist, respond with user not found"},
+			{Type: "respond", Text: "respond with the user"},
+		},
+	}
+
+	app := &ir.Application{
+		Data: []*ir.DataModel{
+			{Name: "User", Fields: []*ir.DataField{{Name: "name", Type: "text"}}},
+		},
+	}
+
+	output := generateRoute(ep, app)
+
+	// Should generate actual not-found check
+	if !strings.Contains(output, "if (!result)") {
+		t.Errorf("condition step should generate not-found check\n%s", output)
+	}
+	if !strings.Contains(output, "404") {
+		t.Errorf("condition step should return 404\n%s", output)
 	}
 }
 
@@ -916,8 +1421,82 @@ func TestFullIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading create-task.ts: %v", err)
 	}
-	if !strings.Contains(string(createTaskContent), "authorize('create', 'task')") {
+	createTaskStr := string(createTaskContent)
+	if !strings.Contains(createTaskStr, "authorize('create', 'task')") {
 		t.Error("create-task.ts: missing authorize middleware")
+	}
+
+	// ── Runtime Correctness Checks ──
+
+	// sign-up.ts should contain bcrypt.hash
+	signUpContent, err := os.ReadFile(filepath.Join(dir, "src", "routes", "sign-up.ts"))
+	if err != nil {
+		t.Fatalf("reading sign-up.ts: %v", err)
+	}
+	signUpStr := string(signUpContent)
+	if !strings.Contains(signUpStr, "bcrypt.hash") {
+		t.Errorf("sign-up.ts: missing bcrypt.hash\n%s", signUpStr)
+	}
+	if !strings.Contains(signUpStr, "signToken") {
+		t.Errorf("sign-up.ts: missing signToken\n%s", signUpStr)
+	}
+
+	// login.ts should contain bcrypt.compare and signToken
+	loginContent, err := os.ReadFile(filepath.Join(dir, "src", "routes", "login.ts"))
+	if err != nil {
+		t.Fatalf("reading login.ts: %v", err)
+	}
+	loginStr := string(loginContent)
+	if !strings.Contains(loginStr, "bcrypt.compare") {
+		t.Errorf("login.ts: missing bcrypt.compare\n%s", loginStr)
+	}
+	if !strings.Contains(loginStr, "signToken") {
+		t.Errorf("login.ts: missing signToken\n%s", loginStr)
+	}
+	if !strings.Contains(loginStr, "findUnique") {
+		t.Errorf("login.ts: should use findUnique, not findMany\n%s", loginStr)
+	}
+
+	// No route file should contain "prisma.record."
+	routesDir := filepath.Join(dir, "src", "routes")
+	routeFiles, _ := os.ReadDir(routesDir)
+	for _, rf := range routeFiles {
+		if rf.IsDir() || !strings.HasSuffix(rf.Name(), ".ts") || rf.Name() == "index.ts" {
+			continue
+		}
+		content, err := os.ReadFile(filepath.Join(routesDir, rf.Name()))
+		if err != nil {
+			continue
+		}
+		if strings.Contains(string(content), "prisma.record.") {
+			t.Errorf("%s: contains prisma.record. — model inference failed", rf.Name())
+		}
+	}
+
+	// get-tasks.ts should have userId scoping
+	getTasksContent, err := os.ReadFile(filepath.Join(dir, "src", "routes", "get-tasks.ts"))
+	if err != nil {
+		t.Fatalf("reading get-tasks.ts: %v", err)
+	}
+	getTasksStr := string(getTasksContent)
+	if !strings.Contains(getTasksStr, "userId: req.userId") {
+		t.Errorf("get-tasks.ts: missing userId scoping\n%s", getTasksStr)
+	}
+
+	// create-task.ts should not have duplicate const result
+	resultCount := strings.Count(createTaskStr, "const result ")
+	if resultCount > 1 {
+		t.Errorf("create-task.ts: has %d 'const result' declarations (expected at most 1)\n%s", resultCount, createTaskStr)
+	}
+
+	// update-task.ts should use task_id, not req.params.id
+	updateTaskContent, err := os.ReadFile(filepath.Join(dir, "src", "routes", "update-task.ts"))
+	if err != nil {
+		t.Fatalf("reading update-task.ts: %v", err)
+	}
+	updateTaskStr := string(updateTaskContent)
+	if strings.Contains(updateTaskStr, "req.params.id") {
+		t.Errorf("update-task.ts: should not use req.params.id\n%s", updateTaskStr)
 	}
 
 	totalFiles := len(coreFiles) + len(expectedRoutes) + len(policyFiles)

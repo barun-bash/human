@@ -589,8 +589,7 @@ func TestStartScript(t *testing.T) {
 		{"env check", "[ ! -f .env ]"},
 		{"pg_isready check", "pg_isready"},
 		{"docker compose suggestion", "docker compose up db -d"},
-		{"prisma generate", "npx prisma generate"},
-		{"prisma db push", "npx prisma db push"},
+		{"prisma subshell", "(cd node && npx prisma generate && npx prisma db push)"},
 		{"npm run dev", "npm run dev"},
 	}
 

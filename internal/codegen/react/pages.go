@@ -9,12 +9,14 @@ import (
 
 // pageContext provides shared context for JSX generation within a page or component.
 type pageContext struct {
-	app       *ir.Application
-	appName   string
-	modelName string            // primary data model for the page (e.g., "Task")
-	varName   string            // data array variable (e.g., "tasks")
-	itemVar   string            // loop item variable (e.g., "task")
-	props     map[string]string // component props: propName → typeName
+	app             *ir.Application
+	appName         string
+	modelName       string            // primary data model for the page (e.g., "Task")
+	varName         string            // data array variable (e.g., "tasks")
+	itemVar         string            // loop item variable (e.g., "task")
+	props           map[string]string // component props: propName → typeName
+	hasSuccessState bool              // whether setSuccess is available
+	hasErrorState   bool              // whether setError is available
 }
 
 // generatePage produces a React page component from an IR Page.
@@ -26,17 +28,10 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	// Detect primary data model from query actions
 	modelName, varName, itemVar := detectPageModel(page, app)
 
-	ctx := &pageContext{
-		app:       app,
-		appName:   app.Name,
-		modelName: modelName,
-		varName:   varName,
-		itemVar:   itemVar,
-	}
-
 	// Scan actions to determine needed imports and state
+	// (need to scan before creating ctx so we can set hasSuccessState/hasErrorState)
 	needsNavigate := false
-	needsState := false
+	needsDataState := false // for loading + data array (query/loop with model)
 	needsEffect := false
 	needsAuth := false
 	needsFormState := false
@@ -56,16 +51,16 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 				needsFormState = true
 			}
 		case "query":
-			needsState = true
+			needsDataState = true
 			needsEffect = true
 		case "loop":
-			needsState = true
+			needsDataState = true
 			if modelName != "" {
 				needsEffect = true
 			}
 		case "input":
-			needsState = true
-			if strings.Contains(lower, "form to") {
+			// FAB button uses setShowForm
+			if strings.Contains(lower, "floating button") || strings.Contains(lower, "fab") {
 				needsFormState = true
 			}
 		case "condition":
@@ -81,18 +76,27 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		}
 	}
 
-	// Write imports
+	ctx := &pageContext{
+		app:             app,
+		appName:         app.Name,
+		modelName:       modelName,
+		varName:         varName,
+		itemVar:         itemVar,
+		hasSuccessState: needsSuccess,
+		hasErrorState:   needsError,
+	}
+
+	// Write imports (react-jsx transform — no React import needed)
+	needsUseState := needsDataState || needsAuth || needsFormState || needsSuccess || needsError
 	reactImports := []string{}
-	if needsState || needsAuth || needsFormState || needsSuccess || needsError {
+	if needsUseState {
 		reactImports = append(reactImports, "useState")
 	}
 	if needsEffect {
 		reactImports = append(reactImports, "useEffect")
 	}
 	if len(reactImports) > 0 {
-		fmt.Fprintf(&b, "import React, { %s } from 'react';\n", strings.Join(reactImports, ", "))
-	} else {
-		b.WriteString("import React from 'react';\n")
+		fmt.Fprintf(&b, "import { %s } from 'react';\n", strings.Join(reactImports, ", "))
 	}
 	if needsNavigate {
 		b.WriteString("import { useNavigate } from 'react-router-dom';\n")
@@ -113,7 +117,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	if needsNavigate {
 		b.WriteString("  const navigate = useNavigate();\n")
 	}
-	if needsState {
+	if needsDataState {
 		b.WriteString("  const [loading, setLoading] = useState(true);\n")
 		if modelName != "" {
 			fmt.Fprintf(&b, "  const [%s, set%s] = useState<%s[]>([]);\n",
@@ -169,6 +173,21 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 			continue
 		}
 		writePageAction(&b, a, "      ", ctx)
+	}
+
+	// Conditional form modal when showForm is toggled
+	if needsFormState {
+		b.WriteString("      {showForm && (\n")
+		b.WriteString("        <div className=\"modal-overlay\" onClick={() => setShowForm(false)}>\n")
+		b.WriteString("          <div className=\"modal\" onClick={(ev) => ev.stopPropagation()}>\n")
+		b.WriteString("            <button className=\"modal-close\" onClick={() => setShowForm(false)}>×</button>\n")
+		if modelName != "" {
+			fmt.Fprintf(&b, "            <h2>New %s</h2>\n", modelName)
+		}
+		b.WriteString("            {/* TODO: form fields */}\n")
+		b.WriteString("          </div>\n")
+		b.WriteString("        </div>\n")
+		b.WriteString("      )}\n")
 	}
 
 	b.WriteString("    </div>\n")
@@ -338,7 +357,7 @@ func writeInputJSX(b *strings.Builder, text string, indent string, ctx *pageCont
 	lower := strings.ToLower(text)
 
 	if strings.Contains(lower, "search") {
-		fmt.Fprintf(b, "%s<input type=\"search\" placeholder=\"Search...\" className=\"search-input\" onChange={(e) => {/* TODO: filter */}} />\n", indent)
+		fmt.Fprintf(b, "%s<input type=\"search\" placeholder=\"Search...\" className=\"search-input\" onChange={() => {/* TODO: filter */}} />\n", indent)
 	} else if strings.Contains(lower, "dropdown") || strings.Contains(lower, "select") {
 		label := "All"
 		if strings.Contains(lower, "status") {
@@ -346,11 +365,11 @@ func writeInputJSX(b *strings.Builder, text string, indent string, ctx *pageCont
 		} else if strings.Contains(lower, "priority") {
 			label = "All Priorities"
 		}
-		fmt.Fprintf(b, "%s<select className=\"filter-select\" onChange={(e) => {/* TODO: filter */}}>\n", indent)
+		fmt.Fprintf(b, "%s<select className=\"filter-select\" onChange={() => {/* TODO: filter */}}>\n", indent)
 		fmt.Fprintf(b, "%s  <option value=\"\">%s</option>\n", indent, label)
 		fmt.Fprintf(b, "%s</select>\n", indent)
 	} else if strings.Contains(lower, "date") && (strings.Contains(lower, "picker") || strings.Contains(lower, "range")) {
-		fmt.Fprintf(b, "%s<input type=\"date\" className=\"date-filter\" onChange={(e) => {/* TODO: filter */}} />\n", indent)
+		fmt.Fprintf(b, "%s<input type=\"date\" className=\"date-filter\" onChange={() => {/* TODO: filter */}} />\n", indent)
 	} else if strings.Contains(lower, "floating button") || strings.Contains(lower, "fab") {
 		label := "+"
 		if strings.Contains(lower, "add") || strings.Contains(lower, "new") || strings.Contains(lower, "create") {
@@ -366,7 +385,7 @@ func writeInputJSX(b *strings.Builder, text string, indent string, ctx *pageCont
 		}
 		fmt.Fprintf(b, "%s<div className=\"file-upload\">\n", indent)
 		fmt.Fprintf(b, "%s  <label>%s</label>\n", indent, label)
-		fmt.Fprintf(b, "%s  <input type=\"file\" accept=\"image/*\" onChange={(e) => {/* TODO: handle upload */}} />\n", indent)
+		fmt.Fprintf(b, "%s  <input type=\"file\" accept=\"image/*\" onChange={() => {/* TODO: handle upload */}} />\n", indent)
 		fmt.Fprintf(b, "%s</div>\n", indent)
 	} else {
 		fmt.Fprintf(b, "%s<input type=\"text\" placeholder=\"%s\" />\n", indent, text)
@@ -378,7 +397,11 @@ func writeFormJSX(b *strings.Builder, text string, indent string, ctx *pageConte
 	lower := strings.ToLower(text)
 	fields := extractFormFields(lower, ctx)
 
-	fmt.Fprintf(b, "%s<form className=\"form\" onSubmit={(e) => { e.preventDefault(); /* TODO: submit */ }}>\n", indent)
+	submitHandler := "/* TODO: submit */"
+	if ctx.hasSuccessState && ctx.hasErrorState {
+		submitHandler = "setError(''); setSuccess('Saved successfully')"
+	}
+	fmt.Fprintf(b, "%s<form className=\"form\" onSubmit={(ev) => { ev.preventDefault(); %s }}>\n", indent, submitHandler)
 	for _, f := range fields {
 		inputType := "text"
 		if strings.Contains(f, "email") {
@@ -614,10 +637,15 @@ func writeInteractJSX(b *strings.Builder, text string, indent string, ctx *pageC
 			if quoted != "" {
 				label = quoted
 			} else if label == "Click" {
-				// Better default for save/update buttons
 				label = "Save"
 			}
-			fmt.Fprintf(b, "%s<button onClick={() => {/* TODO: save */}}>%s</button>\n", indent, label)
+			handler := "/* TODO: save */"
+			if ctx.hasSuccessState && ctx.hasErrorState {
+				handler = "setError(''); setSuccess('Saved successfully')"
+			} else if ctx.hasSuccessState {
+				handler = "setSuccess('Saved successfully')"
+			}
+			fmt.Fprintf(b, "%s<button onClick={() => { %s }}>%s</button>\n", indent, handler, label)
 			return
 		}
 

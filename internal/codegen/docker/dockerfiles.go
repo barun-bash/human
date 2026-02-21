@@ -60,7 +60,13 @@ func generateFrontendDockerfile(app *ir.Application) string {
 	b.WriteString("COPY package.json package-lock.json* ./\n")
 	b.WriteString("RUN npm ci\n\n")
 
-	b.WriteString("COPY . .\n")
+	b.WriteString("COPY . .\n\n")
+
+	// Vite inlines env vars at build time — the ARG must be declared
+	// before `npm run build` so that VITE_API_URL is available.
+	b.WriteString("ARG VITE_API_URL\n")
+	b.WriteString("ENV VITE_API_URL=$VITE_API_URL\n\n")
+
 	b.WriteString("RUN npm run build\n\n")
 
 	// Serve stage

@@ -48,16 +48,23 @@ func writeFile(path, content string) error {
 // Returns a sorted list of EnvVar entries.
 func CollectEnvVars(app *ir.Application) []EnvVar {
 	vars := []EnvVar{
-		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@db:5432/" + DbName(app) + "?schema=public", Comment: "PostgreSQL connection string"},
+		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@db:5432/" + DbName(app) + "?schema=public", Comment: "PostgreSQL connection string — use @localhost:5432 for local dev, @db:5432 for Docker"},
 		{Name: "JWT_SECRET", Example: "change-me-to-a-random-secret", Comment: "Secret for signing JWT tokens"},
 		{Name: "PORT", Example: "3000", Comment: "Backend server port"},
 		{Name: "VITE_API_URL", Example: "http://localhost:3000", Comment: "API URL for the React frontend"},
 	}
 
-	// Integration credentials
+	// Integration credentials and config
 	if len(app.Integrations) > 0 {
 		for _, integ := range app.Integrations {
 			for _, envVar := range integ.Credentials {
+				vars = append(vars, EnvVar{
+					Name:    envVar,
+					Example: "",
+					Comment: integ.Service,
+				})
+			}
+			for _, envVar := range integ.Config {
 				vars = append(vars, EnvVar{
 					Name:    envVar,
 					Example: "",

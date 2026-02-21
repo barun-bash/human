@@ -106,7 +106,8 @@ func generateEmailService(integ *ir.Integration) string {
 	b.WriteString("      dynamicTemplateData: options.templateData,\n")
 	b.WriteString("    }),\n")
 	b.WriteString("  };\n\n")
-	b.WriteString("  await sgMail.send(msg);\n")
+	b.WriteString("  // eslint-disable-next-line @typescript-eslint/no-explicit-any\n")
+	b.WriteString("  await sgMail.send(msg as any);\n")
 	b.WriteString("}\n")
 
 	// Generate template helpers if templates are defined.

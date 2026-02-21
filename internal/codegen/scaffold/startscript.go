@@ -75,7 +75,7 @@ func generateStartScript(app *ir.Application) string {
 
 	// Prisma setup (only for Node backend)
 	if hasNode {
-		b.WriteString("cd node && npx prisma generate && npx prisma db push && cd ..\n")
+		b.WriteString("(cd node && npx prisma generate && npx prisma db push)\n")
 	}
 
 	// Start dev servers

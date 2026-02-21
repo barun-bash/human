@@ -34,6 +34,7 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		filepath.Join(outputDir, "index.html"):                  generateIndexHTML(app),
 		filepath.Join(outputDir, "src", "main.tsx"):             generateMainTsx(),
 		filepath.Join(outputDir, "src", "index.css"):            generateIndexCSS(app),
+		filepath.Join(outputDir, "src", "vite-env.d.ts"):        generateViteEnvDts(),
 		filepath.Join(outputDir, "src", "types", "models.ts"):   generateTypes(app),
 		filepath.Join(outputDir, "src", "api", "client.ts"):     generateAPIClient(app),
 		filepath.Join(outputDir, "src", "App.tsx"):               generateApp(app),
@@ -105,6 +106,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 )
 `
+}
+
+// generateViteEnvDts produces the Vite env type reference (src/vite-env.d.ts).
+func generateViteEnvDts() string {
+	return "/// <reference types=\"vite/client\" />\n"
 }
 
 // generateIndexCSS produces base styles for src/index.css.

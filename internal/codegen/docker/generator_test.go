@@ -60,19 +60,20 @@ func TestCollectEnvVars(t *testing.T) {
 			{
 				Service:     "AWS S3",
 				Credentials: map[string]string{"api key": "AWS_ACCESS_KEY", "secret": "AWS_SECRET_KEY"},
+				Config:      map[string]string{"region": "AWS_REGION", "bucket": "S3_BUCKET"},
 			},
 		},
 	}
 
 	vars := CollectEnvVars(app)
 
-	// Should include core vars + integration vars
+	// Should include core vars + credential vars + config vars
 	names := make(map[string]bool)
 	for _, v := range vars {
 		names[v.Name] = true
 	}
 
-	for _, expected := range []string{"DATABASE_URL", "JWT_SECRET", "PORT", "VITE_API_URL", "SENDGRID_API_KEY", "AWS_ACCESS_KEY", "AWS_SECRET_KEY"} {
+	for _, expected := range []string{"DATABASE_URL", "JWT_SECRET", "PORT", "VITE_API_URL", "SENDGRID_API_KEY", "AWS_ACCESS_KEY", "AWS_SECRET_KEY", "AWS_REGION", "S3_BUCKET"} {
 		if !names[expected] {
 			t.Errorf("missing env var %q", expected)
 		}
@@ -146,6 +147,8 @@ func TestGenerateFrontendDockerfile(t *testing.T) {
 	}{
 		{"Node 20 alpine build", "FROM node:20-alpine AS builder"},
 		{"npm ci", "RUN npm ci"},
+		{"ARG VITE_API_URL", "ARG VITE_API_URL"},
+		{"ENV VITE_API_URL", "ENV VITE_API_URL=$VITE_API_URL"},
 		{"npm build", "RUN npm run build"},
 		{"nginx serve stage", "FROM nginx:alpine"},
 		{"copy dist to nginx", "/usr/share/nginx/html"},
@@ -159,6 +162,13 @@ func TestGenerateFrontendDockerfile(t *testing.T) {
 			t.Errorf("frontend Dockerfile: missing %s (%q)", c.desc, c.pattern)
 		}
 	}
+
+	// ARG must come before RUN npm run build
+	argIdx := strings.Index(output, "ARG VITE_API_URL")
+	buildIdx := strings.Index(output, "RUN npm run build")
+	if argIdx >= buildIdx {
+		t.Error("frontend Dockerfile: ARG VITE_API_URL must appear before RUN npm run build")
+	}
 }
 
 // ── Docker Compose ──
@@ -170,6 +180,10 @@ func TestGenerateDockerCompose(t *testing.T) {
 			{
 				Service:     "SendGrid",
 				Credentials: map[string]string{"api key": "SENDGRID_API_KEY"},
+			},
+			{
+				Service: "AWS S3",
+				Config:  map[string]string{"region": "AWS_REGION", "bucket": "S3_BUCKET"},
 			},
 		},
 	}
@@ -209,7 +223,14 @@ func TestGenerateDockerCompose(t *testing.T) {
 		t.Error("missing JWT_SECRET in backend env")
 	}
 	if !strings.Contains(output, "SENDGRID_API_KEY: ${SENDGRID_API_KEY}") {
-		t.Error("missing integration env var in backend")
+		t.Error("missing integration credential env var in backend")
+	}
+	// Config env vars (from integ.Config)
+	if !strings.Contains(output, "AWS_REGION: ${AWS_REGION}") {
+		t.Error("missing config env var AWS_REGION in backend")
+	}
+	if !strings.Contains(output, "S3_BUCKET: ${S3_BUCKET}") {
+		t.Error("missing config env var S3_BUCKET in backend")
 	}
 
 	// Frontend

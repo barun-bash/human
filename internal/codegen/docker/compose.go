@@ -50,6 +50,9 @@ func generateDockerCompose(app *ir.Application) string {
 		for _, envVar := range integ.Credentials {
 			fmt.Fprintf(&b, "      %s: ${%s}\n", envVar, envVar)
 		}
+		for _, envVar := range integ.Config {
+			fmt.Fprintf(&b, "      %s: ${%s}\n", envVar, envVar)
+		}
 	}
 	b.WriteString("\n")
 
