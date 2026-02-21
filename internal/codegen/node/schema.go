@@ -45,6 +45,9 @@ func generatePrismaSchema(app *ir.Application) string {
 		writePrismaModel(&b, model, app, indexMap)
 	}
 
+	// Enum blocks — collect from all models and emit after models
+	writePrismaEnums(&b, app)
+
 	return b.String()
 }
 
@@ -84,11 +87,11 @@ func writePrismaModel(b *strings.Builder, model *ir.DataModel, app *ir.Applicati
 	// Indexes from database config
 	if indexes, ok := indexMap[model.Name]; ok {
 		for _, fields := range indexes {
-			sanitized := make([]string, len(fields))
+			resolved := make([]string, len(fields))
 			for i, f := range fields {
-				sanitized[i] = toCamelCase(f)
+				resolved[i] = resolvePrismaFieldName(f, model)
 			}
-			fmt.Fprintf(b, "\n  @@index([%s])\n", strings.Join(sanitized, ", "))
+			fmt.Fprintf(b, "\n  @@index([%s])\n", strings.Join(resolved, ", "))
 		}
 	}
 
@@ -152,6 +155,59 @@ func writePrismaRelation(b *strings.Builder, rel *ir.Relation, model *ir.DataMod
 		// Through table: reference the join model
 		relName := toCamelCase(rel.Through) + "s"
 		fmt.Fprintf(b, "  %-9s %s[]\n", relName, rel.Through)
+	}
+}
+
+// resolvePrismaFieldName maps an IR index field name to the actual Prisma field
+// name in the given model. It handles:
+//   - Relation fields (belongs_to) → scalar FK name (e.g., "user" → "userId")
+//   - Compound names where the type is appended (e.g., "due date" → "due")
+//   - Direct field name matches
+func resolvePrismaFieldName(fieldName string, model *ir.DataModel) string {
+	lower := strings.ToLower(strings.TrimSpace(fieldName))
+
+	// Check relations first: belongs_to target → FK scalar field
+	for _, rel := range model.Relations {
+		if rel.Kind == "belongs_to" {
+			if strings.EqualFold(rel.Target, fieldName) || strings.ToLower(toCamelCase(rel.Target)) == lower {
+				return toCamelCase(rel.Target) + "Id"
+			}
+		}
+	}
+
+	// Direct match on field name
+	for _, f := range model.Fields {
+		if strings.EqualFold(f.Name, fieldName) {
+			return f.Name
+		}
+	}
+
+	// Match field name + type (e.g., "due date" where field is "due" with type "date")
+	for _, f := range model.Fields {
+		nameAndType := f.Name + " " + f.Type
+		if strings.EqualFold(nameAndType, fieldName) {
+			return f.Name
+		}
+	}
+
+	// Fallback: camelCase the raw name
+	return toCamelCase(fieldName)
+}
+
+// writePrismaEnums collects enum fields from all models and writes enum blocks.
+func writePrismaEnums(b *strings.Builder, app *ir.Application) {
+	for _, model := range app.Data {
+		for _, f := range model.Fields {
+			if f.Type == "enum" && len(f.EnumValues) > 0 {
+				enumName := model.Name + capitalize(f.Name)
+				b.WriteString("\n")
+				fmt.Fprintf(b, "enum %s {\n", enumName)
+				for _, v := range f.EnumValues {
+					fmt.Fprintf(b, "  %s\n", v)
+				}
+				b.WriteString("}\n")
+			}
+		}
 	}
 }
 

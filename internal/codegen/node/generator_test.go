@@ -179,7 +179,9 @@ func TestGeneratePrismaSchema(t *testing.T) {
 			Engine: "PostgreSQL",
 			Indexes: []*ir.Index{
 				{Entity: "User", Fields: []string{"email"}},
-				{Entity: "Task", Fields: []string{"userId", "status"}},
+				// Use raw IR names to test resolution: "User" is a relation, "due date" is compound
+				{Entity: "Task", Fields: []string{"User", "status"}},
+				{Entity: "Task", Fields: []string{"User", "due date"}},
 			},
 		},
 		Data: []*ir.DataModel{
@@ -202,6 +204,7 @@ func TestGeneratePrismaSchema(t *testing.T) {
 				Name: "Task",
 				Fields: []*ir.DataField{
 					{Name: "title", Type: "text", Required: true},
+					{Name: "due", Type: "date", Required: true},
 					{Name: "status", Type: "enum", Required: true, EnumValues: []string{"pending", "done"}},
 				},
 				Relations: []*ir.Relation{
@@ -260,9 +263,24 @@ func TestGeneratePrismaSchema(t *testing.T) {
 		t.Error("missing optional String? for bio")
 	}
 
-	// Enum reference
+	// Enum field reference in model
 	if !strings.Contains(output, "UserRole") {
-		t.Error("missing UserRole enum type reference")
+		t.Error("missing UserRole enum type reference in model")
+	}
+
+	// Enum blocks must be generated
+	if !strings.Contains(output, "enum UserRole {") {
+		t.Errorf("missing enum UserRole block\n%s", output)
+	}
+	if !strings.Contains(output, "enum TaskStatus {") {
+		t.Errorf("missing enum TaskStatus block\n%s", output)
+	}
+	// Verify enum values
+	if !strings.Contains(output, "  user\n") || !strings.Contains(output, "  admin\n") {
+		t.Error("missing UserRole enum values (user, admin)")
+	}
+	if !strings.Contains(output, "  pending\n") || !strings.Contains(output, "  done\n") {
+		t.Error("missing TaskStatus enum values (pending, done)")
 	}
 
 	// Relations
@@ -284,12 +302,60 @@ func TestGeneratePrismaSchema(t *testing.T) {
 		t.Error("missing @updatedAt")
 	}
 
-	// Indexes
+	// Indexes — must use scalar FK fields, not relation names
 	if !strings.Contains(output, "@@index([email])") {
-		t.Error("missing @@index([email]) on User")
+		t.Errorf("missing @@index([email]) on User\n%s", output)
 	}
 	if !strings.Contains(output, "@@index([userId, status])") {
-		t.Error("missing @@index([userId, status]) on Task")
+		t.Errorf("missing @@index([userId, status]) on Task — relation 'User' should resolve to 'userId'\n%s", output)
+	}
+	// "due date" compound name should resolve to field "due"
+	if !strings.Contains(output, "@@index([userId, due])") {
+		t.Errorf("missing @@index([userId, due]) on Task — 'due date' should resolve to field 'due'\n%s", output)
+	}
+	// Must NOT contain raw IR names in indexes
+	if strings.Contains(output, "@@index([User,") || strings.Contains(output, "@@index([user,") {
+		t.Errorf("@@index should not contain relation name 'user' — must use scalar FK 'userId'\n%s", output)
+	}
+	if strings.Contains(output, "dueDate") {
+		t.Errorf("@@index should not contain 'dueDate' — should resolve to field name 'due'\n%s", output)
+	}
+}
+
+func TestResolvePrismaFieldName(t *testing.T) {
+	model := &ir.DataModel{
+		Name: "Task",
+		Fields: []*ir.DataField{
+			{Name: "title", Type: "text"},
+			{Name: "due", Type: "date"},
+			{Name: "status", Type: "enum", EnumValues: []string{"pending", "done"}},
+		},
+		Relations: []*ir.Relation{
+			{Kind: "belongs_to", Target: "User"},
+		},
+	}
+
+	tests := []struct {
+		input string
+		want  string
+	}{
+		// Direct field match
+		{"title", "title"},
+		{"status", "status"},
+		// Relation → FK scalar field
+		{"User", "userId"},
+		{"user", "userId"},
+		// Compound name: field name + type
+		{"due date", "due"},
+		// Fallback
+		{"unknown", "unknown"},
+	}
+
+	for _, tt := range tests {
+		got := resolvePrismaFieldName(tt.input, model)
+		if got != tt.want {
+			t.Errorf("resolvePrismaFieldName(%q): got %q, want %q", tt.input, got, tt.want)
+		}
 	}
 }
 
@@ -753,6 +819,22 @@ func TestFullIntegration(t *testing.T) {
 	// Verify postgresql provider
 	if !strings.Contains(schema, `provider = "postgresql"`) {
 		t.Error("schema.prisma: missing postgresql provider")
+	}
+
+	// Verify enum blocks are generated
+	for _, enumName := range []string{"UserRole", "TaskStatus", "TaskPriority"} {
+		if !strings.Contains(schema, "enum "+enumName+" {") {
+			t.Errorf("schema.prisma: missing enum block %s", enumName)
+		}
+	}
+
+	// Verify indexes use scalar FK fields, not relation names
+	if strings.Contains(schema, "@@index([user,") || strings.Contains(schema, "@@index([user]") {
+		t.Error("schema.prisma: @@index should use userId, not user (relation name)")
+	}
+	// "due date" from IR should resolve to field name "due", not "dueDate"
+	if strings.Contains(schema, "dueDate") {
+		t.Errorf("schema.prisma: should not contain 'dueDate' — should be 'due'\nschema:\n%s", schema)
 	}
 
 	// Verify auth middleware has JWT config
