@@ -70,7 +70,8 @@ func generateTsConfig(app *ir.Application) string {
     "target": "ES2022",
     "module": "ES2022",
     "lib": ["ES2022", "dom"]
-  }
+  },
+  "exclude": ["src/stories/**"]
 }`
 }
 
@@ -143,6 +144,9 @@ func generatePackageJson(app *ir.Application) string {
 		"@angular/cli":                 "^17.0.0",
 		"@angular/compiler-cli":        "^17.0.0",
 		"@types/node":                  "^18.18.0",
+		"autoprefixer":                 "^10.4.0",
+		"postcss":                      "^8.4.0",
+		"tailwindcss":                  "^3.4.0",
 		"typescript":                   "~5.2.2",
 	}
 

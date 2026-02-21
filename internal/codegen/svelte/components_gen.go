@@ -17,6 +17,7 @@ type pageContext struct {
 	props           map[string]string // component props: name → type
 	hasSuccessState bool
 	hasErrorState   bool
+	isComponent     bool              // true when generating a component (not a page)
 }
 
 func generatePage(page *ir.Page, app *ir.Application) string {
@@ -260,8 +261,9 @@ func generateComponent(comp *ir.Component, app *ir.Application) string {
 		propsMap[p.Name] = p.Type
 	}
 	ctx := &pageContext{
-		app:   app,
-		props: propsMap,
+		app:         app,
+		props:       propsMap,
+		isComponent: true,
 	}
 
 	for _, a := range comp.Content {
@@ -668,6 +670,12 @@ func writeLoopSvelte(b *strings.Builder, text string, indent string, ctx *pageCo
 // ── Condition ──
 
 func writeConditionSvelte(b *strings.Builder, text string, indent string, ctx *pageContext) {
+	// Components don't have page-level state (loading, data, isLoggedIn) — emit as comment
+	if ctx.isComponent {
+		fmt.Fprintf(b, "%s<!-- %s -->\n", indent, text)
+		return
+	}
+
 	lower := strings.ToLower(text)
 	dataVar := ctx.varName
 	if dataVar == "" {
@@ -967,9 +975,16 @@ func parseFieldNames(text string, ctx *pageContext) []string {
 
 func resolveFieldName(name string, ctx *pageContext) string {
 	name = strings.TrimSpace(strings.ToLower(name))
+	// Reject strings that clearly aren't field names
+	if strings.Contains(name, ",") {
+		return ""
+	}
 	model := findModel(ctx.app, ctx.modelName)
 	if model == nil {
-		return toCamelCase(name)
+		if len(strings.Fields(name)) <= 2 {
+			return toCamelCase(name)
+		}
+		return ""
 	}
 	for _, f := range model.Fields {
 		if strings.ToLower(f.Name) == name {
@@ -986,7 +1001,8 @@ func resolveFieldName(name string, ctx *pageContext) string {
 			return f.Name
 		}
 	}
-	return toCamelCase(name)
+	// Model exists but no field matched — don't guess
+	return ""
 }
 
 func resolveFieldExpr(text string, ctx *pageContext) string {
@@ -998,7 +1014,7 @@ func resolveFieldExpr(text string, ctx *pageContext) string {
 	for _, mod := range []string{
 		"in bold", "as a colored badge", "as a badge", "as a small badge", "with an icon",
 		"in relative format", "in red", "the ", "show ", "in large heading",
-		"as rich text", "truncated to ",
+		"as a heading", "as rich text", "truncated to ",
 	} {
 		stripped = strings.Replace(stripped, mod, " ", -1)
 	}
@@ -1006,6 +1022,11 @@ func resolveFieldExpr(text string, ctx *pageContext) string {
 		stripped = stripped[:idx]
 	}
 	stripped = strings.TrimSpace(stripped)
+
+	// Reject text containing commas (clearly not a single field expression)
+	if strings.Contains(stripped, ",") {
+		return "null"
+	}
 
 	// Component prop resolution
 	for propName, propType := range ctx.props {
@@ -1024,7 +1045,10 @@ func resolveFieldExpr(text string, ctx *pageContext) string {
 					}
 				}
 			}
-			return propName + "." + toCamelCase(fieldPart)
+			if len(strings.Fields(fieldPart)) <= 2 {
+				return propName + "." + toCamelCase(fieldPart)
+			}
+			return "null"
 		}
 		if model := findModel(ctx.app, propType); model != nil {
 			for _, f := range model.Fields {
@@ -1036,15 +1060,11 @@ func resolveFieldExpr(text string, ctx *pageContext) string {
 	}
 
 	if strings.Contains(lower, "'s ") {
-		return "null /* TODO: resolve field */"
+		return "null"
 	}
 
-	if ctx.itemVar != "" {
-		fieldName := resolveFieldName(stripped, ctx)
-		if fieldName != "" {
-			return ctx.itemVar + "." + fieldName
-		}
-	}
+	// Note: itemVar (loop variable) is NOT used here because it only exists
+	// inside {#each} blocks. Display actions outside loops must use other sources.
 
 	return "null"
 }
