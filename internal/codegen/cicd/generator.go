@@ -63,7 +63,16 @@ func isGoBackend(app *ir.Application) bool {
 	if app.Config == nil {
 		return false
 	}
-	return strings.Contains(strings.ToLower(app.Config.Backend), "go")
+	lower := strings.ToLower(app.Config.Backend)
+	if lower == "go" || strings.HasPrefix(lower, "go ") {
+		return true
+	}
+	for _, kw := range []string{"gin", "fiber", "golang"} {
+		if strings.Contains(lower, kw) {
+			return true
+		}
+	}
+	return false
 }
 
 func isPostgres(app *ir.Application) bool {
@@ -107,7 +116,7 @@ func generateCIWorkflow(app *ir.Application) string {
 
 	name := appNameLower(app)
 	b.WriteString(fmt.Sprintf("name: %s-ci\n\n", name))
-	b.WriteString("on:\n")
+	b.WriteString("\"on\":\n")
 	b.WriteString("  push:\n")
 	b.WriteString("    branches: [main]\n")
 	b.WriteString("  pull_request:\n")
@@ -202,7 +211,7 @@ func generateDeployWorkflow(app *ir.Application) string {
 
 	name := appNameLower(app)
 	b.WriteString(fmt.Sprintf("name: %s-deploy\n\n", name))
-	b.WriteString("on:\n")
+	b.WriteString("\"on\":\n")
 	b.WriteString("  push:\n")
 	b.WriteString("    branches: [main]\n\n")
 	b.WriteString("jobs:\n")
@@ -272,7 +281,7 @@ func generateSecurityWorkflow(app *ir.Application) string {
 
 	name := appNameLower(app)
 	b.WriteString(fmt.Sprintf("name: %s-security\n\n", name))
-	b.WriteString("on:\n")
+	b.WriteString("\"on\":\n")
 	b.WriteString("  schedule:\n")
 	b.WriteString("    - cron: '0 0 * * 0'\n")
 	b.WriteString("  pull_request:\n")

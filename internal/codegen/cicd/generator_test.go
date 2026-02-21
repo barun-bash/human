@@ -26,6 +26,9 @@ func TestStackDetection(t *testing.T) {
 		{"Python with FastAPI", "Python with FastAPI", false, true, false},
 		{"Go with Gin", "Go with Gin", false, false, true},
 		{"node lowercase", "node", true, false, false},
+		{"Python with Django", "Python with Django", false, true, false},
+		{"go lowercase", "go", false, false, true},
+		{"golang", "golang backend", false, false, true},
 	}
 	for _, tt := range tests {
 		app := &ir.Application{Config: &ir.BuildConfig{Backend: tt.backend}}
@@ -137,6 +140,7 @@ func TestCIWorkflowNode(t *testing.T) {
 		pattern string
 	}{
 		{"workflow name", "name: testapp-ci"},
+		{"on key quoted", "\"on\":"},
 		{"push trigger", "push:"},
 		{"pr trigger", "pull_request:"},
 		{"setup-node", "uses: actions/setup-node@v4"},
