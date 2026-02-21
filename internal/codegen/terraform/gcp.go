@@ -51,7 +51,7 @@ func generateGCPCloudRun(app *ir.Application) string {
 	b.WriteString("        container_port = var.container_port\n")
 	b.WriteString("      }\n\n")
 	b.WriteString("      env {\n")
-	b.WriteString("        name  = \"NODE_ENV\"\n")
+	b.WriteString(fmt.Sprintf("        name  = \"%s\"\n", envVarName(app)))
 	b.WriteString("        value = var.environment\n")
 	b.WriteString("      }\n")
 	b.WriteString("      env {\n")
@@ -64,9 +64,9 @@ func generateGCPCloudRun(app *ir.Application) string {
 		b.WriteString("        name  = \"DATABASE_URL\"\n")
 		db := dbEngine(app)
 		if db == "postgres" {
-			b.WriteString(fmt.Sprintf("        value = \"postgresql://postgres:${var.db_password}@//cloudsql/${google_sql_database_instance.main.connection_name}/%s\"\n", appNameSnake(app)))
+			b.WriteString(fmt.Sprintf("        value = \"postgresql://postgres:${var.db_password}@/%s?host=/cloudsql/${google_sql_database_instance.main.connection_name}\"\n", appNameSnake(app)))
 		} else {
-			b.WriteString(fmt.Sprintf("        value = \"mysql://root:${var.db_password}@//cloudsql/${google_sql_database_instance.main.connection_name}/%s\"\n", appNameSnake(app)))
+			b.WriteString(fmt.Sprintf("        value = \"mysql://root:${var.db_password}@unix(/cloudsql/${google_sql_database_instance.main.connection_name})/%s\"\n", appNameSnake(app)))
 		}
 		b.WriteString("      }\n\n")
 		b.WriteString("      volume_mounts {\n")

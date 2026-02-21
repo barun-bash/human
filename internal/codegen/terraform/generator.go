@@ -145,6 +145,29 @@ func isMicroservices(app *ir.Application) bool {
 	return app.Architecture != nil && strings.Contains(strings.ToLower(app.Architecture.Style), "microservice")
 }
 
+func backendLang(app *ir.Application) string {
+	if app.Config == nil || app.Config.Backend == "" {
+		return "node"
+	}
+	lower := strings.ToLower(app.Config.Backend)
+	// Check python before go — "django" contains the substring "go"
+	if strings.Contains(lower, "python") || strings.Contains(lower, "django") ||
+		strings.Contains(lower, "flask") || strings.Contains(lower, "fastapi") {
+		return "python"
+	}
+	if strings.Contains(lower, "go") {
+		return "go"
+	}
+	return "node"
+}
+
+func envVarName(app *ir.Application) string {
+	if backendLang(app) == "node" {
+		return "NODE_ENV"
+	}
+	return "APP_ENV"
+}
+
 // ── main.tf ──
 
 func generateMainTF(app *ir.Application, target string) string {

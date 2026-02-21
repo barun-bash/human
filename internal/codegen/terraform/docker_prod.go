@@ -25,7 +25,7 @@ func generateDockerProd(app *ir.Application) string {
 	b.WriteString("resource \"docker_image\" \"backend\" {\n")
 	b.WriteString(fmt.Sprintf("  name = \"%s-backend:latest\"\n", name))
 	b.WriteString("  build {\n")
-	b.WriteString("    context = \"../node\"\n")
+	b.WriteString(fmt.Sprintf("    context = \"../%s\"\n", backendLang(app)))
 	b.WriteString("  }\n")
 	b.WriteString("}\n\n")
 
@@ -40,7 +40,7 @@ func generateDockerProd(app *ir.Application) string {
 	b.WriteString("    name = docker_network.app.name\n")
 	b.WriteString("  }\n\n")
 	b.WriteString("  env = [\n")
-	b.WriteString("    \"NODE_ENV=${var.environment}\",\n")
+	b.WriteString(fmt.Sprintf("    \"%s=${var.environment}\",\n", envVarName(app)))
 	b.WriteString("    \"PORT=${var.container_port}\",\n")
 
 	if hasDatabase(app) {
@@ -77,7 +77,7 @@ func generateDockerProd(app *ir.Application) string {
 			b.WriteString(fmt.Sprintf("    \"POSTGRES_DB=%s\",\n", appNameSnake(app)))
 			b.WriteString("  ]\n\n")
 			b.WriteString("  volumes {\n")
-			b.WriteString(fmt.Sprintf("    volume_name    = \"%s-pgdata-${var.environment}\"\n", name))
+			b.WriteString("    volume_name    = docker_volume.db_data.name\n")
 			b.WriteString("    container_path = \"/var/lib/postgresql/data\"\n")
 			b.WriteString("  }\n\n")
 			b.WriteString("  restart = \"unless-stopped\"\n")
@@ -98,7 +98,7 @@ func generateDockerProd(app *ir.Application) string {
 			b.WriteString(fmt.Sprintf("    \"MYSQL_DATABASE=%s\",\n", appNameSnake(app)))
 			b.WriteString("  ]\n\n")
 			b.WriteString("  volumes {\n")
-			b.WriteString(fmt.Sprintf("    volume_name    = \"%s-mysqldata-${var.environment}\"\n", name))
+			b.WriteString("    volume_name    = docker_volume.db_data.name\n")
 			b.WriteString("    container_path = \"/var/lib/mysql\"\n")
 			b.WriteString("  }\n\n")
 			b.WriteString("  restart = \"unless-stopped\"\n")

@@ -76,11 +76,15 @@ func generateAWSECS(app *ir.Application) string {
 	b.WriteString("      protocol      = \"tcp\"\n")
 	b.WriteString("    }]\n")
 	b.WriteString("    environment = [\n")
-	b.WriteString("      { name = \"NODE_ENV\", value = var.environment },\n")
+	b.WriteString(fmt.Sprintf("      { name = \"%s\", value = var.environment },\n", envVarName(app)))
 	b.WriteString("      { name = \"PORT\", value = tostring(var.container_port) },\n")
 
 	if hasDatabase(app) {
-		b.WriteString("      { name = \"DATABASE_URL\", value = \"postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.main.endpoint}/" + appNameSnake(app) + "\" },\n")
+		scheme := "postgresql"
+		if isMySQL(app) {
+			scheme = "mysql"
+		}
+		b.WriteString(fmt.Sprintf("      { name = \"DATABASE_URL\", value = \"%s://${var.db_username}:${var.db_password}@${aws_db_instance.main.endpoint}/%s\" },\n", scheme, appNameSnake(app)))
 	}
 
 	b.WriteString("    ]\n")

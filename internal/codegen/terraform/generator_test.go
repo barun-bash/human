@@ -304,7 +304,114 @@ func TestEnvTFVarsProduction(t *testing.T) {
 	}
 }
 
+func TestECSEnvVarNameGoBackend(t *testing.T) {
+	app := testApp()
+	app.Config.Backend = "Go with Gin"
+	content := generateAWSECS(app)
+
+	if strings.Contains(content, "NODE_ENV") {
+		t.Error("Go backend should not use NODE_ENV")
+	}
+	if !strings.Contains(content, "APP_ENV") {
+		t.Error("Go backend should use APP_ENV")
+	}
+}
+
+func TestECSDatabaseURLMySQL(t *testing.T) {
+	app := testApp()
+	app.Config.Database = "MySQL"
+	app.Database.Engine = "MySQL"
+	content := generateAWSECS(app)
+
+	if strings.Contains(content, "postgresql://") {
+		t.Error("MySQL backend should not use postgresql:// scheme")
+	}
+	if !strings.Contains(content, "mysql://") {
+		t.Error("MySQL backend should use mysql:// scheme")
+	}
+}
+
+func TestCloudRunDatabaseURLFormat(t *testing.T) {
+	app := testApp()
+	content := generateGCPCloudRun(app)
+
+	if strings.Contains(content, "@//cloudsql/") {
+		t.Error("DATABASE_URL should not use @//cloudsql/ format")
+	}
+	if !strings.Contains(content, "?host=/cloudsql/") {
+		t.Error("PostgreSQL DATABASE_URL should use ?host=/cloudsql/ format")
+	}
+}
+
+func TestCloudRunDatabaseURLMySQL(t *testing.T) {
+	app := testApp()
+	app.Config.Database = "MySQL"
+	app.Database.Engine = "MySQL"
+	content := generateGCPCloudRun(app)
+
+	if !strings.Contains(content, "@unix(/cloudsql/") {
+		t.Error("MySQL DATABASE_URL should use @unix(/cloudsql/) format")
+	}
+}
+
+func TestDockerProdBuildContext(t *testing.T) {
+	app := testApp()
+	content := generateDockerProd(app)
+
+	if !strings.Contains(content, "context = \"../node\"") {
+		t.Error("Node backend should use ../node build context")
+	}
+
+	app.Config.Backend = "Go with Gin"
+	content = generateDockerProd(app)
+
+	if !strings.Contains(content, "context = \"../go\"") {
+		t.Error("Go backend should use ../go build context")
+	}
+}
+
+func TestDockerProdVolumeReference(t *testing.T) {
+	app := testApp()
+	content := generateDockerProd(app)
+
+	if !strings.Contains(content, "volume_name    = docker_volume.db_data.name") {
+		t.Error("Docker container should reference docker_volume.db_data.name")
+	}
+}
+
 // ── Helper tests ──
+
+func TestBackendLang(t *testing.T) {
+	tests := []struct {
+		backend  string
+		expected string
+	}{
+		{"Node with Express", "node"},
+		{"Go with Gin", "go"},
+		{"Python with Flask", "python"},
+		{"Python with Django", "python"},
+		{"", "node"},
+	}
+	for _, tt := range tests {
+		app := &ir.Application{Config: &ir.BuildConfig{Backend: tt.backend}}
+		got := backendLang(app)
+		if got != tt.expected {
+			t.Errorf("backendLang(%q) = %q, want %q", tt.backend, got, tt.expected)
+		}
+	}
+}
+
+func TestEnvVarName(t *testing.T) {
+	app := &ir.Application{Config: &ir.BuildConfig{Backend: "Node with Express"}}
+	if got := envVarName(app); got != "NODE_ENV" {
+		t.Errorf("envVarName(Node) = %q, want NODE_ENV", got)
+	}
+
+	app.Config.Backend = "Go with Gin"
+	if got := envVarName(app); got != "APP_ENV" {
+		t.Errorf("envVarName(Go) = %q, want APP_ENV", got)
+	}
+}
 
 func TestDeployTarget(t *testing.T) {
 	tests := []struct {
