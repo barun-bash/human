@@ -1,0 +1,403 @@
+app TeamBoard is a web application
+
+# ─────────────────────────────────────────────────────────────
+── theme ──
+# ─────────────────────────────────────────────────────────────
+
+theme:
+  primary color is #4F46E5
+  secondary color is #10B981
+  accent color is #F59E0B
+  font is Inter for body and headings
+  border radius is rounded on all elements
+  dark mode is supported and toggles from the header
+  spacing is comfortable
+  design system is shadcn
+
+# ─────────────────────────────────────────────────────────────
+── frontend ──
+# ─────────────────────────────────────────────────────────────
+
+page Home:
+  show a hero section with the app name and tagline
+  show pricing cards for Free, Pro, and Enterprise plans
+  each pricing card shows the plan name, price, and features
+  show a "Get Started" button on each pricing card
+  clicking "Get Started" navigates to Dashboard
+  show testimonials from existing teams
+  show a footer with links and legal pages
+
+page Dashboard:
+  show a greeting with the user's name and team name
+  show a summary card with total projects, active boards, and team members
+  show a list of the team's projects sorted by updated date
+  each project shows its name, board count, and member count
+  clicking a project navigates to ProjectBoard
+  there is a button to create a new project
+  there is a search bar that filters projects by name
+  show a recent activity feed on the right side
+  if no projects exist, show "Create your first project!"
+  while loading, show a skeleton screen
+
+page ProjectBoard:
+  show the project name as a heading
+  show a kanban board with columns for each board in the project
+  each column shows its name and card count
+  each card shows the title, assignee avatar, and labels
+  dragging a card between columns updates the card's board
+  clicking a card opens a detail panel with full card info
+  there is a button to add a new card to each column
+  there is a button to add a new column
+  show project members as avatars at the top
+  there is an "Invite Member" button
+
+page Settings:
+  show the team name and settings
+  show a form to update the team name and description
+  show a list of team members with roles
+  each member has a dropdown to change their role
+  there is a button to remove a member from the team
+  show the current plan with usage statistics
+  show a "Upgrade Plan" button if on Free or Pro plan
+  clicking "Upgrade Plan" opens a plan selection modal
+  show billing history if on a paid plan
+  there is a "Delete Team" button with confirmation dialog
+
+component KanbanCard:
+  accepts card as Card
+  show the card title in bold
+  show labels as small colored badges
+  show the assignee avatar in the bottom right
+  if card has a due date, show it below the title
+  if card is overdue, show the due date in red
+  clicking the card triggers on_click
+  dragging the card triggers on_drag
+
+component MemberAvatar:
+  accepts user as User
+  show the user's avatar as a small circle
+  if no avatar, show the first letter of their name
+  hovering shows the user's name as a tooltip
+
+# ─────────────────────────────────────────────────────────────
+── backend ──
+# ─────────────────────────────────────────────────────────────
+
+data Team:
+  has a name which is text
+  has an optional description which is text
+  has a plan which is either "free" or "pro" or "enterprise"
+  has a created datetime
+  has many User
+  has many Project
+
+data User:
+  belongs to a Team
+  has a name which is text
+  has an email which is unique email
+  has a password which is encrypted text
+  has a role which is either "owner" or "admin" or "member"
+  has an optional avatar which is image
+  has a created datetime
+  has many Card
+
+data Project:
+  belongs to a Team
+  has a name which is text
+  has an optional description which is text
+  has a created datetime
+  has many Board
+
+data Board:
+  belongs to a Project
+  has a name which is text
+  has a position which is number
+  has many Card
+
+data Card:
+  belongs to a Board
+  belongs to a User
+  has a title which is text
+  has an optional description which is text
+  has a position which is number
+  has an optional due_date which is date
+  has a created datetime
+  has many Label through CardLabel
+
+data Label:
+  belongs to a Team
+  has a name which is text
+  has a color which is text
+  has many Card through CardLabel
+
+data CardLabel:
+  belongs to a Card
+  belongs to a Label
+
+api SignUp:
+  accepts name, email, password, and team_name
+  check that name is not empty
+  check that email is a valid email
+  check that password is at least 8 characters
+  check that team_name is not empty
+  check that email is not already taken
+  create a Team with team_name and "free" plan
+  create a User with the given fields and assign to the team
+  assign "owner" role
+  respond with the created user, team, and auth token
+
+api Login:
+  accepts email and password
+  check that email is not empty
+  check that password is not empty
+  fetch the user by email
+  if user does not exist, respond with "invalid credentials"
+  check that password matches the stored hash
+  if password does not match, respond with "invalid credentials"
+  respond with the user, team, and auth token
+
+api InviteMember:
+  requires authentication
+  accepts email and role
+  check that email is a valid email
+  check that current user is an owner or admin
+  check that team has not exceeded member limit for current plan
+  send invitation email to the given email
+  respond with "invitation sent"
+
+api CreateProject:
+  requires authentication
+  accepts name and description
+  check that name is not empty
+  check that team has not exceeded project limit for current plan
+  create a Project with the given fields and current user's team
+  create a Board named "To Do" with position 0
+  create a Board named "In Progress" with position 1
+  create a Board named "Done" with position 2
+  respond with the created project and boards
+
+api CreateBoard:
+  requires authentication
+  accepts project_id and name
+  check that name is not empty
+  fetch the Project by project_id
+  if project does not exist, respond with "project not found"
+  check that current user belongs to the project's team
+  create a Board with the given fields and next position
+  respond with the created board
+
+api CreateCard:
+  requires authentication
+  accepts board_id, title, description, assignee_id, due_date, and labels
+  check that title is not empty
+  fetch the Board by board_id
+  if board does not exist, respond with "board not found"
+  check that current user belongs to the board's team
+  create a Card with the given fields and current user
+  respond with the created card
+
+api UpdateCard:
+  requires authentication
+  accepts card_id, title, description, board_id, position, assignee_id, due_date, and labels
+  fetch the Card by card_id
+  if card does not exist, respond with "card not found"
+  check that current user belongs to the card's team
+  update the Card with the given fields
+  if board_id changed, move card to the new board
+  respond with the updated card
+
+api DeleteCard:
+  requires authentication
+  accepts card_id
+  fetch the Card by card_id
+  if card does not exist, respond with "card not found"
+  check that current user belongs to the card's team
+  delete the Card
+  respond with "card deleted"
+
+api GetProjectBoards:
+  requires authentication
+  accepts project_id
+  fetch the Project by project_id
+  if project does not exist, respond with "project not found"
+  check that current user belongs to the project's team
+  fetch all boards for the project sorted by position
+  fetch all cards for each board sorted by position
+  respond with boards and their cards
+
+api UpdateTeamPlan:
+  requires authentication
+  accepts plan
+  check that current user is the team owner
+  check that plan is either "free" or "pro" or "enterprise"
+  update the Team plan
+  if upgrading, process payment via Stripe
+  respond with the updated team
+
+# ─────────────────────────────────────────────────────────────
+── security ──
+# ─────────────────────────────────────────────────────────────
+
+authentication:
+  method JWT tokens that expire in 30 days
+  method Google OAuth with redirect to /auth/google/callback
+  method GitHub OAuth with redirect to /auth/github/callback
+  passwords are hashed with bcrypt using 12 rounds
+  all api requests require a valid token except SignUp and Login
+  rate limit all endpoints to 120 requests per minute per user
+  sanitize all text inputs against XSS
+  enable CORS only for our frontend domain
+
+# ─────────────────────────────────────────────────────────────
+── policies ──
+# ─────────────────────────────────────────────────────────────
+
+policy FreePlan:
+  can create up to 3 projects
+  can have up to 5 team members
+  can create unlimited cards
+  cannot access audit logs
+  cannot use SSO
+
+policy ProPlan:
+  can create up to 50 projects
+  can have up to 50 team members
+  can create unlimited cards
+  can access basic analytics
+  cannot use SSO
+
+policy EnterprisePlan:
+  can create unlimited projects
+  can have unlimited team members
+  can create unlimited cards
+  can access full analytics and audit logs
+  can use SSO for authentication
+  can set custom data retention policies
+
+# ─────────────────────────────────────────────────────────────
+── workflows ──
+# ─────────────────────────────────────────────────────────────
+
+when a user signs up:
+  create their account and team
+  assign FreePlan policy
+  send welcome email with template "welcome-to-teamboard"
+  create a sample project with example boards and cards
+
+when a team member is invited:
+  send invitation email with signup link
+  after 7 days, if invitation is not accepted,
+    send reminder email
+
+when a card becomes overdue:
+  send notification to the card assignee
+  notify the project owner
+  update the card with a visual overdue indicator
+
+when a team upgrades to Pro or Enterprise:
+  unlock additional features immediately
+  send confirmation email to the team owner
+  log the upgrade for billing analytics
+
+# ─────────────────────────────────────────────────────────────
+── logic ──
+# ─────────────────────────────────────────────────────────────
+
+if database is unreachable:
+  retry 3 times with 1 second delay
+  if still failing, respond with "service temporarily unavailable"
+  alert the engineering team via Slack
+
+if an api request fails validation:
+  respond with a clear message explaining what is wrong
+  log the attempt for analytics
+  do not reveal internal details
+
+# ─────────────────────────────────────────────────────────────
+── database ──
+# ─────────────────────────────────────────────────────────────
+
+database:
+  use PostgreSQL
+  when the app starts, create tables if they don't exist
+  index User by email
+  index User by team
+  index Project by team
+  index Board by project
+  index Card by board and position
+  index Card by user
+  index Label by team
+  backup daily at 2am
+  keep backups for 30 days
+
+# ─────────────────────────────────────────────────────────────
+── integrations ──
+# ─────────────────────────────────────────────────────────────
+
+integrate with Stripe:
+  api key from environment variable STRIPE_SECRET_KEY
+  use for processing subscription payments
+
+integrate with SendGrid:
+  api key from environment variable SENDGRID_API_KEY
+  use for sending transactional emails and invitations
+
+integrate with Slack:
+  api key from environment variable SLACK_WEBHOOK_URL
+  use for team notifications and alerts
+
+# ─────────────────────────────────────────────────────────────
+── devops ──
+# ─────────────────────────────────────────────────────────────
+
+architecture: serverless
+
+source control using Git on GitHub
+repository: https://github.com/example/teamboard
+
+branches:
+  main is the production branch
+  staging is the pre-release branch
+  feature branches from main with prefix "feat/"
+
+when code is pushed to a feature branch:
+  run all tests
+  check code formatting
+  report results back to the pull request
+
+when code is merged to main:
+  run all tests
+  build the application
+  deploy to production environment
+  run health checks
+  if health checks fail, rollback automatically
+  notify the team on Slack
+
+environment staging:
+  url is staging.teamboard.example.com
+  uses staging database
+  seeds with test data
+
+environment production:
+  url is teamboard.example.com
+  uses production database
+  requires manual approval for deployment
+  has auto-scaling enabled
+
+track response times for all api endpoints
+track error rates per endpoint
+track active users daily and monthly
+alert on Slack if error rate exceeds 3 percent
+alert on Slack if response time exceeds 1 second
+log all api requests to CloudWatch
+keep logs for 90 days
+
+# ─────────────────────────────────────────────────────────────
+── build ──
+# ─────────────────────────────────────────────────────────────
+
+build with:
+  frontend using Svelte with TypeScript
+  backend using Node with Express
+  database using PostgreSQL
+  deploy to AWS Lambda

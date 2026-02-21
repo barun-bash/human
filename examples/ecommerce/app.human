@@ -1,0 +1,464 @@
+app ShopHub is a web application
+
+# ─────────────────────────────────────────────────────────────
+── theme ──
+# ─────────────────────────────────────────────────────────────
+
+theme:
+  primary color is #1A1A2E
+  secondary color is #E94560
+  accent color is #16213E
+  font is Roboto for body and Montserrat for headings
+  border radius is rounded on all elements
+  dark mode is supported and toggles from the header
+  spacing is compact
+
+# ─────────────────────────────────────────────────────────────
+── frontend ──
+# ─────────────────────────────────────────────────────────────
+
+page Home:
+  show a hero banner with featured products and promotions
+  show a grid of popular products sorted by rating
+  show a section of new arrivals sorted by created date
+  there is a search bar that searches products by name or description
+  there is a category navigation sidebar
+  clicking a product navigates to ProductDetail
+  while loading, show a skeleton screen
+
+page ProductDetail:
+  show the product name as a large heading
+  show the product images in a gallery carousel
+  show the price with currency formatting
+  show the average rating as stars
+  show the product description as rich text
+  show a quantity selector and "Add to Cart" button
+  show a list of reviews sorted by date
+  each review shows the reviewer name, rating, and content
+  if product is out of stock, show "Out of Stock" and disable the button
+  show related products at the bottom
+  if product does not exist, show "Product not found"
+
+page Cart:
+  show a list of items in the cart
+  each item shows the product image, name, price, and quantity
+  each item has buttons to increase, decrease, or remove quantity
+  show the subtotal, shipping estimate, and total
+  there is a "Proceed to Checkout" button
+  if cart is empty, show "Your cart is empty" with a link to Home
+  clicking "Continue Shopping" navigates to Home
+
+page Checkout:
+  show an order summary with all cart items
+  show a form for shipping address
+  show a form for payment information
+  there is a dropdown to select a saved address
+  there is a dropdown to select a saved payment method
+  clicking "Place Order" creates the order and processes payment
+  if payment succeeds, show "Order placed successfully" and navigate to OrderHistory
+  if payment fails, show the error message and keep the form
+  if the user is not logged in, redirect to login
+
+page OrderHistory:
+  show a list of the user's orders sorted by date descending
+  each order shows the order number, date, status, and total
+  each order shows a colored status badge
+  clicking an order expands to show order items
+  there is a dropdown to filter by order status
+  if no orders exist, show "No orders yet"
+
+component ProductCard:
+  accepts product as Product
+  show the product image at the top
+  show the product name in bold
+  show the price with currency formatting
+  show the average rating as small stars
+  if product is on sale, show the original price crossed out
+  clicking the card triggers on_click
+
+component OrderStatusBadge:
+  accepts status as text
+  show the status as a colored badge
+  if status is "pending", use yellow
+  if status is "processing", use blue
+  if status is "shipped", use purple
+  if status is "delivered", use green
+  if status is "cancelled", use red
+
+# ─────────────────────────────────────────────────────────────
+── backend ──
+# ─────────────────────────────────────────────────────────────
+
+data User:
+  has a name which is text
+  has an email which is unique email
+  has a password which is encrypted text
+  has a role which is either "customer" or "seller" or "admin"
+  has an optional phone which is text
+  has a created datetime
+  has many Order
+  has many Review
+  has many Address
+
+data Product:
+  belongs to a User
+  has a name which is text
+  has a slug which is unique text
+  has a description which is text
+  has a price which is decimal
+  has an optional sale_price which is decimal
+  has a stock which is number
+  has an optional image which is image
+  has a rating which is decimal
+  has a created datetime
+  has many Review
+  has many Category through ProductCategory
+
+data Category:
+  has a name which is unique text
+  has a slug which is unique text
+  has an optional description which is text
+  has an optional parent_id which is number
+  has many Product through ProductCategory
+
+data ProductCategory:
+  belongs to a Product
+  belongs to a Category
+
+data Order:
+  belongs to a User
+  has an order_number which is unique text
+  has a status which is either "pending" or "processing" or "shipped" or "delivered" or "cancelled"
+  has a subtotal which is decimal
+  has a shipping_cost which is decimal
+  has a total which is decimal
+  has an optional tracking_number which is text
+  has a created datetime
+  has many OrderItem
+
+data OrderItem:
+  belongs to an Order
+  belongs to a Product
+  has a quantity which is number
+  has a unit_price which is decimal
+  has a total_price which is decimal
+
+data Review:
+  belongs to a User
+  belongs to a Product
+  has a rating which is number
+  has an optional content which is text
+  has a created datetime
+
+data Address:
+  belongs to a User
+  has a street which is text
+  has a city which is text
+  has a state which is text
+  has a zip_code which is text
+  has a country which is text
+  has a is_default which is boolean
+
+api SignUp:
+  accepts name, email, and password
+  check that name is not empty
+  check that email is a valid email
+  check that password is at least 8 characters
+  check that email is not already taken
+  create a User with the given fields
+  assign "customer" role
+  respond with the created user and auth token
+
+api Login:
+  accepts email and password
+  check that email is not empty
+  check that password is not empty
+  fetch the user by email
+  if user does not exist, respond with "invalid credentials"
+  check that password matches the stored hash
+  if password does not match, respond with "invalid credentials"
+  respond with the user and auth token
+
+api ListProducts:
+  fetch all products where stock is greater than 0
+  sort by created date descending
+  support filtering by category
+  support filtering by price range
+  support searching by name or description
+  paginate with 24 per page
+  respond with products and pagination info
+
+api GetProduct:
+  accepts slug
+  fetch the Product by slug
+  if product does not exist, respond with "product not found"
+  respond with the product, reviews, and categories
+
+api CreateProduct:
+  requires authentication
+  accepts name, description, price, stock, image, and categories
+  check that name is not empty
+  check that price is greater than 0
+  check that stock is at least 0
+  create a Product with the given fields and current user as seller
+  generate slug from name
+  set rating to 0
+  respond with the created product
+
+api CreateOrder:
+  requires authentication
+  accepts items and shipping_address_id
+  check that items is not empty
+  check that all products have sufficient stock
+  calculate subtotal from item prices and quantities
+  calculate shipping cost based on address
+  create an Order with calculated totals and current user
+  create OrderItem for each item in the order
+  reduce stock for each ordered product
+  set status to "pending"
+  generate unique order number
+  respond with the created order
+
+api UpdateOrderStatus:
+  requires authentication
+  accepts order_id and status
+  fetch the Order by order_id
+  if order does not exist, respond with "order not found"
+  check that current user is an admin or the seller
+  update the Order status
+  if status is "shipped", send shipping notification to the customer
+  respond with the updated order
+
+api CreateReview:
+  requires authentication
+  accepts product_id, rating, and content
+  check that rating is between 1 and 5
+  fetch the Product by product_id
+  if product does not exist, respond with "product not found"
+  check that current user has purchased this product
+  create a Review with the given fields and current user
+  update the product average rating
+  respond with the created review
+
+api GetCart:
+  requires authentication
+  fetch the current user's cart items
+  respond with cart items and totals
+
+api SearchProducts:
+  accepts query, min_price, max_price, category, and sort_by
+  search products matching the query in name and description
+  filter by price range if provided
+  filter by category if provided
+  sort by relevance, price, or rating based on sort_by
+  paginate with 24 per page
+  respond with products and pagination info
+
+# ─────────────────────────────────────────────────────────────
+── security ──
+# ─────────────────────────────────────────────────────────────
+
+authentication:
+  method JWT tokens that expire in 7 days
+  method Google OAuth with redirect to /auth/google/callback
+  passwords are hashed with bcrypt using 12 rounds
+  all api requests require a valid token except SignUp, Login, ListProducts, GetProduct, and SearchProducts
+  rate limit all endpoints to 100 requests per minute per user
+  sanitize all text inputs against XSS
+  enable CORS only for our frontend domain
+
+# ─────────────────────────────────────────────────────────────
+── policies ──
+# ─────────────────────────────────────────────────────────────
+
+policy Customer:
+  can view all products
+  can create orders
+  can view only their own orders
+  can create reviews for purchased products
+  can manage their own addresses
+  cannot create or edit products
+
+policy Seller:
+  can create products
+  can edit only their own products
+  can view orders containing their products
+  can update order status for their products
+  can view sales analytics for their products
+
+policy Admin:
+  can view all users and their data
+  can edit any product
+  can delete any product
+  can manage all orders
+  can view site analytics
+  can manage categories
+
+# ─────────────────────────────────────────────────────────────
+── workflows ──
+# ─────────────────────────────────────────────────────────────
+
+when a user signs up:
+  create their account
+  assign Customer policy
+  send welcome email with template "welcome-to-shop"
+
+when an order is placed:
+  send order confirmation email to the customer
+  notify the seller via email
+  if payment is successful, update status to "processing"
+  after 24 hours, if status is still "pending",
+    send reminder to the seller
+
+when a product stock reaches 0:
+  mark the product as out of stock
+  notify the seller via email
+  if there are pending orders, alert the admin
+
+when an order is delivered:
+  send delivery confirmation to the customer
+  after 7 days, send a review request email
+  update the seller's completed order count
+
+# ─────────────────────────────────────────────────────────────
+── logic ──
+# ─────────────────────────────────────────────────────────────
+
+if database is unreachable:
+  retry 3 times with 1 second delay
+  if still failing, respond with "service temporarily unavailable"
+  alert the engineering team via Slack
+
+if an api request fails validation:
+  respond with a clear message explaining what is wrong
+  log the attempt for analytics
+  do not reveal internal details
+
+if payment processing fails:
+  retry once after 5 seconds
+  if still failing, respond with "payment could not be processed"
+  log the failure for investigation
+  notify the engineering team
+
+# ─────────────────────────────────────────────────────────────
+── database ──
+# ─────────────────────────────────────────────────────────────
+
+database:
+  use PostgreSQL
+  when the app starts, create tables if they don't exist
+  index User by email
+  index Product by slug
+  index Product by user and stock
+  index Order by user and status
+  index Order by order_number
+  index OrderItem by order
+  index Review by product
+  index Category by slug
+  backup daily at 3am
+  keep backups for 30 days
+
+# ─────────────────────────────────────────────────────────────
+── integrations ──
+# ─────────────────────────────────────────────────────────────
+
+integrate with Stripe:
+  api key from environment variable STRIPE_SECRET_KEY
+  use for processing payments and refunds
+
+integrate with SendGrid:
+  api key from environment variable SENDGRID_API_KEY
+  use for sending transactional emails
+
+integrate with AWS S3:
+  api key from environment variable AWS_ACCESS_KEY
+  secret from environment variable AWS_SECRET_KEY
+  use for storing product images
+
+# ─────────────────────────────────────────────────────────────
+── devops ──
+# ─────────────────────────────────────────────────────────────
+
+architecture: microservices
+  service ProductService:
+    handles product catalog and inventory
+    owns Product, Category, ProductCategory
+    runs on port 3001
+    has its own database
+  service OrderService:
+    handles order processing and payments
+    owns Order, OrderItem
+    runs on port 3002
+    has its own database
+    talks to ProductService
+  service UserService:
+    handles user accounts and authentication
+    owns User, Address, Review
+    runs on port 3003
+    has its own database
+  gateway:
+    routes /api/products to ProductService
+    routes /api/orders to OrderService
+    routes /api/users to UserService
+  message broker using RabbitMQ
+
+source control using Git on GitHub
+repository: https://github.com/example/shop-hub
+
+branches:
+  main is the production branch
+  staging is the pre-release branch
+  feature branches from main with prefix "feat/"
+  bugfix branches from main with prefix "fix/"
+
+when code is pushed to a feature branch:
+  run all tests
+  check code formatting
+  check for security vulnerabilities
+  report results back to the pull request
+
+when code is merged to staging:
+  run all tests
+  build the application
+  deploy to staging environment
+  run smoke tests against staging
+  notify the team on Slack
+
+when code is merged to main:
+  run all tests
+  build the application
+  deploy to production environment
+  run health checks
+  if health checks fail, rollback automatically
+  notify the team on Slack
+
+environment staging:
+  url is staging.shophub.example.com
+  uses staging database
+  seeds with test data
+  resets weekly
+
+environment production:
+  url is shophub.example.com
+  uses production database
+  requires manual approval for deployment
+  has auto-scaling enabled
+
+track response times for all api endpoints
+track error rates per endpoint
+track active users daily and monthly
+track order volume hourly
+alert on Slack if error rate exceeds 5 percent
+alert on Slack if response time exceeds 2 seconds
+log all api requests to CloudWatch
+keep logs for 90 days
+
+# ─────────────────────────────────────────────────────────────
+── build ──
+# ─────────────────────────────────────────────────────────────
+
+build with:
+  frontend using Angular with TypeScript
+  backend using Go with Gin
+  database using PostgreSQL
+  deploy to Docker

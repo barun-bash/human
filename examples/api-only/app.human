@@ -1,0 +1,355 @@
+app PayGate is an api application
+
+# ─────────────────────────────────────────────────────────────
+── backend ──
+# ─────────────────────────────────────────────────────────────
+
+data Merchant:
+  has a name which is text
+  has an email which is unique email
+  has an api_key which is unique encrypted text
+  has a status which is either "active" or "suspended" or "pending"
+  has a balance which is decimal
+  has a created datetime
+  has many Customer
+  has many Transaction
+  has many Webhook
+
+data Customer:
+  belongs to a Merchant
+  has a name which is text
+  has an email which is email
+  has an optional phone which is text
+  has a created datetime
+  has many PaymentMethod
+  has many Transaction
+
+data PaymentMethod:
+  belongs to a Customer
+  has a method_type which is either "card" or "bank_account" or "wallet"
+  has a last_four which is text
+  has a provider_token which is encrypted text
+  has a is_default which is boolean
+  has an optional expires_at which is date
+  has a created datetime
+
+data Transaction:
+  belongs to a Merchant
+  belongs to a Customer
+  has a transaction_id which is unique text
+  has a amount which is decimal
+  has a currency which is text
+  has a status which is either "pending" or "completed" or "failed" or "refunded"
+  has a transaction_type which is either "charge" or "refund" or "payout"
+  has an optional description which is text
+  has an optional payment_method_id which is number
+  has an optional refund_reason which is text
+  has a created datetime
+
+data Webhook:
+  belongs to a Merchant
+  has a url which is url
+  has a events which is text
+  has a secret which is encrypted text
+  has a is_active which is boolean
+  has a created datetime
+
+api CreateCustomer:
+  requires authentication
+  accepts name, email, and optional phone
+  check that name is not empty
+  check that email is a valid email
+  check that current merchant is active
+  create a Customer with the given fields and current merchant
+  respond with the created customer
+
+api AddPaymentMethod:
+  requires authentication
+  accepts customer_id, method_type, card_token, and is_default
+  check that method_type is valid
+  fetch the Customer by customer_id
+  if customer does not exist, respond with "customer not found"
+  check that customer belongs to the current merchant
+  create a PaymentMethod with the given fields
+  if is_default is true, set all other methods to not default
+  respond with the created payment method
+
+api CreateCharge:
+  requires authentication
+  accepts customer_id, amount, currency, description, and optional payment_method_id
+  check that amount is greater than 0
+  check that currency is not empty
+  check that current merchant is active
+  fetch the Customer by customer_id
+  if customer does not exist, respond with "customer not found"
+  check that customer belongs to the current merchant
+  if payment_method_id is provided, fetch the PaymentMethod
+  if payment method does not exist, use the default payment method
+  process payment through the payment provider
+  generate unique transaction_id
+  create a Transaction with status "pending"
+  if payment succeeds, update the Transaction status to "completed"
+  if payment fails, update the Transaction status to "failed"
+  update merchant balance if successful
+  deliver webhook event "charge.completed" or "charge.failed"
+  respond with the created transaction
+
+api RefundTransaction:
+  requires authentication
+  accepts transaction_id and optional refund_reason
+  fetch the Transaction by transaction_id
+  if transaction does not exist, respond with "transaction not found"
+  check that transaction belongs to the current merchant
+  check that transaction status is "completed"
+  check that transaction type is "charge"
+  process refund through the payment provider
+  create a Transaction with type "refund" and the original amount
+  update the Transaction status to "refunded"
+  update merchant balance
+  deliver webhook event "refund.completed"
+  respond with the refund transaction
+
+api GetTransaction:
+  requires authentication
+  accepts transaction_id
+  fetch the Transaction by transaction_id
+  if transaction does not exist, respond with "transaction not found"
+  check that transaction belongs to the current merchant
+  respond with the transaction details
+
+api ListTransactions:
+  requires authentication
+  fetch all transactions for the current merchant
+  sort by created date descending
+  support filtering by status
+  support filtering by transaction_type
+  support filtering by customer_id
+  support filtering by date range
+  paginate with 50 per page
+  respond with transactions and pagination info
+
+api RegisterWebhook:
+  requires authentication
+  accepts url and events
+  check that url is a valid url
+  check that events is not empty
+  check that current merchant is active
+  generate a webhook secret
+  create a Webhook with the given fields and current merchant
+  set is_active to true
+  respond with the created webhook and secret
+
+api GetMerchantBalance:
+  requires authentication
+  fetch the current merchant
+  calculate total completed charges
+  calculate total refunds
+  calculate total payouts
+  respond with the balance summary
+
+# ─────────────────────────────────────────────────────────────
+── security ──
+# ─────────────────────────────────────────────────────────────
+
+authentication:
+  method API keys passed via X-API-Key header
+  all api requests require a valid API key
+  rate limit all endpoints to 1000 requests per minute per merchant
+  validate request signatures using HMAC-SHA256
+  sanitize all text inputs against injection
+  enable CORS for registered merchant domains only
+  log all authentication attempts
+
+# ─────────────────────────────────────────────────────────────
+── policies ──
+# ─────────────────────────────────────────────────────────────
+
+policy ActiveMerchant:
+  can create customers and payment methods
+  can create charges and process refunds
+  can view all their transactions
+  can register webhooks
+  can view their balance
+
+policy SuspendedMerchant:
+  can view their existing transactions
+  can view their balance
+  cannot create new charges
+  cannot create new customers
+  cannot register new webhooks
+
+# ─────────────────────────────────────────────────────────────
+── workflows ──
+# ─────────────────────────────────────────────────────────────
+
+when a charge is completed:
+  deliver webhook to the merchant
+  if webhook delivery fails, retry 3 times with exponential backoff
+  log the delivery attempt and result
+
+when a refund is processed:
+  deliver webhook to the merchant
+  send email notification to the customer
+  update the merchant's daily report
+
+when a merchant balance exceeds the payout threshold:
+  initiate automatic payout to the merchant's bank account
+  create a Transaction with type "payout"
+  deliver webhook event "payout.initiated"
+
+when a webhook delivery fails after all retries:
+  mark the webhook as failing
+  send alert email to the merchant
+  if webhook fails for 7 consecutive days, deactivate it
+
+# ─────────────────────────────────────────────────────────────
+── logic ──
+# ─────────────────────────────────────────────────────────────
+
+if database is unreachable:
+  retry 3 times with 1 second delay
+  if still failing, respond with "service temporarily unavailable"
+  alert the engineering team via Slack
+
+if an api request fails validation:
+  respond with a clear error message and error code
+  log the attempt for analytics
+  do not reveal internal details
+
+if payment provider is unavailable:
+  retry 2 times with 2 second delay
+  if still failing, respond with "payment provider unavailable, try again later"
+  queue the payment for retry
+  alert the engineering team
+
+# ─────────────────────────────────────────────────────────────
+── database ──
+# ─────────────────────────────────────────────────────────────
+
+database:
+  use PostgreSQL
+  when the app starts, create tables if they don't exist
+  index Merchant by email
+  index Merchant by api_key
+  index Customer by merchant and email
+  index Transaction by transaction_id
+  index Transaction by merchant and status
+  index Transaction by merchant and created
+  index PaymentMethod by customer
+  index Webhook by merchant
+  backup daily at 1am
+  keep backups for 90 days
+
+# ─────────────────────────────────────────────────────────────
+── integrations ──
+# ─────────────────────────────────────────────────────────────
+
+integrate with Stripe:
+  api key from environment variable STRIPE_SECRET_KEY
+  use for processing card payments and payouts
+
+integrate with SendGrid:
+  api key from environment variable SENDGRID_API_KEY
+  use for sending transactional emails and notifications
+
+integrate with Slack:
+  api key from environment variable SLACK_WEBHOOK_URL
+  use for engineering alerts and incident notifications
+
+# ─────────────────────────────────────────────────────────────
+── devops ──
+# ─────────────────────────────────────────────────────────────
+
+architecture: microservices
+  service PaymentService:
+    handles charge processing, refunds, and payouts
+    owns Transaction
+    runs on port 4001
+    has its own database
+  service MerchantService:
+    handles merchant accounts and API key management
+    owns Merchant, Webhook
+    runs on port 4002
+    has its own database
+  service CustomerService:
+    handles customer profiles and payment methods
+    owns Customer, PaymentMethod
+    runs on port 4003
+    has its own database
+    talks to PaymentService
+  gateway:
+    routes /api/charges to PaymentService
+    routes /api/refunds to PaymentService
+    routes /api/merchants to MerchantService
+    routes /api/customers to CustomerService
+    routes /api/webhooks to MerchantService
+    handles rate limiting and API key validation
+  message broker using RabbitMQ
+
+source control using Git on GitHub
+repository: https://github.com/example/paygate
+
+branches:
+  main is the production branch
+  staging is the pre-release branch
+  feature branches from main with prefix "feat/"
+  bugfix branches from main with prefix "fix/"
+
+when code is pushed to a feature branch:
+  run all tests
+  check code formatting
+  check for security vulnerabilities
+  report results back to the pull request
+
+when code is merged to staging:
+  run all tests
+  build the application
+  deploy to staging environment
+  run smoke tests against staging
+  notify the team on Slack
+
+when code is merged to main:
+  run all tests
+  build the application
+  deploy to production environment
+  run health checks
+  if health checks fail, rollback automatically
+  notify the team on Slack
+
+environment development:
+  url is localhost:4000
+  uses local database
+  uses mocked payment provider
+  seeds with test data
+
+environment staging:
+  url is staging-api.paygate.example.com
+  uses staging database
+  uses Stripe test mode
+  seeds with test merchants
+
+environment production:
+  url is api.paygate.example.com
+  uses production database
+  uses Stripe live mode
+  requires manual approval for deployment
+  has auto-scaling enabled
+
+track response times for all api endpoints
+track error rates per endpoint
+track transaction volume per minute
+track payment success rate
+alert on Slack if error rate exceeds 1 percent
+alert on Slack if response time exceeds 500 milliseconds
+alert on Slack if payment success rate drops below 95 percent
+log all api requests to CloudWatch
+keep logs for 365 days
+
+# ─────────────────────────────────────────────────────────────
+── build ──
+# ─────────────────────────────────────────────────────────────
+
+build with:
+  backend using Node with Express
+  database using PostgreSQL
+  deploy to Docker

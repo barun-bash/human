@@ -37,7 +37,7 @@ import (
 	"github.com/barun-bash/human/internal/quality"
 )
 
-const version = "0.4.0"
+var version = "0.4.0"
 
 func main() {
 	// Parse global --no-color flag before command dispatch

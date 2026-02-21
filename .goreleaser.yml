@@ -1,0 +1,67 @@
+version: 2
+
+project_name: human
+
+before:
+  hooks:
+    - go mod tidy
+    - go vet ./...
+    - go test ./...
+
+builds:
+  - id: human
+    main: ./cmd/human/
+    binary: human
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+brews:
+  - name: human
+    repository:
+      owner: barun-bash
+      name: homebrew-tap
+    directory: Formula
+    homepage: "https://github.com/barun-bash/human"
+    description: "Programming language where you write in English and get production-ready applications"
+    license: "MIT"
+    test: |
+      system "#{bin}/human", "--version"
+    install: |
+      bin.install "human"
+
+release:
+  github:
+    owner: barun-bash
+    name: human
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"

@@ -10,7 +10,7 @@
   <br>
   Write in structured English. Get production-ready applications.
   <br><br>
-  <a href="https://github.com/barun-bash/human/releases/tag/v0.3.0"><img src="https://img.shields.io/badge/release-v0.3.0-E85D3A.svg" alt="v0.3.0"></a>&nbsp;
+  <a href="https://github.com/barun-bash/human/releases/tag/v0.4.0"><img src="https://img.shields.io/badge/release-v0.4.0-E85D3A.svg" alt="v0.4.0"></a>&nbsp;
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>&nbsp;
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8.svg" alt="Go 1.21+"></a>&nbsp;
   <a href="https://barun-bash.github.io/human/"><img src="https://img.shields.io/badge/website-live-E85D3A.svg" alt="Website"></a>
@@ -116,13 +116,26 @@ The **Intent IR** is the key innovation — a typed, serializable, framework-agn
 
 ## Quick Start
 
+### Installation
+
 ```bash
-# Install (requires Go 1.21+)
-go install github.com/barun-bash/human/cmd/human@v0.3.0
+# One-liner (macOS / Linux)
+curl -fsSL https://raw.githubusercontent.com/barun-bash/human/main/install.sh | sh
 
-# Make sure Go binaries are in your PATH
-export PATH="$PATH:$(go env GOPATH)/bin"
+# Homebrew
+brew install barun-bash/tap/human
 
+# Go install (requires Go 1.21+)
+go install github.com/barun-bash/human/cmd/human@latest
+
+# Build from source
+git clone https://github.com/barun-bash/human.git
+cd human && make install
+```
+
+### Usage
+
+```bash
 # Validate a .human file
 human check examples/taskflow/app.human
 
@@ -195,7 +208,7 @@ my-app/
 
 ## Project Status
 
-**[v0.3.0 released](https://github.com/barun-bash/human/releases/tag/v0.3.0)** — All 12 generators wired into CLI. Stack-aware scaffolder. Build summary table. 228+ tests. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full development plan.
+**[v0.4.0 released](https://github.com/barun-bash/human/releases/tag/v0.4.0)** — 12+ code generators, semantic analyzer, LLM connector, Terraform and monitoring generators, 5 example apps. 260+ tests. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full development plan.
 
 ---
 
@@ -209,7 +222,7 @@ my-app/
 | [Roadmap](https://barun-bash.github.io/human/roadmap.html) | 52-week development plan |
 | [Manifesto](https://barun-bash.github.io/human/manifesto.html) | Why Human exists |
 | [Contributing](https://barun-bash.github.io/human/contributing.html) | How to contribute |
-| [Examples](examples/) | Sample applications |
+| [Examples](examples/) | Sample applications (TaskFlow, Blog, E-commerce, SaaS, API-only) |
 
 ---
 
