@@ -108,8 +108,6 @@ func TestFullIntegration(t *testing.T) {
 	expectedFiles := []string{
 		".storybook/main.ts",
 		".storybook/preview.ts",
-		"storybook-dependencies.json",
-		"src/stories/Introduction.mdx",
 		"src/mocks/data.ts",
 		"src/stories/components/TaskCard.stories.tsx",
 		"src/stories/pages/Dashboard.stories.tsx",
@@ -125,5 +123,32 @@ func TestFullIntegration(t *testing.T) {
 	compContent, _ := os.ReadFile(filepath.Join(dir, "src/stories/components/TaskCard.stories.tsx"))
 	if !strings.Contains(string(compContent), "task: mocks.mockTask()") {
 		t.Error("component story missing mock data usage")
+	}
+}
+
+func TestDevDependencies(t *testing.T) {
+	deps := DevDependencies("react")
+	if _, ok := deps["@storybook/react-vite"]; !ok {
+		t.Error("missing @storybook/react-vite for react framework")
+	}
+	if _, ok := deps["storybook"]; !ok {
+		t.Error("missing storybook CLI dependency")
+	}
+
+	vueDeps := DevDependencies("vue")
+	if _, ok := vueDeps["@storybook/vue3-vite"]; !ok {
+		t.Error("missing @storybook/vue3-vite for vue framework")
+	}
+}
+
+func TestPreviewTsFrameworkAware(t *testing.T) {
+	reactPreview := generatePreviewTs("react")
+	if !strings.Contains(reactPreview, "@storybook/react") {
+		t.Error("react preview should import from @storybook/react")
+	}
+
+	vuePreview := generatePreviewTs("vue")
+	if !strings.Contains(vuePreview, "@storybook/vue3") {
+		t.Error("vue preview should import from @storybook/vue3")
 	}
 }

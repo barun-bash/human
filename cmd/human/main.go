@@ -25,6 +25,7 @@ import (
 	"github.com/barun-bash/human/internal/codegen/python"
 	"github.com/barun-bash/human/internal/codegen/react"
 	"github.com/barun-bash/human/internal/codegen/scaffold"
+	"github.com/barun-bash/human/internal/codegen/storybook"
 	"github.com/barun-bash/human/internal/codegen/svelte"
 	"github.com/barun-bash/human/internal/codegen/terraform"
 	"github.com/barun-bash/human/internal/codegen/vue"
@@ -1062,6 +1063,31 @@ func runGenerators(app *ir.Application, outputDir string) ([]buildResult, error)
 			return nil, fmt.Errorf("Svelte codegen: %w", err)
 		}
 		results = append(results, buildResult{"svelte", dir, countFiles(dir)})
+	}
+
+	// Storybook — generates into the frontend directory that was just created
+	if frontendLower != "" {
+		fw := storybook.GetFramework(app)
+		// Determine the frontend output directory
+		frontendDir := ""
+		switch {
+		case strings.Contains(frontendLower, "react"):
+			frontendDir = filepath.Join(outputDir, "react")
+		case strings.Contains(frontendLower, "vue"):
+			frontendDir = filepath.Join(outputDir, "vue")
+		case strings.Contains(frontendLower, "angular"):
+			frontendDir = filepath.Join(outputDir, "angular")
+		case strings.Contains(frontendLower, "svelte"):
+			frontendDir = filepath.Join(outputDir, "svelte")
+		}
+		if frontendDir != "" {
+			sg := storybook.Generator{}
+			if err := sg.Generate(app, frontendDir); err != nil {
+				return nil, fmt.Errorf("Storybook codegen: %w", err)
+			}
+			results = append(results, buildResult{"storybook", frontendDir, countFiles(filepath.Join(frontendDir, ".storybook")) + countFiles(filepath.Join(frontendDir, "src", "stories"))})
+			_ = fw // used by scaffold for dependency injection
+		}
 	}
 
 	// Backend generators

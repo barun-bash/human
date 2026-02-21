@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/barun-bash/human/internal/codegen/storybook"
 	"github.com/barun-bash/human/internal/codegen/themes"
 	"github.com/barun-bash/human/internal/ir"
 )
@@ -291,7 +292,12 @@ func generateReactPackageJSON(app *ir.Application) string {
 		devDeps["postcss"] = "^8.4.0"
 	}
 
-	return writePackageJSON(name+"-frontend", "tsc && vite build", deps, devDeps)
+	// Storybook dependencies
+	for k, v := range storybook.DevDependencies("react") {
+		devDeps[k] = v
+	}
+
+	return writePackageJSONWithExtra(name+"-frontend", "tsc && vite build", deps, devDeps, storybook.Scripts())
 }
 
 // generateVuePackageJSON produces vue/package.json with Vue 3, Vite,
@@ -337,13 +343,24 @@ func generateVuePackageJSON(app *ir.Application) string {
 		devDeps["postcss"] = "^8.4.0"
 	}
 
-	return writePackageJSON(name+"-frontend", "vue-tsc && vite build", deps, devDeps)
+	// Storybook dependencies
+	for k, v := range storybook.DevDependencies("vue") {
+		devDeps[k] = v
+	}
+
+	return writePackageJSONWithExtra(name+"-frontend", "vue-tsc && vite build", deps, devDeps, storybook.Scripts())
 }
 
 // writePackageJSON produces a formatted package.json from sorted dependency maps.
 // The buildCmd parameter controls the "build" script (e.g. "tsc && vite build" for React,
 // "vue-tsc && vite build" for Vue).
 func writePackageJSON(pkgName, buildCmd string, deps, devDeps map[string]string) string {
+	return writePackageJSONWithExtra(pkgName, buildCmd, deps, devDeps, nil)
+}
+
+// writePackageJSONWithExtra is like writePackageJSON but accepts extra scripts
+// to merge into the scripts section (e.g. Storybook scripts).
+func writePackageJSONWithExtra(pkgName, buildCmd string, deps, devDeps map[string]string, extraScripts map[string]string) string {
 	var b strings.Builder
 
 	b.WriteString("{\n")
@@ -355,7 +372,21 @@ func writePackageJSON(pkgName, buildCmd string, deps, devDeps map[string]string)
 	b.WriteString("    \"dev\": \"vite\",\n")
 	fmt.Fprintf(&b, "    \"build\": \"%s\",\n", buildCmd)
 	b.WriteString("    \"preview\": \"vite preview\",\n")
-	b.WriteString("    \"start\": \"vite preview\"\n")
+	b.WriteString("    \"start\": \"vite preview\"")
+
+	// Merge extra scripts (sorted for deterministic output)
+	if len(extraScripts) > 0 {
+		extraKeys := make([]string, 0, len(extraScripts))
+		for k := range extraScripts {
+			extraKeys = append(extraKeys, k)
+		}
+		sort.Strings(extraKeys)
+		for _, k := range extraKeys {
+			b.WriteString(",\n")
+			fmt.Fprintf(&b, "    \"%s\": \"%s\"", k, extraScripts[k])
+		}
+	}
+	b.WriteString("\n")
 	b.WriteString("  },\n")
 
 	writeSortedDeps := func(label string, m map[string]string) {

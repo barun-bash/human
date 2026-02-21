@@ -9,9 +9,11 @@ import (
 	"github.com/barun-bash/human/internal/ir"
 )
 
+// Generator produces Storybook configuration and story files for a frontend project.
 type Generator struct{}
 
-func getFramework(app *ir.Application) string {
+// GetFramework returns the frontend framework name from the IR config.
+func GetFramework(app *ir.Application) string {
 	if app.Config == nil || app.Config.Frontend == "" {
 		return "react"
 	}
@@ -35,6 +37,8 @@ func getStoryExtension(fw string) string {
 	return ".stories.ts"
 }
 
+// Generate writes Storybook config, story files, and mock data into outputDir.
+// outputDir should be the frontend directory (e.g. .human/output/react).
 func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	dirs := []string{
 		filepath.Join(outputDir, ".storybook"),
@@ -49,15 +53,13 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	}
 
 	inventory := BuildInventory(app)
-	fw := getFramework(app)
+	fw := GetFramework(app)
 	ext := getStoryExtension(fw)
 
 	files := map[string]string{
-		filepath.Join(outputDir, ".storybook", "main.ts"):            generateMainTs(app, fw),
-		filepath.Join(outputDir, ".storybook", "preview.ts"):         generatePreviewTs(app),
-		filepath.Join(outputDir, "src", "mocks", "data.ts"):          generateMockData(app),
-		filepath.Join(outputDir, "src", "stories", "Introduction.mdx"): generateIntroduction(app, inventory),
-		filepath.Join(outputDir, "storybook-dependencies.json"):      generateDependencies(app, fw),
+		filepath.Join(outputDir, ".storybook", "main.ts"):    generateMainTs(fw),
+		filepath.Join(outputDir, ".storybook", "preview.ts"): generatePreviewTs(fw),
+		filepath.Join(outputDir, "src", "mocks", "data.ts"):  generateMockData(app),
 	}
 
 	for _, comp := range inventory.Components {
@@ -86,22 +88,21 @@ func writeFile(path, content string) error {
 	return nil
 }
 
-func generateMainTs(app *ir.Application, fw string) string {
-	addon := "@storybook/react-vite"
+func generateMainTs(fw string) string {
+	frameworkPkg := "@storybook/react-vite"
 	if fw == "vue" {
-		addon = "@storybook/vue3-vite"
+		frameworkPkg = "@storybook/vue3-vite"
 	} else if fw == "svelte" {
-		addon = "@storybook/sveltekit"
+		frameworkPkg = "@storybook/sveltekit"
 	} else if fw == "angular" {
-		addon = "@storybook/angular"
+		frameworkPkg = "@storybook/angular"
 	}
 
 	return fmt.Sprintf(`import type { StorybookConfig } from '%s';
 
 const config: StorybookConfig = {
-  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx|svelte)'],
+  stories: ['../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
   addons: [
-    '@storybook/addon-links',
     '@storybook/addon-essentials',
     '@storybook/addon-interactions',
   ],
@@ -109,16 +110,22 @@ const config: StorybookConfig = {
     name: '%s',
     options: {},
   },
-  docs: {
-    autodocs: 'tag',
-  },
 };
 export default config;
-`, addon, addon)
+`, frameworkPkg, frameworkPkg)
 }
 
-func generatePreviewTs(app *ir.Application) string {
-	return `import type { Preview } from '@storybook/react';
+func generatePreviewTs(fw string) string {
+	previewType := "@storybook/react"
+	if fw == "vue" {
+		previewType = "@storybook/vue3"
+	} else if fw == "svelte" {
+		previewType = "@storybook/svelte"
+	} else if fw == "angular" {
+		previewType = "@storybook/angular"
+	}
+
+	return fmt.Sprintf(`import type { Preview } from '%s';
 
 const preview: Preview = {
   parameters: {
@@ -132,44 +139,41 @@ const preview: Preview = {
 };
 
 export default preview;
-`
+`, previewType)
 }
 
-func generateDependencies(app *ir.Application, fw string) string {
-	sbDep := `"@storybook/react": "^8.0.0",
-    "@storybook/react-vite": "^8.0.0"`
-	
-	if fw == "vue" {
-		sbDep = `"@storybook/vue3": "^8.0.0",
-    "@storybook/vue3-vite": "^8.0.0"`
-	} else if fw == "svelte" {
-		sbDep = `"@storybook/svelte": "^8.0.0",
-    "@storybook/sveltekit": "^8.0.0"`
-	} else if fw == "angular" {
-		sbDep = `"@storybook/angular": "^8.0.0"`
+// DevDependencies returns the Storybook devDependencies map for a given framework.
+// This is used by the scaffold generator to merge into the frontend package.json.
+func DevDependencies(fw string) map[string]string {
+	deps := map[string]string{
+		"@storybook/addon-essentials":    "^8.6.0",
+		"@storybook/addon-interactions":  "^8.6.0",
+		"@storybook/blocks":             "^8.6.0",
+		"@storybook/test":               "^8.6.0",
+		"storybook":                     "^8.6.0",
 	}
 
-	return fmt.Sprintf(`{
-  "devDependencies": {
-    "@storybook/addon-essentials": "^8.0.0",
-    "@storybook/addon-interactions": "^8.0.0",
-    "@storybook/addon-links": "^8.0.0",
-    "@storybook/blocks": "^8.0.0",
-    %s,
-    "@storybook/test": "^8.0.0",
-    "storybook": "^8.0.0"
-  },
-  "scripts": {
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
-  }
-}
-`, sbDep)
+	switch fw {
+	case "vue":
+		deps["@storybook/vue3"] = "^8.6.0"
+		deps["@storybook/vue3-vite"] = "^8.6.0"
+	case "svelte":
+		deps["@storybook/svelte"] = "^8.6.0"
+		deps["@storybook/sveltekit"] = "^8.6.0"
+	case "angular":
+		deps["@storybook/angular"] = "^8.6.0"
+	default: // react
+		deps["@storybook/react"] = "^8.6.0"
+		deps["@storybook/react-vite"] = "^8.6.0"
+	}
+
+	return deps
 }
 
-func generateIntroduction(app *ir.Application, inv *ComponentInventory) string {
-	return `# UI Storyboard for ` + app.Name + `
-
-Welcome to the auto-generated Storybook. Here you can find all components and pages extracted from your Human declarations.
-`
+// Scripts returns the Storybook npm scripts to merge into the frontend package.json.
+func Scripts() map[string]string {
+	return map[string]string{
+		"storybook":       "storybook dev -p 6006",
+		"build-storybook": "storybook build",
+	}
 }

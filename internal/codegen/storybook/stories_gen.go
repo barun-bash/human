@@ -20,7 +20,10 @@ func generateComponentStory(comp *ComponentMeta, app *ir.Application, fw string)
 	}
 
 	b.WriteString(fmt.Sprintf("import type { Meta, StoryObj } from '%s';\n", frameworkStr))
-	b.WriteString("import { fn } from '@storybook/test';\n")
+
+	if comp.HasClick {
+		b.WriteString("import { fn } from '@storybook/test';\n")
+	}
 
 	ext := ""
 	if fw == "vue" {
@@ -42,64 +45,68 @@ func generateComponentStory(comp *ComponentMeta, app *ir.Application, fw string)
 
 	b.WriteString("\n")
 
-	b.WriteString(fmt.Sprintf("const meta: Meta<typeof %s> = {\n", comp.Name))
+	b.WriteString(fmt.Sprintf("const meta = {\n"))
 	b.WriteString(fmt.Sprintf("  title: 'Components/%s',\n", comp.Name))
 	b.WriteString(fmt.Sprintf("  component: %s,\n", comp.Name))
 	b.WriteString("  tags: ['autodocs'],\n")
-	
+
 	if comp.HasClick {
 		b.WriteString("  args: { onClick: fn() },\n")
 	}
 
-	b.WriteString("  argTypes: {\n")
-	for _, prop := range comp.Props {
-		if prop.Type == "enum" {
-			b.WriteString(fmt.Sprintf("    %s: { control: 'select', options: ['a', 'b', 'c'] },\n", prop.Name))
-		} else if prop.Type == "boolean" {
-			b.WriteString(fmt.Sprintf("    %s: { control: 'boolean' },\n", prop.Name))
+	if hasArgTypes(comp) {
+		b.WriteString("  argTypes: {\n")
+		for _, prop := range comp.Props {
+			if prop.Type == "enum" {
+				b.WriteString(fmt.Sprintf("    %s: { control: 'select' },\n", prop.Name))
+			} else if prop.Type == "boolean" {
+				b.WriteString(fmt.Sprintf("    %s: { control: 'boolean' },\n", prop.Name))
+			}
 		}
+		b.WriteString("  },\n")
 	}
-	b.WriteString("  },\n")
-	b.WriteString("};\n\n")
+	b.WriteString(fmt.Sprintf("} satisfies Meta<typeof %s>;\n\n", comp.Name))
 
 	b.WriteString("export default meta;\n")
-	b.WriteString(fmt.Sprintf("type Story = StoryObj<typeof %s>;\n\n", comp.Name))
+	b.WriteString("type Story = StoryObj<typeof meta>;\n\n")
 
 	b.WriteString("export const Default: Story = {\n")
-	b.WriteString("  args: {\n")
-	for _, prop := range comp.Props {
-		if isDataModel(prop.Type, app) {
-			b.WriteString(fmt.Sprintf("    %s: mocks.mock%s(),\n", prop.Name, prop.Type))
-		} else {
-			b.WriteString(fmt.Sprintf("    %s: 'Sample %s',\n", prop.Name, prop.Name))
+	if len(comp.Props) > 0 {
+		b.WriteString("  args: {\n")
+		for _, prop := range comp.Props {
+			if isDataModel(prop.Type, app) {
+				b.WriteString(fmt.Sprintf("    %s: mocks.mock%s(),\n", prop.Name, prop.Type))
+			} else {
+				b.WriteString(fmt.Sprintf("    %s: %s,\n", prop.Name, defaultArgValue(prop)))
+			}
 		}
+		b.WriteString("  },\n")
 	}
-	b.WriteString("  },\n")
-	b.WriteString("};\n\n")
-
-	// Additional Component Variants
-	b.WriteString("export const Loading: Story = {\n")
-	b.WriteString("  args: {\n")
-	b.WriteString("    ...Default.args,\n")
-	b.WriteString("    loading: true,\n")
-	b.WriteString("  },\n")
-	b.WriteString("};\n\n")
-
-	b.WriteString("export const Empty: Story = {\n")
-	b.WriteString("  args: {\n")
-	b.WriteString("    ...Default.args,\n")
-	b.WriteString("    data: [],\n")
-	b.WriteString("  },\n")
-	b.WriteString("};\n\n")
-
-	b.WriteString("export const ErrorState: Story = {\n")
-	b.WriteString("  args: {\n")
-	b.WriteString("    ...Default.args,\n")
-	b.WriteString("    error: 'An unexpected error occurred',\n")
-	b.WriteString("  },\n")
 	b.WriteString("};\n")
 
 	return b.String()
+}
+
+// hasArgTypes checks whether any prop needs a custom argType control.
+func hasArgTypes(comp *ComponentMeta) bool {
+	for _, prop := range comp.Props {
+		if prop.Type == "enum" || prop.Type == "boolean" {
+			return true
+		}
+	}
+	return false
+}
+
+// defaultArgValue returns a sensible default arg literal for a prop type.
+func defaultArgValue(prop *ir.Prop) string {
+	switch strings.ToLower(prop.Type) {
+	case "boolean":
+		return "false"
+	case "number", "decimal":
+		return "0"
+	default:
+		return fmt.Sprintf("'Sample %s'", prop.Name)
+	}
 }
 
 func generatePageStory(page *PageMeta, app *ir.Application, fw string) string {
@@ -115,7 +122,7 @@ func generatePageStory(page *PageMeta, app *ir.Application, fw string) string {
 	}
 
 	b.WriteString(fmt.Sprintf("import type { Meta, StoryObj } from '%s';\n", frameworkStr))
-	
+
 	ext := ""
 	if fw == "vue" {
 		ext = ".vue"
@@ -125,34 +132,18 @@ func generatePageStory(page *PageMeta, app *ir.Application, fw string) string {
 	b.WriteString(fmt.Sprintf("import %sPage from '../../pages/%sPage%s';\n", page.Name, page.Name, ext))
 	b.WriteString("\n")
 
-	b.WriteString(fmt.Sprintf("const meta: Meta<typeof %sPage> = {\n", page.Name))
+	b.WriteString(fmt.Sprintf("const meta = {\n"))
 	b.WriteString(fmt.Sprintf("  title: 'Pages/%s',\n", page.Name))
 	b.WriteString(fmt.Sprintf("  component: %sPage,\n", page.Name))
 	b.WriteString("  parameters: {\n")
 	b.WriteString("    layout: 'fullscreen',\n")
 	b.WriteString("  },\n")
-	b.WriteString("};\n\n")
+	b.WriteString(fmt.Sprintf("} satisfies Meta<typeof %sPage>;\n\n", page.Name))
 
 	b.WriteString("export default meta;\n")
-	b.WriteString(fmt.Sprintf("type Story = StoryObj<typeof %sPage>;\n\n", page.Name))
+	b.WriteString("type Story = StoryObj<typeof meta>;\n\n")
 
-	b.WriteString("export const Default: Story = {};\n\n")
-
-	if page.HasLoading {
-		b.WriteString("export const Loading: Story = {\n")
-		b.WriteString("  parameters: { mockData: [] },\n")
-		b.WriteString("};\n\n")
-	}
-
-	if page.HasEmpty {
-		b.WriteString("export const Empty: Story = {\n")
-		b.WriteString("  parameters: { mockData: [] },\n")
-		b.WriteString("};\n\n")
-	}
-
-	b.WriteString("export const Error: Story = {\n")
-	b.WriteString("  parameters: { mockData: { error: true } },\n")
-	b.WriteString("};\n")
+	b.WriteString("export const Default: Story = {};\n")
 
 	return b.String()
 }

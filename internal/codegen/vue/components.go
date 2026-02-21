@@ -28,7 +28,7 @@ func generateComponent(comp *ir.Component, app *ir.Application) string {
 				models = append(models, prop.Type)
 			}
 		}
-		fmt.Fprintf(&b, "import type { %s } from '../types/models';\\n\n", strings.Join(models, ", "))
+		fmt.Fprintf(&b, "import type { %s } from '../types/models';\n", strings.Join(models, ", "))
 	}
 
 	if len(comp.Props) > 0 {
@@ -48,10 +48,10 @@ func generateComponent(comp *ir.Component, app *ir.Application) string {
 	}
 	
 	if hasClickHandler(comp) {
-		b.WriteString("\\ndefineEmits<{ (e: 'click'): void }>();\n")
+		b.WriteString("\ndefineEmits<{ (e: 'click'): void }>();\n")
 	}
 
-	b.WriteString("</script>\\n\n")
+	b.WriteString("</script>\n\n")
 
 	b.WriteString("<template>\n")
 	if hasClickHandler(comp) {
