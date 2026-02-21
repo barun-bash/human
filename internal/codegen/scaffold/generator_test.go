@@ -53,6 +53,60 @@ func testApp() *ir.Application {
 	}
 }
 
+func testAppVuePython() *ir.Application {
+	return &ir.Application{
+		Name:     "MyVueApp",
+		Platform: "web",
+		Config: &ir.BuildConfig{
+			Frontend: "Vue",
+			Backend:  "Python with FastAPI",
+			Database: "PostgreSQL",
+			Deploy:   "Docker",
+		},
+		Data: []*ir.DataModel{
+			{Name: "User", Fields: []*ir.DataField{{Name: "email", Type: "email"}}},
+		},
+		APIs:     []*ir.Endpoint{{Name: "SignUp", Auth: false}},
+		Database: &ir.DatabaseConfig{Engine: "PostgreSQL"},
+	}
+}
+
+func testAppGoBackend() *ir.Application {
+	return &ir.Application{
+		Name:     "GoService",
+		Platform: "api",
+		Config: &ir.BuildConfig{
+			Frontend: "None",
+			Backend:  "Go with Gin",
+			Database: "PostgreSQL",
+			Deploy:   "Docker",
+		},
+		Data: []*ir.DataModel{
+			{Name: "User", Fields: []*ir.DataField{{Name: "email", Type: "email"}}},
+		},
+		APIs:     []*ir.Endpoint{{Name: "CreateUser", Auth: true}},
+		Database: &ir.DatabaseConfig{Engine: "PostgreSQL"},
+	}
+}
+
+func testAppAngularNode() *ir.Application {
+	return &ir.Application{
+		Name:     "AngularApp",
+		Platform: "web",
+		Config: &ir.BuildConfig{
+			Frontend: "Angular",
+			Backend:  "Node with Express",
+			Database: "PostgreSQL",
+			Deploy:   "Docker",
+		},
+		Data: []*ir.DataModel{
+			{Name: "User", Fields: []*ir.DataField{{Name: "email", Type: "email"}}},
+		},
+		APIs:     []*ir.Endpoint{{Name: "SignUp", Auth: false}},
+		Database: &ir.DatabaseConfig{Engine: "PostgreSQL"},
+	}
+}
+
 // ── Root package.json ──
 
 func TestRootPackageJSON(t *testing.T) {
@@ -83,6 +137,75 @@ func TestRootPackageJSON(t *testing.T) {
 		if !strings.Contains(output, c.pattern) {
 			t.Errorf("root package.json: missing %s (%q)", c.desc, c.pattern)
 		}
+	}
+}
+
+func TestRootPackageJSONVuePython(t *testing.T) {
+	app := testAppVuePython()
+	output := generateRootPackageJSON(app)
+
+	// Should have vue workspace, no node/react
+	if !strings.Contains(output, `"vue"`) {
+		t.Error("vue+python root package.json: missing vue workspace")
+	}
+	if strings.Contains(output, `"node"`) {
+		t.Error("vue+python root package.json: should not have node workspace")
+	}
+	if strings.Contains(output, `"react"`) {
+		t.Error("vue+python root package.json: should not have react workspace")
+	}
+	// Should not have Prisma scripts
+	if strings.Contains(output, "prisma") {
+		t.Error("vue+python root package.json: should not have Prisma scripts")
+	}
+	// Should not have concurrently (only 1 workspace)
+	if strings.Contains(output, "concurrently") {
+		t.Error("vue+python root package.json: should not have concurrently with single workspace")
+	}
+}
+
+func TestRootPackageJSONGoBackend(t *testing.T) {
+	app := testAppGoBackend()
+	output := generateRootPackageJSON(app)
+
+	// No workspaces at all (no JS backend, no JS frontend)
+	if strings.Contains(output, `"workspaces"`) {
+		t.Error("go backend root package.json: should not have workspaces")
+	}
+	if strings.Contains(output, "prisma") {
+		t.Error("go backend root package.json: should not have Prisma scripts")
+	}
+	if strings.Contains(output, "concurrently") {
+		t.Error("go backend root package.json: should not have concurrently")
+	}
+}
+
+func TestRootPackageJSONAngularNode(t *testing.T) {
+	app := testAppAngularNode()
+	output := generateRootPackageJSON(app)
+
+	// Should have both node and angular workspaces
+	if !strings.Contains(output, `"node"`) {
+		t.Error("angular+node root package.json: missing node workspace")
+	}
+	if !strings.Contains(output, `"angular"`) {
+		t.Error("angular+node root package.json: missing angular workspace")
+	}
+	// Should not have react or vue
+	if strings.Contains(output, `"react"`) {
+		t.Error("angular+node root package.json: should not have react workspace")
+	}
+	// Should have concurrently (2 workspaces)
+	if !strings.Contains(output, "concurrently") {
+		t.Error("angular+node root package.json: missing concurrently")
+	}
+	// Should have Prisma scripts (Node backend)
+	if !strings.Contains(output, "prisma") {
+		t.Error("angular+node root package.json: missing Prisma scripts")
+	}
+	// Scripts should reference angular workspace
+	if !strings.Contains(output, "workspace=angular") {
+		t.Error("angular+node root package.json: scripts should reference angular workspace")
 	}
 }
 
@@ -163,6 +286,36 @@ func TestReactPackageJSON(t *testing.T) {
 	}
 }
 
+// ── Vue package.json ──
+
+func TestVuePackageJSON(t *testing.T) {
+	app := testAppVuePython()
+	output := generateVuePackageJSON(app)
+
+	checks := []struct {
+		desc    string
+		pattern string
+	}{
+		{"name", `"myvueapp-frontend"`},
+		{"type module", `"type": "module"`},
+		{"vue", `"vue": "^3.5.0"`},
+		{"vue-router", `"vue-router": "^4.4.0"`},
+		{"pinia", `"pinia": "^2.2.0"`},
+		{"vitejs/plugin-vue", `"@vitejs/plugin-vue": "^5.2.0"`},
+		{"typescript", `"typescript": "^5.7.0"`},
+		{"vite", `"vite": "^6.0.0"`},
+		{"vue-tsc", `"vue-tsc": "^2.1.0"`},
+		{"dev script", `"dev": "vite"`},
+		{"build script", `"build": "vue-tsc && vite build"`},
+	}
+
+	for _, c := range checks {
+		if !strings.Contains(output, c.pattern) {
+			t.Errorf("vue package.json: missing %s (%q)", c.desc, c.pattern)
+		}
+	}
+}
+
 // ── Node tsconfig ──
 
 func TestNodeTSConfig(t *testing.T) {
@@ -209,6 +362,35 @@ func TestReactTSConfig(t *testing.T) {
 		if !strings.Contains(output, c.pattern) {
 			t.Errorf("react tsconfig: missing %s (%q)", c.desc, c.pattern)
 		}
+	}
+}
+
+// ── Vue tsconfig ──
+
+func TestVueTSConfig(t *testing.T) {
+	output := generateVueTSConfig()
+
+	checks := []struct {
+		desc    string
+		pattern string
+	}{
+		{"target", `"target": "ES2020"`},
+		{"noEmit", `"noEmit": true`},
+		{"moduleResolution", `"moduleResolution": "bundler"`},
+		{"strict", `"strict": true`},
+		{"module", `"module": "ESNext"`},
+		{"references", `"references"`},
+	}
+
+	for _, c := range checks {
+		if !strings.Contains(output, c.pattern) {
+			t.Errorf("vue tsconfig: missing %s (%q)", c.desc, c.pattern)
+		}
+	}
+
+	// Should NOT have jsx (that's React-specific)
+	if strings.Contains(output, `"jsx"`) {
+		t.Error("vue tsconfig: should not contain jsx setting")
 	}
 }
 
@@ -260,16 +442,59 @@ func TestReadme(t *testing.T) {
 		{"SignUp endpoint", "| SignUp |"},
 		{"CreateTask auth", "| CreateTask | Yes |"},
 		{"quick start", "## Quick Start"},
-		{"npm option", "Option 1: npm"},
+		{"local dev option", "Option 1: Local development"},
 		{"docker option", "Option 2: Docker"},
 		{"start.sh", "./start.sh"},
 		{"ports section", "## Ports"},
+		{"backend port", "| Backend | 3000 |"},
+		{"frontend port", "| Frontend (dev) | 5173 |"},
+		{"postgres port", "| PostgreSQL | 5432 |"},
 	}
 
 	for _, c := range checks {
 		if !strings.Contains(output, c.pattern) {
 			t.Errorf("README: missing %s (%q)", c.desc, c.pattern)
 		}
+	}
+}
+
+func TestReadmeGoBackend(t *testing.T) {
+	app := testAppGoBackend()
+	output := generateReadme(app)
+
+	// Go backend should have port 8080
+	if !strings.Contains(output, "| Backend | 8080 |") {
+		t.Error("go backend README: missing port 8080")
+	}
+	// Should not have frontend dev port
+	if strings.Contains(output, "Frontend (dev)") {
+		t.Error("go backend README: should not have frontend port with None frontend")
+	}
+	// Should have go build instructions
+	if !strings.Contains(output, "go build") {
+		t.Error("go backend README: missing go build instructions")
+	}
+	// Should not have npm install
+	if strings.Contains(output, "npm install") {
+		t.Error("go backend README: should not have npm install")
+	}
+}
+
+func TestReadmePythonBackend(t *testing.T) {
+	app := testAppVuePython()
+	output := generateReadme(app)
+
+	// Python backend should have port 8000
+	if !strings.Contains(output, "| Backend | 8000 |") {
+		t.Error("python backend README: missing port 8000")
+	}
+	// Should have pip install
+	if !strings.Contains(output, "pip install") {
+		t.Error("python backend README: missing pip install")
+	}
+	// Should have frontend dev port (Vue)
+	if !strings.Contains(output, "| Frontend (dev) | 5173 |") {
+		t.Error("vue+python README: missing frontend port 5173")
 	}
 }
 
@@ -330,6 +555,82 @@ func TestStartScript(t *testing.T) {
 	}
 }
 
+func TestStartScriptGoBackend(t *testing.T) {
+	app := testAppGoBackend()
+	output := generateStartScript(app)
+
+	// Should have Go build
+	if !strings.Contains(output, "go build") {
+		t.Error("go start.sh: missing go build")
+	}
+	// Should have postgres check
+	if !strings.Contains(output, "pg_isready") {
+		t.Error("go start.sh: missing pg_isready (config has PostgreSQL)")
+	}
+	// Should NOT have npm install
+	if strings.Contains(output, "npm install") {
+		t.Error("go start.sh: should not have npm install")
+	}
+	// Should NOT have Prisma
+	if strings.Contains(output, "prisma") {
+		t.Error("go start.sh: should not have prisma")
+	}
+	// Should start go binary
+	if !strings.Contains(output, "./bin/server") {
+		t.Error("go start.sh: missing ./bin/server")
+	}
+}
+
+func TestStartScriptPythonBackend(t *testing.T) {
+	app := testAppVuePython()
+	output := generateStartScript(app)
+
+	// Should have pip install
+	if !strings.Contains(output, "pip install") {
+		t.Error("python start.sh: missing pip install")
+	}
+	// Should have npm install (for Vue frontend)
+	if !strings.Contains(output, "npm install") {
+		t.Error("vue+python start.sh: missing npm install for Vue frontend")
+	}
+	// Should NOT have Prisma
+	if strings.Contains(output, "prisma") {
+		t.Error("python start.sh: should not have prisma")
+	}
+	// Should have npm run dev (Vue uses npm)
+	if !strings.Contains(output, "npm run dev") {
+		t.Error("vue+python start.sh: missing npm run dev")
+	}
+}
+
+// ── matchesGoBackend ──
+
+func TestMatchesGoBackend(t *testing.T) {
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		{"Go", true},
+		{"go", true},
+		{"Go with Gin", true},
+		{"go with fiber", true},
+		{"golang", true},
+		{"Gin", true},
+		{"Fiber", true},
+		{"Node", false},
+		{"Python", false},
+		{"Django", false},
+		{"MongoDB", false},
+		{"", false},
+	}
+	for _, tt := range tests {
+		got := matchesGoBackend(tt.input)
+		if got != tt.want {
+			t.Errorf("matchesGoBackend(%q) = %v, want %v", tt.input, got, tt.want)
+		}
+	}
+}
+
 // ── Generate to Filesystem ──
 
 func TestGenerateWritesFiles(t *testing.T) {
@@ -357,6 +658,129 @@ func TestGenerateWritesFiles(t *testing.T) {
 		path := filepath.Join(dir, f)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			t.Errorf("expected file %s to exist", f)
+		}
+	}
+}
+
+func TestGenerateVuePythonWritesFiles(t *testing.T) {
+	app := testAppVuePython()
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Should exist
+	expectedFiles := []string{
+		"package.json",
+		"vue/package.json",
+		"vue/tsconfig.json",
+		"README.md",
+		".env.example",
+		"start.sh",
+	}
+	for _, f := range expectedFiles {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("vue+python: expected file %s to exist", f)
+		}
+	}
+
+	// Should NOT exist (no react, no node)
+	unexpectedFiles := []string{
+		"react/package.json",
+		"react/tsconfig.json",
+		"react/vite.config.ts",
+		"node/package.json",
+		"node/tsconfig.json",
+	}
+	for _, f := range unexpectedFiles {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); err == nil {
+			t.Errorf("vue+python: file %s should not exist", f)
+		}
+	}
+}
+
+func TestGenerateGoBackendWritesFiles(t *testing.T) {
+	app := testAppGoBackend()
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Should exist (always generated)
+	expectedFiles := []string{
+		"package.json",
+		"README.md",
+		".env.example",
+		"start.sh",
+	}
+	for _, f := range expectedFiles {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("go backend: expected file %s to exist", f)
+		}
+	}
+
+	// Should NOT exist (no react, no node, no vue)
+	unexpectedFiles := []string{
+		"react/package.json",
+		"react/tsconfig.json",
+		"react/vite.config.ts",
+		"node/package.json",
+		"node/tsconfig.json",
+		"vue/package.json",
+		"vue/tsconfig.json",
+	}
+	for _, f := range unexpectedFiles {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); err == nil {
+			t.Errorf("go backend: file %s should not exist", f)
+		}
+	}
+}
+
+func TestGenerateAngularNodeWritesFiles(t *testing.T) {
+	app := testAppAngularNode()
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Should exist (Node backend scaffold files + common files)
+	expectedFiles := []string{
+		"package.json",
+		"node/package.json",
+		"node/tsconfig.json",
+		"README.md",
+		".env.example",
+		"start.sh",
+	}
+	for _, f := range expectedFiles {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("angular+node: expected file %s to exist", f)
+		}
+	}
+
+	// Should NOT exist (Angular writes its own config, no react/vue)
+	unexpectedFiles := []string{
+		"react/package.json",
+		"react/tsconfig.json",
+		"react/vite.config.ts",
+		"vue/package.json",
+		"vue/tsconfig.json",
+	}
+	for _, f := range unexpectedFiles {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); err == nil {
+			t.Errorf("angular+node: file %s should not exist", f)
 		}
 	}
 }
@@ -410,7 +834,7 @@ func TestFullIntegration(t *testing.T) {
 		t.Fatalf("Generate: %v", err)
 	}
 
-	// Verify all 9 files exist
+	// Verify React+Node files exist (taskflow uses React+Node)
 	expectedFiles := []string{
 		"package.json",
 		"node/package.json",

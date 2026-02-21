@@ -57,3 +57,32 @@ func generateReactTSConfig() string {
 
 	return b.String()
 }
+
+// generateVueTSConfig produces vue/tsconfig.json for the Vite+Vue frontend.
+func generateVueTSConfig() string {
+	var b strings.Builder
+
+	b.WriteString("{\n")
+	b.WriteString("  \"compilerOptions\": {\n")
+	b.WriteString("    \"target\": \"ES2020\",\n")
+	b.WriteString("    \"useDefineForClassFields\": true,\n")
+	b.WriteString("    \"lib\": [\"ES2020\", \"DOM\", \"DOM.Iterable\"],\n")
+	b.WriteString("    \"module\": \"ESNext\",\n")
+	b.WriteString("    \"skipLibCheck\": true,\n")
+	b.WriteString("    \"moduleResolution\": \"bundler\",\n")
+	b.WriteString("    \"allowImportingTsExtensions\": true,\n")
+	b.WriteString("    \"isolatedModules\": true,\n")
+	b.WriteString("    \"moduleDetection\": \"force\",\n")
+	b.WriteString("    \"noEmit\": true,\n")
+	b.WriteString("    \"strict\": true,\n")
+	b.WriteString("    \"noUnusedLocals\": true,\n")
+	b.WriteString("    \"noUnusedParameters\": true,\n")
+	b.WriteString("    \"noFallthroughCasesInSwitch\": true,\n")
+	b.WriteString("    \"forceConsistentCasingInFileNames\": true\n")
+	b.WriteString("  },\n")
+	b.WriteString("  \"include\": [\"src\"],\n")
+	b.WriteString("  \"references\": [{ \"path\": \"./tsconfig.node.json\" }]\n")
+	b.WriteString("}\n")
+
+	return b.String()
+}

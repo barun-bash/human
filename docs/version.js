@@ -1,10 +1,10 @@
 // Single source of truth for version info across all docs pages.
 // Update this file when releasing a new version — all pages pick it up automatically.
-var HUMAN_VERSION = "0.2.0";
+var HUMAN_VERSION = "0.3.0";
 var HUMAN_VERSION_TAG = "v" + HUMAN_VERSION;
 var HUMAN_RELEASE_URL = "https://github.com/barun-bash/human/releases/tag/" + HUMAN_VERSION_TAG;
 var HUMAN_INSTALL_CMD = "go install github.com/barun-bash/human/cmd/human@" + HUMAN_VERSION_TAG;
-var HUMAN_STATUS = "228+ tests passing. Semantic analyzer, code generators, quality engine, and project scaffolder.";
+var HUMAN_STATUS = "228+ tests passing. All 12 generators wired. Stack-aware scaffolder.";
 
 document.addEventListener("DOMContentLoaded", function () {
   // Populate elements with data-version attributes

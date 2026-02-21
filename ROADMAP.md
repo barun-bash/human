@@ -159,15 +159,15 @@ English in → production-ready applications out.
 
 ---
 
-## Phase 8: Second Frontend Target (Weeks 25-26)
+## Phase 8: Second Frontend Target (Weeks 25-26) ✅
 **Goal: Prove the IR is truly framework-agnostic**
 
-- [ ] Build Angular or Vue code generator
-- [ ] Same .human file produces both React and Angular/Vue
-- [ ] All quality checks work for new target
+- [x] Build Angular or Vue code generator
+- [x] Same .human file produces both React and Angular/Vue
+- [x] All quality checks work for new target
 - [ ] Document how to build a code generator plugin
 
-### Milestone: One .human source → multiple framework outputs
+### Milestone: ✅ One .human source → multiple framework outputs (Vue, Angular, Svelte, Go generators wired)
 
 ---
 
@@ -264,18 +264,24 @@ English in → production-ready applications out.
 
 ## Current Output
 
-Running `human build examples/taskflow/app.human` produces **47 files**:
+Running `human build examples/taskflow/app.human` produces **47+ files** (varies by stack):
 
 | Generator | Files | Output |
 |-----------|-------|--------|
 | React + TypeScript | 7 | Types, API client, pages, components, router |
+| Vue + TypeScript | — | Components, pages, router, API, types (when selected) |
+| Angular + TypeScript | — | Components, services, modules, routing (when selected) |
+| Svelte + TypeScript | — | Components, pages, stores, routing (when selected) |
 | Node + Express | 15 | Prisma schema, auth + authorize middleware, policies, error handler, route files, server |
+| Python + FastAPI | — | Models, routes, auth, main app (when selected) |
+| Go + Gin | — | Handlers, routes, models, auth, go.mod (when selected) |
 | Docker + Compose | 5 | Dockerfiles, docker-compose.yml, .env.example, package.json |
 | PostgreSQL | 2 | Migration (001_initial.sql), seed data |
+| CI/CD | 1 | GitHub Actions workflow |
 | Quality Engine | 11 | 8 test files, security-report.md, lint-report.md, build-report.md |
-| Scaffold | 7 | Root + node + react package.json, tsconfigs, vite config, README, start.sh |
+| Scaffold | varies | Root package.json, stack-specific configs, README, start.sh |
 
-The scaffolder overwrites Docker's root `package.json` (adding npm workspaces) and `.env.example` (identical content), so 9 files are written but 2 replace existing ones.
+All 12 generators are wired into the CLI. The scaffolder adapts to the selected stack — only files relevant to the chosen frontend/backend are generated.
 
 ---
 
@@ -290,7 +296,7 @@ The scaffolder overwrites Docker's root `package.json` (adding npm workspaces) a
 | Project scaffolder (runnable output) | Phase 9 | ✅ Done |
 | Quality guarantees enforced | Phase 5 | ✅ Done |
 | Design-to-code pipeline | Phase 7 | Upcoming |
-| Multi-framework output | Phase 8 | Upcoming |
+| Multi-framework output | Phase 8 | ✅ Done |
 | Public launch | Phase 14 | Upcoming |
 
 ---

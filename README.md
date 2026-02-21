@@ -10,7 +10,7 @@
   <br>
   Write in structured English. Get production-ready applications.
   <br><br>
-  <a href="https://github.com/barun-bash/human/releases/tag/v0.2.0"><img src="https://img.shields.io/badge/release-v0.2.0-E85D3A.svg" alt="v0.2.0"></a>&nbsp;
+  <a href="https://github.com/barun-bash/human/releases/tag/v0.3.0"><img src="https://img.shields.io/badge/release-v0.3.0-E85D3A.svg" alt="v0.3.0"></a>&nbsp;
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>&nbsp;
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8.svg" alt="Go 1.21+"></a>&nbsp;
   <a href="https://barun-bash.github.io/human/"><img src="https://img.shields.io/badge/website-live-E85D3A.svg" alt="Website"></a>
@@ -118,7 +118,7 @@ The **Intent IR** is the key innovation — a typed, serializable, framework-agn
 
 ```bash
 # Install (requires Go 1.21+)
-go install github.com/barun-bash/human/cmd/human@v0.2.0
+go install github.com/barun-bash/human/cmd/human@v0.3.0
 
 # Make sure Go binaries are in your PATH
 export PATH="$PATH:$(go env GOPATH)/bin"
@@ -195,7 +195,7 @@ my-app/
 
 ## Project Status
 
-**[v0.2.0 released](https://github.com/barun-bash/human/releases/tag/v0.2.0)** — Phase 5 complete — 228+ tests, semantic analyzer, 47 files generated. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full development plan.
+**[v0.3.0 released](https://github.com/barun-bash/human/releases/tag/v0.3.0)** — All 12 generators wired into CLI. Stack-aware scaffolder. Build summary table. 228+ tests. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) for the full development plan.
 
 ---
 

@@ -13,20 +13,24 @@ import (
 
 	"github.com/barun-bash/human/internal/analyzer"
 	"github.com/barun-bash/human/internal/cli"
-	cerr "github.com/barun-bash/human/internal/errors"
+	"github.com/barun-bash/human/internal/codegen/angular"
 	"github.com/barun-bash/human/internal/codegen/cicd"
 	"github.com/barun-bash/human/internal/codegen/docker"
+	"github.com/barun-bash/human/internal/codegen/gobackend"
 	"github.com/barun-bash/human/internal/codegen/node"
 	"github.com/barun-bash/human/internal/codegen/postgres"
 	"github.com/barun-bash/human/internal/codegen/python"
 	"github.com/barun-bash/human/internal/codegen/react"
 	"github.com/barun-bash/human/internal/codegen/scaffold"
+	"github.com/barun-bash/human/internal/codegen/svelte"
+	"github.com/barun-bash/human/internal/codegen/vue"
+	cerr "github.com/barun-bash/human/internal/errors"
 	"github.com/barun-bash/human/internal/ir"
 	"github.com/barun-bash/human/internal/parser"
 	"github.com/barun-bash/human/internal/quality"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 func main() {
 	// Parse global --no-color flag before command dispatch
@@ -251,86 +255,15 @@ func cmdBuild() {
 	fmt.Printf("Built %s → %s\n", file, outFile)
 	printIRSummary(app)
 
-	// Run code generators based on build config
-	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Frontend), "react") {
-		reactDir := filepath.Join(".human", "output", "react")
-		g := react.Generator{}
-		if err := g.Generate(app, reactDir); err != nil {
-			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("React codegen error: %v", err)))
-			os.Exit(1)
-		}
-		fmt.Println(cli.Info(fmt.Sprintf("  react:        %s/", reactDir)))
-	}
-
-	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Backend), "node") {
-		nodeDir := filepath.Join(".human", "output", "node")
-		g := node.Generator{}
-		if err := g.Generate(app, nodeDir); err != nil {
-			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Node codegen error: %v", err)))
-			os.Exit(1)
-		}
-		fmt.Println(cli.Info(fmt.Sprintf("  node:         %s/", nodeDir)))
-	}
-
-	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Backend), "python") {
-		pyDir := filepath.Join(".human", "output", "python")
-		g := python.Generator{}
-		if err := g.Generate(app, pyDir); err != nil {
-			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Python codegen error: %v", err)))
-			os.Exit(1)
-		}
-		fmt.Println(cli.Info(fmt.Sprintf("  python:       %s/", pyDir)))
-	}
-
-	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Deploy), "docker") {
-		outputDir := filepath.Join(".human", "output")
-		g := docker.Generator{}
-		if err := g.Generate(app, outputDir); err != nil {
-			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Docker codegen error: %v", err)))
-			os.Exit(1)
-		}
-		fmt.Println(cli.Info(fmt.Sprintf("  docker:       %s/", outputDir)))
-	}
-
-	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Database), "postgres") {
-		pgDir := filepath.Join(".human", "output", "postgres")
-		g := postgres.Generator{}
-		if err := g.Generate(app, pgDir); err != nil {
-			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("PostgreSQL codegen error: %v", err)))
-			os.Exit(1)
-		}
-		fmt.Println(cli.Info(fmt.Sprintf("  postgres:     %s/", pgDir)))
-	}
-
-	// CI/CD — always runs, adapts to detected stack
-	{
-		cicdDir := filepath.Join(".human", "output")
-		g := cicd.Generator{}
-		if err := g.Generate(app, cicdDir); err != nil {
-			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("CI/CD codegen error: %v", err)))
-			os.Exit(1)
-		}
-		fmt.Println(cli.Info(fmt.Sprintf("  cicd:         %s/.github/", cicdDir)))
-	}
-
-	// Quality engine — always runs after code generators
+	// Run all code generators
 	outputDir := filepath.Join(".human", "output")
-	qResult, err := quality.Run(app, outputDir)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Quality engine error: %v", err)))
+	results, genErr := runGenerators(app, outputDir)
+	if genErr != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Build failed: %v", genErr)))
 		os.Exit(1)
 	}
-	quality.PrintSummary(qResult)
 
-	// Scaffolder — always runs last, produces project files
-	sg := scaffold.Generator{}
-	if err := sg.Generate(app, outputDir); err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Scaffold error: %v", err)))
-		os.Exit(1)
-	}
-	fmt.Println(cli.Info(fmt.Sprintf("  scaffold:     %s/ (package.json, tsconfig, README, start.sh)", outputDir)))
-
-	fmt.Println(cli.Success(fmt.Sprintf("Build complete — output in %s/", outputDir)))
+	printBuildSummary(results, outputDir)
 }
 
 func printIRSummary(app *ir.Application) {
@@ -928,59 +861,217 @@ func runBuild(file string) error {
 		return err
 	}
 
-	// Run code generators
-	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Frontend), "react") {
-		g := react.Generator{}
-		if err := g.Generate(app, filepath.Join(".human", "output", "react")); err != nil {
-			return fmt.Errorf("react codegen: %w", err)
-		}
-	}
-	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Backend), "node") {
-		g := node.Generator{}
-		if err := g.Generate(app, filepath.Join(".human", "output", "node")); err != nil {
-			return fmt.Errorf("node codegen: %w", err)
-		}
-	}
-	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Backend), "python") {
-		g := python.Generator{}
-		if err := g.Generate(app, filepath.Join(".human", "output", "python")); err != nil {
-			return fmt.Errorf("python codegen: %w", err)
-		}
-	}
-	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Deploy), "docker") {
-		g := docker.Generator{}
-		if err := g.Generate(app, filepath.Join(".human", "output")); err != nil {
-			return fmt.Errorf("docker codegen: %w", err)
-		}
-	}
-	if app.Config != nil && strings.Contains(strings.ToLower(app.Config.Database), "postgres") {
-		g := postgres.Generator{}
-		if err := g.Generate(app, filepath.Join(".human", "output", "postgres")); err != nil {
-			return fmt.Errorf("postgres codegen: %w", err)
-		}
-	}
-
-	// CI/CD
-	{
-		g := cicd.Generator{}
-		if err := g.Generate(app, filepath.Join(".human", "output")); err != nil {
-			return fmt.Errorf("cicd codegen: %w", err)
-		}
-	}
-
-	// Quality engine
+	// Run all code generators
 	outputDir := filepath.Join(".human", "output")
-	if _, err := quality.Run(app, outputDir); err != nil {
-		return fmt.Errorf("quality engine: %w", err)
-	}
-
-	// Scaffolder
-	sg := scaffold.Generator{}
-	if err := sg.Generate(app, outputDir); err != nil {
-		return fmt.Errorf("scaffold: %w", err)
+	if _, err := runGenerators(app, outputDir); err != nil {
+		return err
 	}
 
 	return nil
+}
+
+// ── Generator Dispatch ──
+
+// buildResult tracks the output of a single generator.
+type buildResult struct {
+	name  string
+	dir   string
+	files int
+}
+
+// matchesGoBackend checks if the backend config indicates Go without
+// false-matching strings like "django" or "mongodb".
+func matchesGoBackend(backend string) bool {
+	lower := strings.ToLower(backend)
+	if lower == "go" || strings.HasPrefix(lower, "go ") {
+		return true
+	}
+	for _, kw := range []string{"gin", "fiber", "golang"} {
+		if strings.Contains(lower, kw) {
+			return true
+		}
+	}
+	return false
+}
+
+// countFiles returns the number of regular files under dir.
+func countFiles(dir string) int {
+	count := 0
+	filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			count++
+		}
+		return nil
+	})
+	return count
+}
+
+// runGenerators dispatches all code generators based on the app's build config,
+// then runs the quality engine and scaffolder. Returns build results for each generator.
+func runGenerators(app *ir.Application, outputDir string) ([]buildResult, error) {
+	var results []buildResult
+
+	frontendLower := ""
+	backendLower := ""
+	deployLower := ""
+	databaseLower := ""
+	if app.Config != nil {
+		frontendLower = strings.ToLower(app.Config.Frontend)
+		backendLower = strings.ToLower(app.Config.Backend)
+		deployLower = strings.ToLower(app.Config.Deploy)
+		databaseLower = strings.ToLower(app.Config.Database)
+	}
+
+	// Frontend generators
+	if strings.Contains(frontendLower, "react") {
+		dir := filepath.Join(outputDir, "react")
+		g := react.Generator{}
+		if err := g.Generate(app, dir); err != nil {
+			return nil, fmt.Errorf("React codegen: %w", err)
+		}
+		results = append(results, buildResult{"react", dir, countFiles(dir)})
+	}
+	if strings.Contains(frontendLower, "vue") {
+		dir := filepath.Join(outputDir, "vue")
+		g := vue.Generator{}
+		if err := g.Generate(app, dir); err != nil {
+			return nil, fmt.Errorf("Vue codegen: %w", err)
+		}
+		results = append(results, buildResult{"vue", dir, countFiles(dir)})
+	}
+	if strings.Contains(frontendLower, "angular") {
+		dir := filepath.Join(outputDir, "angular")
+		g := angular.Generator{}
+		if err := g.Generate(app, dir); err != nil {
+			return nil, fmt.Errorf("Angular codegen: %w", err)
+		}
+		results = append(results, buildResult{"angular", dir, countFiles(dir)})
+	}
+	if strings.Contains(frontendLower, "svelte") {
+		dir := filepath.Join(outputDir, "svelte")
+		g := svelte.Generator{}
+		if err := g.Generate(app, dir); err != nil {
+			return nil, fmt.Errorf("Svelte codegen: %w", err)
+		}
+		results = append(results, buildResult{"svelte", dir, countFiles(dir)})
+	}
+
+	// Backend generators
+	if strings.Contains(backendLower, "node") {
+		dir := filepath.Join(outputDir, "node")
+		g := node.Generator{}
+		if err := g.Generate(app, dir); err != nil {
+			return nil, fmt.Errorf("Node codegen: %w", err)
+		}
+		results = append(results, buildResult{"node", dir, countFiles(dir)})
+	}
+	if strings.Contains(backendLower, "python") {
+		dir := filepath.Join(outputDir, "python")
+		g := python.Generator{}
+		if err := g.Generate(app, dir); err != nil {
+			return nil, fmt.Errorf("Python codegen: %w", err)
+		}
+		results = append(results, buildResult{"python", dir, countFiles(dir)})
+	}
+	if matchesGoBackend(backendLower) {
+		dir := filepath.Join(outputDir, "go")
+		g := gobackend.Generator{}
+		if err := g.Generate(app, dir); err != nil {
+			return nil, fmt.Errorf("Go codegen: %w", err)
+		}
+		results = append(results, buildResult{"go", dir, countFiles(dir)})
+	}
+
+	// Database generator
+	if strings.Contains(databaseLower, "postgres") {
+		dir := filepath.Join(outputDir, "postgres")
+		g := postgres.Generator{}
+		if err := g.Generate(app, dir); err != nil {
+			return nil, fmt.Errorf("PostgreSQL codegen: %w", err)
+		}
+		results = append(results, buildResult{"postgres", dir, countFiles(dir)})
+	}
+
+	// Docker — conditional on deploy config
+	if strings.Contains(deployLower, "docker") {
+		before := countFiles(outputDir)
+		g := docker.Generator{}
+		if err := g.Generate(app, outputDir); err != nil {
+			return nil, fmt.Errorf("Docker codegen: %w", err)
+		}
+		after := countFiles(outputDir)
+		results = append(results, buildResult{"docker", outputDir, after - before})
+	}
+
+	// CI/CD — always runs
+	{
+		cicdDir := filepath.Join(outputDir, ".github")
+		g := cicd.Generator{}
+		if err := g.Generate(app, outputDir); err != nil {
+			return nil, fmt.Errorf("CI/CD codegen: %w", err)
+		}
+		results = append(results, buildResult{"cicd", outputDir, countFiles(cicdDir)})
+	}
+
+	// Quality engine — always runs after code generators
+	qResult, err := quality.Run(app, outputDir)
+	if err != nil {
+		return nil, fmt.Errorf("quality engine: %w", err)
+	}
+	quality.PrintSummary(qResult)
+	// Count quality files: test files + 3 reports (security, lint, build)
+	qualityFiles := qResult.TestFiles + qResult.ComponentTestFiles + qResult.EdgeTestFiles + 3
+	results = append(results, buildResult{"quality", outputDir, qualityFiles})
+
+	// Scaffolder — always runs last
+	{
+		sg := scaffold.Generator{}
+		if err := sg.Generate(app, outputDir); err != nil {
+			return nil, fmt.Errorf("scaffold: %w", err)
+		}
+		// Count scaffold-specific files (package.json, tsconfig, README, start.sh, .env.example)
+		scaffoldFiles := 0
+		for _, name := range []string{"package.json", "README.md", ".env.example", "start.sh"} {
+			if _, err := os.Stat(filepath.Join(outputDir, name)); err == nil {
+				scaffoldFiles++
+			}
+		}
+		for _, sub := range []string{"node", "react", "vue"} {
+			for _, name := range []string{"package.json", "tsconfig.json", "vite.config.ts"} {
+				if _, err := os.Stat(filepath.Join(outputDir, sub, name)); err == nil {
+					scaffoldFiles++
+				}
+			}
+		}
+		results = append(results, buildResult{"scaffold", outputDir, scaffoldFiles})
+	}
+
+	return results, nil
+}
+
+// printBuildSummary displays a table of generator results.
+func printBuildSummary(results []buildResult, outputDir string) {
+	total := 0
+	for _, r := range results {
+		total += r.files
+	}
+
+	fmt.Println()
+	fmt.Println("  " + cli.Info("Build Summary"))
+	fmt.Println("  " + strings.Repeat("─", 50))
+	fmt.Printf("  %-14s %-8s %s\n", "Generator", "Files", "Output")
+	fmt.Println("  " + strings.Repeat("─", 50))
+	for _, r := range results {
+		relDir := r.dir
+		if rel, err := filepath.Rel(".", r.dir); err == nil {
+			relDir = rel
+		}
+		fmt.Printf("  %-14s %-8d %s/\n", r.name, r.files, relDir)
+	}
+	fmt.Println("  " + strings.Repeat("─", 50))
+	fmt.Printf("  %-14s %-8d\n", "Total", total)
+	fmt.Println()
+	fmt.Println(cli.Success(fmt.Sprintf("Build complete — %d files in %s/", total, outputDir)))
 }
 
 // ── Helpers ──

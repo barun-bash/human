@@ -9,8 +9,28 @@ import (
 
 // generateReadme produces a README.md dynamically from the IR,
 // including the app name, tech stack, data models, and API endpoints.
+// Quick start and ports sections adapt to the configured stack.
 func generateReadme(app *ir.Application) string {
 	var b strings.Builder
+
+	frontend := ""
+	backend := ""
+	database := ""
+	if app.Config != nil {
+		frontend = strings.ToLower(app.Config.Frontend)
+		backend = strings.ToLower(app.Config.Backend)
+		database = strings.ToLower(app.Config.Database)
+	}
+
+	hasJS := strings.Contains(backend, "node") ||
+		strings.Contains(frontend, "react") ||
+		strings.Contains(frontend, "vue") ||
+		strings.Contains(frontend, "angular") ||
+		strings.Contains(frontend, "svelte")
+	hasNode := strings.Contains(backend, "node")
+	hasPython := strings.Contains(backend, "python")
+	hasGo := matchesGoBackend(backend)
+	hasPostgres := strings.Contains(database, "postgres")
 
 	// Title
 	fmt.Fprintf(&b, "# %s\n\n", app.Name)
@@ -66,32 +86,76 @@ func generateReadme(app *ir.Application) string {
 		b.WriteString("\n")
 	}
 
-	// Quick start
+	// Quick start — adapts to stack
 	b.WriteString("## Quick Start\n\n")
-	b.WriteString("### Option 1: npm (local development)\n\n")
-	b.WriteString("```bash\n")
-	b.WriteString("./start.sh\n")
-	b.WriteString("```\n\n")
-	b.WriteString("Or manually:\n\n")
-	b.WriteString("```bash\n")
-	b.WriteString("npm install\n")
-	b.WriteString("cp .env.example .env   # edit with your values\n")
-	b.WriteString("cd node && npx prisma generate && npx prisma db push && cd ..\n")
-	b.WriteString("npm run dev\n")
-	b.WriteString("```\n\n")
+
+	// Option 1: local development
+	if hasJS || hasPython || hasGo {
+		b.WriteString("### Option 1: Local development\n\n")
+		b.WriteString("```bash\n")
+		b.WriteString("./start.sh\n")
+		b.WriteString("```\n\n")
+		b.WriteString("Or manually:\n\n")
+		b.WriteString("```bash\n")
+		if hasJS {
+			b.WriteString("npm install\n")
+		}
+		if hasPython {
+			b.WriteString("pip install -r python/requirements.txt\n")
+		}
+		if hasGo {
+			b.WriteString("cd go && go build -o ../bin/server ./cmd/server && cd ..\n")
+		}
+		b.WriteString("cp .env.example .env   # edit with your values\n")
+		if hasNode {
+			b.WriteString("cd node && npx prisma generate && npx prisma db push && cd ..\n")
+		}
+		if hasJS {
+			b.WriteString("npm run dev\n")
+		} else if hasPython {
+			b.WriteString("cd python && uvicorn app.main:app --reload --port 8000\n")
+		} else if hasGo {
+			b.WriteString("./bin/server\n")
+		}
+		b.WriteString("```\n\n")
+	}
+
+	// Option 2: Docker
 	b.WriteString("### Option 2: Docker\n\n")
 	b.WriteString("```bash\n")
 	b.WriteString("cp .env.example .env   # edit with your values\n")
-	b.WriteString("npm run docker:dev\n")
+	if hasJS {
+		b.WriteString("npm run docker:dev\n")
+	} else {
+		b.WriteString("docker compose up --build\n")
+	}
 	b.WriteString("```\n\n")
 
-	// Ports
+	// Ports — adapt to stack
 	b.WriteString("## Ports\n\n")
 	b.WriteString("| Service | Port |\n")
 	b.WriteString("|---------|------|\n")
-	b.WriteString("| Backend | 3000 |\n")
-	b.WriteString("| Frontend (dev) | 5173 |\n")
-	b.WriteString("| PostgreSQL | 5432 |\n")
+	if hasNode {
+		b.WriteString("| Backend | 3000 |\n")
+	}
+	if hasPython {
+		b.WriteString("| Backend | 8000 |\n")
+	}
+	if hasGo {
+		b.WriteString("| Backend | 8080 |\n")
+	}
+	if strings.Contains(frontend, "react") || strings.Contains(frontend, "vue") || strings.Contains(frontend, "svelte") {
+		b.WriteString("| Frontend (dev) | 5173 |\n")
+	}
+	if strings.Contains(frontend, "angular") {
+		b.WriteString("| Frontend (dev) | 4200 |\n")
+	}
+	if hasPostgres {
+		b.WriteString("| PostgreSQL | 5432 |\n")
+	}
+	if strings.Contains(database, "mysql") {
+		b.WriteString("| MySQL | 3306 |\n")
+	}
 
 	return b.String()
 }
