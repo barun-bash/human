@@ -54,22 +54,29 @@ func CollectEnvVars(app *ir.Application) []EnvVar {
 		{Name: "VITE_API_URL", Example: "http://localhost:3000", Comment: "API URL for the React frontend"},
 	}
 
-	// Integration credentials and config
+	// Integration credentials and config-derived env vars
 	if len(app.Integrations) > 0 {
+		seen := make(map[string]bool)
 		for _, integ := range app.Integrations {
 			for _, envVar := range integ.Credentials {
-				vars = append(vars, EnvVar{
-					Name:    envVar,
-					Example: "",
-					Comment: integ.Service,
-				})
+				if !seen[envVar] {
+					seen[envVar] = true
+					vars = append(vars, EnvVar{
+						Name:    envVar,
+						Example: "",
+						Comment: integ.Service,
+					})
+				}
 			}
-			for _, envVar := range integ.Config {
-				vars = append(vars, EnvVar{
-					Name:    envVar,
-					Example: "",
-					Comment: integ.Service,
-				})
+			// Code generators reference well-known env vars per integration
+			// type that are not stored in Credentials (they're hardcoded in
+			// the generated TypeScript). Add those here so .env.example and
+			// docker-compose.yml stay in sync with the generated code.
+			for _, ev := range configEnvVars(integ) {
+				if !seen[ev.Name] {
+					seen[ev.Name] = true
+					vars = append(vars, ev)
+				}
 			}
 		}
 	}
@@ -87,6 +94,25 @@ type EnvVar struct {
 	Name    string
 	Example string
 	Comment string
+}
+
+// configEnvVars returns additional env vars that the code generators hardcode
+// for a given integration type.  These aren't in integ.Credentials because the
+// generators emit them directly (e.g. process.env.AWS_REGION in storage.ts).
+func configEnvVars(integ *ir.Integration) []EnvVar {
+	switch integ.Type {
+	case "storage":
+		region := "us-east-1"
+		if v, ok := integ.Config["region"]; ok {
+			region = v
+		}
+		return []EnvVar{
+			{Name: "AWS_REGION", Example: region, Comment: integ.Service},
+			{Name: "S3_BUCKET", Example: "", Comment: integ.Service},
+		}
+	default:
+		return nil
+	}
 }
 
 // DbName derives a database name from the application name.

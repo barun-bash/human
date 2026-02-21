@@ -45,13 +45,13 @@ func generateDockerCompose(app *ir.Application) string {
 	b.WriteString("      JWT_SECRET: ${JWT_SECRET}\n")
 	b.WriteString("      PORT: \"3000\"\n")
 
-	// Integration env vars
+	// Integration env vars (credentials + config-derived)
 	for _, integ := range app.Integrations {
 		for _, envVar := range integ.Credentials {
 			fmt.Fprintf(&b, "      %s: ${%s}\n", envVar, envVar)
 		}
-		for _, envVar := range integ.Config {
-			fmt.Fprintf(&b, "      %s: ${%s}\n", envVar, envVar)
+		for _, ev := range configEnvVars(integ) {
+			fmt.Fprintf(&b, "      %s: ${%s}\n", ev.Name, ev.Name)
 		}
 	}
 	b.WriteString("\n")

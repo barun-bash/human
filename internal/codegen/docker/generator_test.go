@@ -55,19 +55,21 @@ func TestCollectEnvVars(t *testing.T) {
 		Integrations: []*ir.Integration{
 			{
 				Service:     "SendGrid",
+				Type:        "email",
 				Credentials: map[string]string{"api key": "SENDGRID_API_KEY"},
 			},
 			{
 				Service:     "AWS S3",
+				Type:        "storage",
 				Credentials: map[string]string{"api key": "AWS_ACCESS_KEY", "secret": "AWS_SECRET_KEY"},
-				Config:      map[string]string{"region": "AWS_REGION", "bucket": "S3_BUCKET"},
+				Config:      map[string]string{"region": "us-east-1", "bucket": "user-uploads"},
 			},
 		},
 	}
 
 	vars := CollectEnvVars(app)
 
-	// Should include core vars + credential vars + config vars
+	// Should include core vars + credential vars + storage config env vars
 	names := make(map[string]bool)
 	for _, v := range vars {
 		names[v.Name] = true
@@ -83,6 +85,13 @@ func TestCollectEnvVars(t *testing.T) {
 	for i := 1; i < len(vars); i++ {
 		if vars[i-1].Name > vars[i].Name {
 			t.Errorf("not sorted: %q > %q", vars[i-1].Name, vars[i].Name)
+		}
+	}
+
+	// AWS_REGION should have the config value as its example
+	for _, v := range vars {
+		if v.Name == "AWS_REGION" && v.Example != "us-east-1" {
+			t.Errorf("AWS_REGION example: got %q, want %q", v.Example, "us-east-1")
 		}
 	}
 }
@@ -179,11 +188,14 @@ func TestGenerateDockerCompose(t *testing.T) {
 		Integrations: []*ir.Integration{
 			{
 				Service:     "SendGrid",
+				Type:        "email",
 				Credentials: map[string]string{"api key": "SENDGRID_API_KEY"},
 			},
 			{
-				Service: "AWS S3",
-				Config:  map[string]string{"region": "AWS_REGION", "bucket": "S3_BUCKET"},
+				Service:     "AWS S3",
+				Type:        "storage",
+				Credentials: map[string]string{"api key": "AWS_ACCESS_KEY", "secret": "AWS_SECRET_KEY"},
+				Config:      map[string]string{"region": "us-east-1", "bucket": "user-uploads"},
 			},
 		},
 	}
