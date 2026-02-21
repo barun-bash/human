@@ -80,8 +80,7 @@ func generateVueTSConfig() string {
 	b.WriteString("    \"noFallthroughCasesInSwitch\": true,\n")
 	b.WriteString("    \"forceConsistentCasingInFileNames\": true\n")
 	b.WriteString("  },\n")
-	b.WriteString("  \"include\": [\"src\"],\n")
-	b.WriteString("  \"references\": [{ \"path\": \"./tsconfig.node.json\" }]\n")
+	b.WriteString("  \"include\": [\"src\"]\n")
 	b.WriteString("}\n")
 
 	return b.String()

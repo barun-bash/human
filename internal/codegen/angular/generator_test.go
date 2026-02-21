@@ -106,7 +106,7 @@ func TestGeneratePage(t *testing.T) {
 	if !strings.Contains(out, "@if (loading())") {
 		t.Error("missing modern @if control flow")
 	}
-	if !strings.Contains(out, "@for (item of data(); track $index)") {
+	if !strings.Contains(out, "@for (item of data(); track item.id)") {
 		t.Error("missing modern @for control flow")
 	}
 }

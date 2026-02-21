@@ -425,7 +425,6 @@ func TestVueTSConfig(t *testing.T) {
 		{"moduleResolution", `"moduleResolution": "bundler"`},
 		{"strict", `"strict": true`},
 		{"module", `"module": "ESNext"`},
-		{"references", `"references"`},
 	}
 
 	for _, c := range checks {

@@ -113,10 +113,10 @@ func TestGeneratePage(t *testing.T) {
 	if !strings.Contains(out, "{#if loading}") {
 		t.Error("missing {#if} block")
 	}
-	if !strings.Contains(out, "{#each data as item, index}") {
+	if !strings.Contains(out, "{#each data as item (item.id)}") {
 		t.Error("missing {#each} block")
 	}
-	if !strings.Contains(out, "<TaskCard task={item} />") {
+	if !strings.Contains(out, "<TaskCard item={item} />") {
 		t.Error("missing nested component TaskCard")
 	}
 }

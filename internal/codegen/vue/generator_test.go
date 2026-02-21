@@ -316,7 +316,7 @@ func TestGeneratePage(t *testing.T) {
 	if !strings.Contains(output, "v-if=\"loading\"") {
 		t.Error("missing v-if loading directive")
 	}
-	if !strings.Contains(output, "v-for=\"(item, index) in data\"") {
+	if !strings.Contains(output, "v-for=\"item in data\"") {
 		t.Error("missing v-for loop mapping")
 	}
 	if !strings.Contains(output, "@click=\"router.push('/create-task')\"") {
