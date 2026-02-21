@@ -128,17 +128,17 @@ English in → production-ready applications out.
 ## Phase 6: CLI + Developer Experience (Weeks 19-20)
 **Goal: Polished command-line interface**
 
-- [ ] `human init` — interactive project creation
+- [x] `human init` — interactive project creation
 - [x] `human build` — compile to target
-- [ ] `human run` — development server
+- [x] `human run` — development server
 - [x] `human check` — validate .human files
-- [ ] `human test` — run generated tests
-- [ ] `human audit` — run security audit
+- [x] `human test` — run generated tests
+- [x] `human audit` — run security audit
 - [ ] `human deploy` — deploy to target
-- [ ] `human eject` — export as standalone project
-- [ ] Colored terminal output
+- [x] `human eject` — export as standalone project
+- [x] Colored terminal output
 - [ ] Progress indicators
-- [ ] Watch mode (rebuild on file change)
+- [x] Watch mode (rebuild on file change)
 
 ### Milestone: Complete developer experience from init to deploy
 
