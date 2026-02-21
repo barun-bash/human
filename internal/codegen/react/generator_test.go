@@ -487,6 +487,9 @@ func TestGenerateWritesFiles(t *testing.T) {
 
 	// Verify all expected files exist
 	expectedFiles := []string{
+		"index.html",
+		"src/main.tsx",
+		"src/index.css",
 		"src/types/models.ts",
 		"src/api/client.ts",
 		"src/App.tsx",
@@ -499,6 +502,100 @@ func TestGenerateWritesFiles(t *testing.T) {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			t.Errorf("expected file %s to exist", f)
 		}
+	}
+}
+
+// ── Vite Entry Point ──
+
+func TestGenerateIndexHTML(t *testing.T) {
+	app := &ir.Application{Name: "TaskFlow"}
+	output := generateIndexHTML(app)
+
+	if !strings.Contains(output, "<!DOCTYPE html>") {
+		t.Error("missing DOCTYPE")
+	}
+	if !strings.Contains(output, "<title>TaskFlow</title>") {
+		t.Error("missing app name in <title>")
+	}
+	if !strings.Contains(output, `<div id="root"></div>`) {
+		t.Error("missing root div")
+	}
+	if !strings.Contains(output, `<script type="module" src="/src/main.tsx"></script>`) {
+		t.Error("missing Vite module script tag")
+	}
+}
+
+func TestGenerateIndexHTMLDefaultTitle(t *testing.T) {
+	app := &ir.Application{}
+	output := generateIndexHTML(app)
+
+	if !strings.Contains(output, "<title>App</title>") {
+		t.Error("missing default title 'App' when no app name set")
+	}
+}
+
+func TestGenerateMainTsx(t *testing.T) {
+	output := generateMainTsx()
+
+	if !strings.Contains(output, "import React from 'react'") {
+		t.Error("missing React import")
+	}
+	if !strings.Contains(output, "import ReactDOM from 'react-dom/client'") {
+		t.Error("missing ReactDOM import")
+	}
+	if !strings.Contains(output, "import App from './App'") {
+		t.Error("missing App import")
+	}
+	if !strings.Contains(output, "import './index.css'") {
+		t.Error("missing index.css import")
+	}
+	if !strings.Contains(output, "ReactDOM.createRoot(") {
+		t.Error("missing ReactDOM.createRoot call")
+	}
+	if !strings.Contains(output, "<React.StrictMode>") {
+		t.Error("missing React.StrictMode wrapper")
+	}
+}
+
+func TestGenerateIndexCSS(t *testing.T) {
+	app := &ir.Application{}
+	output := generateIndexCSS(app)
+
+	if !strings.Contains(output, "box-sizing: border-box") {
+		t.Error("missing CSS reset")
+	}
+	// No Tailwind directives without a theme
+	if strings.Contains(output, "@tailwind") {
+		t.Error("should not include Tailwind directives without a Tailwind-based theme")
+	}
+}
+
+func TestGenerateIndexCSSWithTailwind(t *testing.T) {
+	app := &ir.Application{
+		Theme: &ir.Theme{DesignSystem: "tailwind"},
+	}
+	output := generateIndexCSS(app)
+
+	if !strings.Contains(output, "@tailwind base;") {
+		t.Error("missing @tailwind base directive")
+	}
+	if !strings.Contains(output, "@tailwind components;") {
+		t.Error("missing @tailwind components directive")
+	}
+	if !strings.Contains(output, "@tailwind utilities;") {
+		t.Error("missing @tailwind utilities directive")
+	}
+}
+
+func TestGenerateIndexCSSWithShadcn(t *testing.T) {
+	app := &ir.Application{
+		Theme: &ir.Theme{DesignSystem: "shadcn"},
+	}
+	output := generateIndexCSS(app)
+
+	// shadcn also uses Tailwind
+	if !strings.Contains(output, "@tailwind base;") {
+		t.Error("shadcn should include @tailwind directives")
 	}
 }
 
@@ -607,6 +704,9 @@ func TestFullIntegration(t *testing.T) {
 
 	// Verify all expected files exist
 	expectedFiles := []string{
+		"index.html",
+		"src/main.tsx",
+		"src/index.css",
 		"src/types/models.ts",
 		"src/api/client.ts",
 		"src/App.tsx",
@@ -620,6 +720,37 @@ func TestFullIntegration(t *testing.T) {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			t.Errorf("expected file %s to exist", f)
 		}
+	}
+
+	// Verify index.html references the app name and Vite entry point
+	htmlContent, err := os.ReadFile(filepath.Join(dir, "index.html"))
+	if err != nil {
+		t.Fatalf("reading index.html: %v", err)
+	}
+	html := string(htmlContent)
+	if !strings.Contains(html, "<title>TaskFlow</title>") {
+		t.Error("index.html: missing TaskFlow title")
+	}
+	if !strings.Contains(html, `src="/src/main.tsx"`) {
+		t.Error("index.html: missing Vite module entry point")
+	}
+
+	// Verify main.tsx has React DOM mount
+	mainContent, err := os.ReadFile(filepath.Join(dir, "src", "main.tsx"))
+	if err != nil {
+		t.Fatalf("reading main.tsx: %v", err)
+	}
+	if !strings.Contains(string(mainContent), "ReactDOM.createRoot") {
+		t.Error("main.tsx: missing ReactDOM.createRoot")
+	}
+
+	// Verify index.css has base styles
+	cssContent, err := os.ReadFile(filepath.Join(dir, "src", "index.css"))
+	if err != nil {
+		t.Fatalf("reading index.css: %v", err)
+	}
+	if !strings.Contains(string(cssContent), "box-sizing") {
+		t.Error("index.css: missing CSS reset")
 	}
 
 	// Verify models.ts has 4 interfaces (User, Task, Tag, TaskTag)
