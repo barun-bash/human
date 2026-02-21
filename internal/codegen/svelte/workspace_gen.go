@@ -19,6 +19,7 @@ func generatePackageJson(app *ir.Application) string {
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
+    "start": "vite dev",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
   },
