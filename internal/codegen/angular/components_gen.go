@@ -77,6 +77,24 @@ func generateComponent(comp *ir.Component, app *ir.Application) string {
 	b.WriteString("import { Component, Input, Output, EventEmitter } from '@angular/core';\n")
 	b.WriteString("import { CommonModule } from '@angular/common';\n")
 
+	hasDataModelImport := false
+	for _, prop := range comp.Props {
+		if prop.Type != "" && isDataModel(prop.Type, app) {
+			hasDataModelImport = true
+			break
+		}
+	}
+
+	if hasDataModelImport {
+		models := []string{}
+		for _, prop := range comp.Props {
+			if prop.Type != "" && isDataModel(prop.Type, app) {
+				models = append(models, prop.Type)
+			}
+		}
+		fmt.Fprintf(&b, "import type { %s } from '../../models/types';\n", strings.Join(models, ", "))
+	}
+
 	compName := toPascalCase(comp.Name) + "Component"
 	selector := "app-" + toKebabCase(comp.Name)
 
@@ -105,7 +123,7 @@ func generateComponent(comp *ir.Component, app *ir.Application) string {
 		propType := "unknown"
 		if prop.Type != "" {
 			if isDataModel(prop.Type, app) {
-				propType = "any" // In a real app we'd import the type
+				propType = prop.Type
 			} else {
 				propType = tsType(prop.Type)
 			}

@@ -26,6 +26,7 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	}
 
 	files := map[string]string{
+		filepath.Join(outputDir, "package.json"):                     generatePackageJson(app),
 		filepath.Join(outputDir, "angular.json"):                     generateAngularJson(app),
 		filepath.Join(outputDir, "tsconfig.json"):                    generateTsConfig(app),
 		filepath.Join(outputDir, "src", "index.html"):                generateIndexHtml(app),

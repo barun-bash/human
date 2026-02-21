@@ -117,6 +117,46 @@ export const appConfig: ApplicationConfig = {
 `
 }
 
+func generatePackageJson(app *ir.Application) string {
+	name := toKebabCase(app.Name)
+	if name == "" {
+		name = "app"
+	}
+	return fmt.Sprintf(`{
+  "name": "%s",
+  "version": "0.1.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^17.0.0",
+    "@angular/common": "^17.0.0",
+    "@angular/compiler": "^17.0.0",
+    "@angular/core": "^17.0.0",
+    "@angular/forms": "^17.0.0",
+    "@angular/platform-browser": "^17.0.0",
+    "@angular/platform-browser-dynamic": "^17.0.0",
+    "@angular/router": "^17.0.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.14.2"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^17.0.0",
+    "@angular/cli": "^17.0.0",
+    "@angular/compiler-cli": "^17.0.0",
+    "@types/node": "^18.18.0",
+    "typescript": "~5.2.2"
+  }
+}
+`, name)
+}
+
 func generateRoutes(app *ir.Application) string {
 	var b strings.Builder
 	b.WriteString("import { Routes } from '@angular/router';\n\n")

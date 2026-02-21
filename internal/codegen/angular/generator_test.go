@@ -111,6 +111,27 @@ func TestGeneratePage(t *testing.T) {
 	}
 }
 
+func TestGenerateComponent(t *testing.T) {
+	app := &ir.Application{
+		Data: []*ir.DataModel{{Name: "Task"}},
+	}
+	comp := &ir.Component{
+		Name: "TaskCard",
+		Props: []*ir.Prop{{Name: "task", Type: "Task"}},
+		Content: []*ir.Action{{Type: "interact", Text: "click"}},
+	}
+	out := generateComponent(comp, app)
+	if !strings.Contains(out, "import type { Task } from '../../models/types';") {
+		t.Error("missing Task import")
+	}
+	if !strings.Contains(out, "@Input() task!: Task;") {
+		t.Error("missing typed @Input")
+	}
+	if !strings.Contains(out, "@Output() onClick = new EventEmitter<void>();") {
+		t.Error("missing @Output event emitter")
+	}
+}
+
 func TestFullIntegration(t *testing.T) {
 	_, thisFile, _, _ := runtime.Caller(0)
 	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
@@ -137,6 +158,7 @@ func TestFullIntegration(t *testing.T) {
 	}
 
 	expectedFiles := []string{
+		"package.json",
 		"angular.json",
 		"tsconfig.json",
 		"src/index.html",
