@@ -93,6 +93,8 @@ func generateModels(moduleName string, app *ir.Application) string {
 				sb.WriteString(fmt.Sprintf("\t%s *%s `gorm:\"foreignKey:%sID\" json:\"%s,omitempty\"`\n", toPascalCase(rel.Target), toPascalCase(rel.Target), toPascalCase(rel.Target), toCamelCase(rel.Target)))
 			} else if rel.Kind == "has_many" {
 				sb.WriteString(fmt.Sprintf("\t%ss []%s `gorm:\"foreignKey:%sID\" json:\"%ss,omitempty\"`\n", toPascalCase(rel.Target), toPascalCase(rel.Target), toPascalCase(model.Name), toCamelCase(rel.Target)))
+			} else if rel.Kind == "has_many_through" {
+				sb.WriteString(fmt.Sprintf("\t%ss []%s `gorm:\"many2many:%s;\" json:\"%ss,omitempty\"`\n", toPascalCase(rel.Target), toPascalCase(rel.Target), toSnakeCase(rel.Through), toCamelCase(rel.Target)))
 			}
 		}
 

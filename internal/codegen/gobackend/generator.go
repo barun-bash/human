@@ -226,3 +226,23 @@ func inferModelFromAction(text string) string {
 	}
 	return ""
 }
+
+func toSnakeCase(s string) string {
+	if s == "" {
+		return ""
+	}
+	var result []rune
+	for i, r := range s {
+		if unicode.IsUpper(r) {
+			if i > 0 && s[i-1] != ' ' && s[i-1] != '_' && s[i-1] != '-' {
+				result = append(result, '_')
+			}
+			result = append(result, unicode.ToLower(r))
+		} else if r == ' ' || r == '-' {
+			result = append(result, '_')
+		} else {
+			result = append(result, r)
+		}
+	}
+	return string(result)
+}
