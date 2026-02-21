@@ -114,7 +114,7 @@ func toSnakeCase(s string) string {
 func httpMethod(name string) string {
 	lower := strings.ToLower(name)
 	switch {
-	case strings.HasPrefix(lower, "get"):
+	case strings.HasPrefix(lower, "get"), strings.HasPrefix(lower, "list"), strings.HasPrefix(lower, "search"):
 		return "get"
 	case strings.HasPrefix(lower, "delete"):
 		return "delete"
@@ -123,6 +123,15 @@ func httpMethod(name string) string {
 	default:
 		return "post"
 	}
+}
+
+func isLoginEndpoint(name string) bool {
+	return strings.ToLower(name) == "login"
+}
+
+func isSignUpEndpoint(name string) bool {
+	lower := strings.ToLower(name)
+	return lower == "signup" || lower == "sign_up" || lower == "signUp"
 }
 
 func routePath(name string) string {
@@ -181,15 +190,28 @@ func sqlAlchemyType(irType string) string {
 }
 
 func inferModelFromAction(text string) string {
+	// Common words that should not be treated as model names
+	skip := map[string]bool{
+		"current": true, "given": true, "same": true, "new": true,
+		"user's": true, "author's": true, "their": true, "own": true,
+	}
 	words := strings.Fields(text)
 	for i, w := range words {
 		lower := strings.ToLower(w)
 		if lower == "a" || lower == "an" || lower == "the" {
 			if i+1 < len(words) {
+				candidate := strings.ToLower(words[i+1])
+				if skip[candidate] {
+					continue
+				}
 				return toPascalCase(words[i+1])
 			}
 		} else if lower == "all" {
 			if i+1 < len(words) {
+				candidate := strings.ToLower(words[i+1])
+				if skip[candidate] {
+					continue
+				}
 				name := words[i+1]
 				if strings.HasSuffix(name, "s") {
 					name = name[:len(name)-1]
@@ -206,12 +228,13 @@ func generateRequirements(app *ir.Application) string {
 uvicorn==0.24.0.post1
 sqlalchemy==2.0.23
 alembic==1.12.1
-pydantic==2.5.2
+pydantic[email]==2.5.2
 pydantic-settings==2.1.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 psycopg2-binary==2.9.9
+email-validator==2.1.0
 `
 }
 
@@ -253,21 +276,64 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 `)
 	}
+
+	sb.WriteString(`
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+`)
 	return sb.String()
 }
 
 func generateModels(app *ir.Application) string {
 	var sb strings.Builder
-	sb.WriteString(`from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, Date, JSON, ForeignKey
+	sb.WriteString(`import uuid
+from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, Date, JSON, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
 
 `)
+
+	// First pass: collect has_many_through relationships to generate association tables
 	for _, model := range app.Data {
+		for _, rel := range model.Relations {
+			if rel.Kind == "has_many_through" && rel.Through != "" {
+				// Only emit the association table once (check alphabetical ordering)
+				if model.Name < rel.Target {
+					throughSnake := toSnakeCase(rel.Through)
+					sb.WriteString(fmt.Sprintf("%s = Table(\n", throughSnake))
+					sb.WriteString(fmt.Sprintf("    '%s',\n", throughSnake))
+					sb.WriteString("    Base.metadata,\n")
+					sb.WriteString(fmt.Sprintf("    Column('%s_id', String, ForeignKey('%s.id'), primary_key=True),\n", toSnakeCase(model.Name), toSnakeCase(model.Name)))
+					sb.WriteString(fmt.Sprintf("    Column('%s_id', String, ForeignKey('%s.id'), primary_key=True),\n", toSnakeCase(rel.Target), toSnakeCase(rel.Target)))
+					sb.WriteString(")\n\n")
+				}
+			}
+		}
+	}
+
+	for _, model := range app.Data {
+		// Skip join models that we've emitted as association tables
+		isJoinModel := false
+		for _, other := range app.Data {
+			for _, rel := range other.Relations {
+				if rel.Kind == "has_many_through" && rel.Through == model.Name {
+					isJoinModel = true
+					break
+				}
+			}
+			if isJoinModel {
+				break
+			}
+		}
+		if isJoinModel {
+			continue
+		}
+
 		sb.WriteString(fmt.Sprintf("class %s(Base):\n", toPascalCase(model.Name)))
 		sb.WriteString(fmt.Sprintf("    __tablename__ = '%s'\n\n", toSnakeCase(model.Name)))
-		sb.WriteString("    id = Column(String, primary_key=True, index=True)\n")
+		sb.WriteString("    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))\n")
 
 		for _, field := range model.Fields {
 			nullable := "True"
@@ -296,6 +362,10 @@ from database import Base
 				sb.WriteString(fmt.Sprintf("    %s = relationship('%s', back_populates='%s')\n", toSnakeCase(rel.Target), toPascalCase(rel.Target), toSnakeCase(model.Name)+"s"))
 			} else if rel.Kind == "has_many" {
 				sb.WriteString(fmt.Sprintf("    %s = relationship('%s', back_populates='%s')\n", toSnakeCase(rel.Target)+"s", toPascalCase(rel.Target), toSnakeCase(model.Name)))
+			} else if rel.Kind == "has_many_through" {
+				throughSnake := toSnakeCase(rel.Through)
+				sb.WriteString(fmt.Sprintf("    %s = relationship('%s', secondary=%s, back_populates='%s')\n",
+					toSnakeCase(rel.Target)+"s", toPascalCase(rel.Target), throughSnake, toSnakeCase(model.Name)+"s"))
 			}
 		}
 		sb.WriteString("\n")
@@ -353,9 +423,10 @@ import datetime
 
 func generateRoutes(app *ir.Application) string {
 	var sb strings.Builder
-	sb.WriteString(`from fastapi import APIRouter, Depends, HTTPException, status
+	sb.WriteString(`from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from typing import List, Any
+from typing import List, Optional, Any
+import uuid
 import models, schemas, auth
 from database import get_db
 
@@ -365,28 +436,35 @@ router = APIRouter()
 	for _, api := range app.APIs {
 		method := httpMethod(api.Name)
 		path := routePath(api.Name)
+		isLogin := isLoginEndpoint(api.Name)
+		isSignUp := isSignUpEndpoint(api.Name)
 
+		// Build request schema class BEFORE the decorator
+		if len(api.Params) > 0 {
+			schemaClass := toPascalCase(api.Name) + "Request"
+			sb.WriteString(fmt.Sprintf("class %s(schemas.BaseModel):\n", schemaClass))
+			for _, p := range api.Params {
+				sb.WriteString(fmt.Sprintf("    %s: Any\n", toSnakeCase(p.Name)))
+			}
+			sb.WriteString("\n")
+		}
+
+		// Decorator
 		sb.WriteString(fmt.Sprintf("@router.%s('%s')\n", method, path))
 
-		deps := []string{"db: Session = Depends(get_db)"}
+		// Function signature — non-default params first, then Depends() params
+		var deps []string
+		if len(api.Params) > 0 {
+			deps = append(deps, fmt.Sprintf("payload: %sRequest", toPascalCase(api.Name)))
+		}
+		deps = append(deps, "db: Session = Depends(get_db)")
 		if api.Auth {
 			deps = append(deps, "current_user: Any = Depends(auth.get_current_user)")
 		}
 
-		if len(api.Params) > 0 {
-			schemaClass := toPascalCase(api.Name) + "Request"
-			sbSchema := fmt.Sprintf("class %s(schemas.BaseModel):\n", schemaClass)
-			for _, p := range api.Params {
-				sbSchema += fmt.Sprintf("    %s: Any\n", toSnakeCase(p.Name))
-			}
-			sb.WriteString(sbSchema + "\n")
-			deps = append(deps, fmt.Sprintf("payload: %s", schemaClass))
-		}
+		sb.WriteString(fmt.Sprintf("def %s(%s):\n", toSnakeCase(api.Name), strings.Join(deps, ", ")))
 
-		paramStr := strings.Join(deps, ", ")
-
-		sb.WriteString(fmt.Sprintf("def %s(%s):\n", toSnakeCase(api.Name), paramStr))
-
+		// Validation
 		for _, val := range api.Validation {
 			if val.Rule == "not_empty" {
 				sb.WriteString(fmt.Sprintf("    if not payload.%s:\n", toSnakeCase(val.Field)))
@@ -397,28 +475,169 @@ router = APIRouter()
 			}
 		}
 
+		// Track state for code generation
+		queryModelName := ""
+		hasCreate := false
+		hasReturn := false
+
+		// Generate code for each step
 		for _, step := range api.Steps {
 			sb.WriteString(fmt.Sprintf("    # %s\n", step.Text))
-			if step.Type == "create" {
+			switch step.Type {
+			case "create":
 				modelName := inferModelFromAction(step.Text)
 				if modelName != "" {
-					sb.WriteString(fmt.Sprintf("    new_item = models.%s(**payload.model_dump())\n", toPascalCase(modelName)))
+					hasCreate = true
+					if isSignUp {
+						sb.WriteString("    hashed_password = auth.get_password_hash(payload.password)\n")
+						sb.WriteString(fmt.Sprintf("    new_item = models.%s(\n", modelName))
+						for _, p := range api.Params {
+							pSnake := toSnakeCase(p.Name)
+							if strings.ToLower(p.Name) == "password" {
+								sb.WriteString("        password=hashed_password,\n")
+							} else {
+								sb.WriteString(fmt.Sprintf("        %s=payload.%s,\n", pSnake, pSnake))
+							}
+						}
+						sb.WriteString("    )\n")
+					} else {
+						sb.WriteString(fmt.Sprintf("    new_item = models.%s(\n", modelName))
+						for _, p := range api.Params {
+							pSnake := toSnakeCase(p.Name)
+							sb.WriteString(fmt.Sprintf("        %s=payload.%s,\n", pSnake, pSnake))
+						}
+						if api.Auth {
+							sb.WriteString("        user_id=current_user.id,\n")
+						}
+						sb.WriteString("    )\n")
+					}
 					sb.WriteString("    db.add(new_item)\n    db.commit()\n    db.refresh(new_item)\n")
 				}
-			} else if step.Type == "respond" {
-				if strings.Contains(step.Text, "created") {
+
+			case "query":
+				modelName := inferModelFromAction(step.Text)
+				if modelName != "" && queryModelName == "" {
+					queryModelName = modelName
+					lowerText := strings.ToLower(step.Text)
+					if strings.Contains(lowerText, " by ") {
+						// Extract field name after "by"
+						parts := strings.SplitN(lowerText, " by ", 2)
+						fieldParts := strings.Fields(parts[1])
+						queryField := fieldParts[0]
+						// Map <model>_id params to the model's id column
+						modelCol := queryField
+						paramField := queryField
+						if strings.HasSuffix(queryField, "_id") {
+							modelCol = "id"
+						}
+						sb.WriteString(fmt.Sprintf("    item = db.query(models.%s).filter(models.%s.%s == payload.%s).first()\n",
+							modelName, modelName, modelCol, paramField))
+					} else if strings.Contains(lowerText, "all") || strings.Contains(lowerText, "where") {
+						sb.WriteString(fmt.Sprintf("    query = db.query(models.%s)\n", modelName))
+						sb.WriteString("    items = query.all()\n")
+					} else {
+						sb.WriteString(fmt.Sprintf("    item = db.query(models.%s).filter(models.%s.id == payload.%s).first()\n",
+							modelName, modelName, findIDParam(api)))
+					}
+				}
+
+			case "condition":
+				lowerText := strings.ToLower(step.Text)
+				if strings.Contains(lowerText, "does not exist") || strings.Contains(lowerText, "not found") {
+					if isLogin {
+						sb.WriteString("    if item is None:\n")
+						sb.WriteString("        raise HTTPException(status_code=401, detail='Invalid credentials')\n")
+					} else {
+						label := queryModelName
+						if label == "" {
+							label = "Item"
+						}
+						sb.WriteString("    if item is None:\n")
+						sb.WriteString(fmt.Sprintf("        raise HTTPException(status_code=404, detail='%s not found')\n", label))
+					}
+				} else if isLogin && (strings.Contains(lowerText, "password") || strings.Contains(lowerText, "invalid")) {
+					sb.WriteString("    if not auth.verify_password(payload.password, item.password):\n")
+					sb.WriteString("        raise HTTPException(status_code=401, detail='Invalid credentials')\n")
+				}
+
+			case "update":
+				lowerText := strings.ToLower(step.Text)
+				if strings.Contains(lowerText, "update") && strings.Contains(lowerText, "with") {
+					// Bulk field update from payload
+					sb.WriteString("    for key, value in payload.model_dump(exclude_unset=True).items():\n")
+					sb.WriteString("        setattr(item, key, value)\n")
+					sb.WriteString("    db.commit()\n    db.refresh(item)\n")
+				} else if strings.Contains(lowerText, "set ") {
+					// set field to value
+					parts := strings.SplitN(lowerText, "set ", 2)
+					if len(parts) == 2 {
+						fieldAndValue := strings.SplitN(parts[1], " to ", 2)
+						if len(fieldAndValue) == 2 {
+							field := strings.TrimSpace(fieldAndValue[0])
+							value := strings.TrimSpace(fieldAndValue[1])
+							target := "new_item"
+							if !hasCreate {
+								target = "item"
+							}
+							if value == "0" || value == "false" || value == "true" {
+								sb.WriteString(fmt.Sprintf("    %s.%s = %s\n", target, field, value))
+							} else {
+								sb.WriteString(fmt.Sprintf("    %s.%s = '%s'\n", target, field, value))
+							}
+							sb.WriteString("    db.commit()\n")
+						}
+					}
+				}
+
+			case "delete":
+				sb.WriteString("    db.delete(item)\n    db.commit()\n")
+
+			case "respond":
+				hasReturn = true
+				lowerText := strings.ToLower(step.Text)
+				if isLogin && strings.Contains(lowerText, "token") {
+					sb.WriteString("    token = auth.create_access_token(data={'sub': str(item.id)})\n")
+					sb.WriteString("    return {'data': item, 'token': token}\n")
+				} else if isSignUp && strings.Contains(lowerText, "token") {
+					sb.WriteString("    token = auth.create_access_token(data={'sub': str(new_item.id)})\n")
+					sb.WriteString("    return {'data': new_item, 'token': token}\n")
+				} else if strings.Contains(lowerText, "created") {
 					sb.WriteString("    return {'data': new_item}\n")
+				} else if strings.Contains(lowerText, "updated") {
+					sb.WriteString("    return {'data': item}\n")
+				} else if strings.Contains(lowerText, "deleted") {
+					sb.WriteString("    return {'message': 'Deleted successfully'}\n")
+				} else if strings.Contains(lowerText, "pagination") || strings.Contains(lowerText, "posts") || strings.Contains(lowerText, "products") || strings.Contains(lowerText, "items") {
+					sb.WriteString("    return {'data': items}\n")
+				} else if hasCreate {
+					sb.WriteString("    return {'data': new_item}\n")
+				} else if queryModelName != "" {
+					sb.WriteString("    return {'data': item}\n")
 				} else {
 					sb.WriteString("    return {'message': 'Success'}\n")
 				}
 			}
 		}
-		if len(api.Steps) == 0 {
+		if !hasReturn && len(api.Steps) == 0 {
 			sb.WriteString("    return {'message': 'Not implemented'}\n")
 		}
 		sb.WriteString("\n")
 	}
 	return sb.String()
+}
+
+// findIDParam returns the snake_case name of a likely ID param for the endpoint.
+func findIDParam(api *ir.Endpoint) string {
+	for _, p := range api.Params {
+		lower := strings.ToLower(p.Name)
+		if strings.HasSuffix(lower, "_id") || strings.HasSuffix(lower, "id") || lower == "slug" {
+			return toSnakeCase(p.Name)
+		}
+	}
+	if len(api.Params) > 0 {
+		return toSnakeCase(api.Params[0].Name)
+	}
+	return "id"
 }
 
 func generateAuth(app *ir.Application) string {

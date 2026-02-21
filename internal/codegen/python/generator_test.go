@@ -263,20 +263,24 @@ func TestFullIntegration(t *testing.T) {
 		t.Error("main.py: missing TaskFlow app name")
 	}
 
-	// Verify models.py has 4 models
+	// Verify models.py has 3 model classes (TaskTag is an association table)
 	modelsContent, err := os.ReadFile(filepath.Join(dir, "models.py"))
 	if err != nil {
 		t.Fatalf("reading models.py: %v", err)
 	}
 	modelsStr := string(modelsContent)
 	modelCount := strings.Count(modelsStr, "(Base):")
-	if modelCount != 4 {
-		t.Errorf("models.py: expected 4 models, got %d", modelCount)
+	if modelCount != 3 {
+		t.Errorf("models.py: expected 3 models, got %d", modelCount)
 	}
-	for _, name := range []string{"User", "Task", "Tag", "TaskTag"} {
+	for _, name := range []string{"User", "Task", "Tag"} {
 		if !strings.Contains(modelsStr, "class "+name+"(Base):") {
 			t.Errorf("models.py: missing model %s", name)
 		}
+	}
+	// TaskTag should be an association table, not a model class
+	if !strings.Contains(modelsStr, "task_tag = Table(") {
+		t.Error("models.py: missing task_tag association table")
 	}
 
 	// Verify requirements.txt

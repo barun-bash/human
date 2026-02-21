@@ -45,6 +45,7 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		filepath.Join(outputDir, "handlers", "handlers.go"):   generateHandlers(moduleName, app),
 		filepath.Join(outputDir, "routes", "routes.go"):       generateRoutes(moduleName, app),
 		filepath.Join(outputDir, "migrations", "initial.sql"): generateMigration(app),
+		filepath.Join(outputDir, "setup.sh"):                  generateSetupScript(),
 	}
 
 	for path, content := range files {
@@ -74,6 +75,23 @@ func appNameLower(app *ir.Application) string {
 	return "app"
 }
 
+// goAcronyms are words that should be fully uppercased in Go identifiers.
+var goAcronyms = map[string]string{
+	"id": "ID", "url": "URL", "api": "API", "http": "HTTP",
+	"ip": "IP", "json": "JSON", "sql": "SQL", "ssh": "SSH",
+	"tcp": "TCP", "udp": "UDP", "uri": "URI", "uuid": "UUID",
+}
+
+func capitalizeWord(w string) string {
+	if w == "" {
+		return w
+	}
+	if upper, ok := goAcronyms[strings.ToLower(w)]; ok {
+		return upper
+	}
+	return strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+}
+
 func toPascalCase(s string) string {
 	if s == "" {
 		return s
@@ -81,7 +99,7 @@ func toPascalCase(s string) string {
 	if strings.Contains(s, " ") {
 		words := strings.Fields(s)
 		for i, w := range words {
-			words[i] = strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+			words[i] = capitalizeWord(w)
 		}
 		return strings.Join(words, "")
 	}
@@ -89,7 +107,7 @@ func toPascalCase(s string) string {
 		words := strings.Split(s, "_")
 		for i, w := range words {
 			if w != "" {
-				words[i] = strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+				words[i] = capitalizeWord(w)
 			}
 		}
 		return strings.Join(words, "")
@@ -98,7 +116,7 @@ func toPascalCase(s string) string {
 		words := strings.Split(s, "-")
 		for i, w := range words {
 			if w != "" {
-				words[i] = strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+				words[i] = capitalizeWord(w)
 			}
 		}
 		return strings.Join(words, "")
@@ -153,7 +171,7 @@ func toCamelCase(s string) string {
 func httpMethod(name string) string {
 	lower := strings.ToLower(name)
 	switch {
-	case strings.HasPrefix(lower, "get"):
+	case strings.HasPrefix(lower, "get"), strings.HasPrefix(lower, "list"), strings.HasPrefix(lower, "search"):
 		return "GET"
 	case strings.HasPrefix(lower, "delete"):
 		return "DELETE"
@@ -162,6 +180,46 @@ func httpMethod(name string) string {
 	default:
 		return "POST"
 	}
+}
+
+func isLoginEndpoint(name string) bool {
+	return strings.ToLower(name) == "login"
+}
+
+func isSignUpEndpoint(name string) bool {
+	lower := strings.ToLower(name)
+	return lower == "signup" || lower == "sign_up" || lower == "signUp"
+}
+
+func pluralize(s string) string {
+	if s == "" {
+		return s
+	}
+	lower := strings.ToLower(s)
+	if strings.HasSuffix(lower, "s") || strings.HasSuffix(lower, "sh") || strings.HasSuffix(lower, "ch") || strings.HasSuffix(lower, "x") || strings.HasSuffix(lower, "z") {
+		return s + "es"
+	}
+	if strings.HasSuffix(lower, "y") && len(lower) > 1 {
+		prev := lower[len(lower)-2]
+		if prev != 'a' && prev != 'e' && prev != 'i' && prev != 'o' && prev != 'u' {
+			return s[:len(s)-1] + "ies"
+		}
+	}
+	return s + "s"
+}
+
+// findIDParam returns the PascalCase name of a likely ID parameter.
+func findIDParam(api *ir.Endpoint) string {
+	for _, p := range api.Params {
+		lower := strings.ToLower(p.Name)
+		if strings.HasSuffix(lower, "_id") || strings.HasSuffix(lower, "id") || lower == "slug" {
+			return toPascalCase(p.Name)
+		}
+	}
+	if len(api.Params) > 0 {
+		return toPascalCase(api.Params[0].Name)
+	}
+	return "ID"
 }
 
 func routePath(name string) string {
@@ -207,15 +265,28 @@ func goType(irType string, required bool) string {
 }
 
 func inferModelFromAction(text string) string {
+	// Common words that should not be treated as model names
+	skip := map[string]bool{
+		"current": true, "given": true, "same": true, "new": true,
+		"user's": true, "author's": true, "their": true, "own": true,
+	}
 	words := strings.Fields(text)
 	for i, w := range words {
 		lower := strings.ToLower(w)
 		if lower == "a" || lower == "an" || lower == "the" {
 			if i+1 < len(words) {
+				candidate := strings.ToLower(words[i+1])
+				if skip[candidate] {
+					continue
+				}
 				return toPascalCase(words[i+1])
 			}
 		} else if lower == "all" {
 			if i+1 < len(words) {
+				candidate := strings.ToLower(words[i+1])
+				if skip[candidate] {
+					continue
+				}
 				name := words[i+1]
 				if strings.HasSuffix(name, "s") {
 					name = name[:len(name)-1]
@@ -232,10 +303,19 @@ func toSnakeCase(s string) string {
 		return ""
 	}
 	var result []rune
-	for i, r := range s {
+	runes := []rune(s)
+	for i, r := range runes {
 		if unicode.IsUpper(r) {
-			if i > 0 && s[i-1] != ' ' && s[i-1] != '_' && s[i-1] != '-' {
-				result = append(result, '_')
+			// Don't insert underscore if:
+			// - first char
+			// - previous char was uppercase AND (next char is also uppercase or we're at end)
+			//   This handles "ID" → "id", "URL" → "url"
+			if i > 0 && runes[i-1] != ' ' && runes[i-1] != '_' && runes[i-1] != '-' {
+				prevUpper := unicode.IsUpper(runes[i-1])
+				nextLower := i+1 < len(runes) && unicode.IsLower(runes[i+1])
+				if !prevUpper || nextLower {
+					result = append(result, '_')
+				}
 			}
 			result = append(result, unicode.ToLower(r))
 		} else if r == ' ' || r == '-' {

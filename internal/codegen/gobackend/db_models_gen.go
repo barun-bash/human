@@ -92,9 +92,13 @@ func generateModels(moduleName string, app *ir.Application) string {
 				sb.WriteString(fmt.Sprintf("\t%sID string `json:\"%sId\"`\n", toPascalCase(rel.Target), toCamelCase(rel.Target)))
 				sb.WriteString(fmt.Sprintf("\t%s *%s `gorm:\"foreignKey:%sID\" json:\"%s,omitempty\"`\n", toPascalCase(rel.Target), toPascalCase(rel.Target), toPascalCase(rel.Target), toCamelCase(rel.Target)))
 			} else if rel.Kind == "has_many" {
-				sb.WriteString(fmt.Sprintf("\t%ss []%s `gorm:\"foreignKey:%sID\" json:\"%ss,omitempty\"`\n", toPascalCase(rel.Target), toPascalCase(rel.Target), toPascalCase(model.Name), toCamelCase(rel.Target)))
+				plural := pluralize(toPascalCase(rel.Target))
+				pluralCamel := pluralize(toCamelCase(rel.Target))
+				sb.WriteString(fmt.Sprintf("\t%s []%s `gorm:\"foreignKey:%sID\" json:\"%s,omitempty\"`\n", plural, toPascalCase(rel.Target), toPascalCase(model.Name), pluralCamel))
 			} else if rel.Kind == "has_many_through" {
-				sb.WriteString(fmt.Sprintf("\t%ss []%s `gorm:\"many2many:%s;\" json:\"%ss,omitempty\"`\n", toPascalCase(rel.Target), toPascalCase(rel.Target), toSnakeCase(rel.Through), toCamelCase(rel.Target)))
+				plural := pluralize(toPascalCase(rel.Target))
+				pluralCamel := pluralize(toCamelCase(rel.Target))
+				sb.WriteString(fmt.Sprintf("\t%s []%s `gorm:\"many2many:%s;\" json:\"%s,omitempty\"`\n", plural, toPascalCase(rel.Target), toSnakeCase(rel.Through), pluralCamel))
 			}
 		}
 
@@ -107,18 +111,80 @@ func generateModels(moduleName string, app *ir.Application) string {
 }
 
 func generateDTOs(moduleName string, app *ir.Application) string {
+	// Build a map of model fields for type lookups
+	fieldTypes := map[string]map[string]string{} // modelNameLower -> fieldNameLower -> irType
+	for _, model := range app.Data {
+		m := map[string]string{}
+		for _, f := range model.Fields {
+			m[strings.ToLower(f.Name)] = f.Type
+		}
+		fieldTypes[strings.ToLower(model.Name)] = m
+	}
+
 	var sb strings.Builder
 	sb.WriteString("package dto\n\n")
 
 	for _, api := range app.APIs {
 		if len(api.Params) > 0 {
+			// Determine the target model for this endpoint
+			targetModel := inferTargetModel(api)
+
 			sb.WriteString(fmt.Sprintf("type %sRequest struct {\n", toPascalCase(api.Name)))
 			for _, p := range api.Params {
-				sb.WriteString(fmt.Sprintf("\t%s string `json:\"%s\" binding:\"required\"`\n", toPascalCase(p.Name), toCamelCase(p.Name)))
+				goT := "string"
+				pLower := strings.ToLower(p.Name)
+
+				// First try the target model's fields
+				if targetModel != "" {
+					if fields, ok := fieldTypes[strings.ToLower(targetModel)]; ok {
+						if irType, ok := fields[pLower]; ok {
+							goT = goType(irType, true)
+						}
+					}
+				}
+				// Fall back to searching all models only if we didn't find it
+				if goT == "string" && targetModel == "" {
+					for _, fields := range fieldTypes {
+						if irType, ok := fields[pLower]; ok {
+							goT = goType(irType, true)
+							break
+						}
+					}
+				}
+
+				binding := "required"
+				if strings.HasPrefix(pLower, "optional") {
+					binding = ""
+				}
+				bindTag := ""
+				if binding != "" {
+					bindTag = fmt.Sprintf(" binding:\"%s\"", binding)
+				}
+				sb.WriteString(fmt.Sprintf("\t%s %s `json:\"%s\"%s`\n", toPascalCase(p.Name), goT, toCamelCase(p.Name), bindTag))
 			}
 			sb.WriteString("}\n\n")
 		}
 	}
 
 	return sb.String()
+}
+
+// inferTargetModel extracts the model name from an endpoint name or its steps.
+func inferTargetModel(api *ir.Endpoint) string {
+	// Try to extract from endpoint name: CreateReview → Review, GetProduct → Product
+	lower := strings.ToLower(api.Name)
+	for _, prefix := range []string{"create", "update", "delete", "get", "list", "search"} {
+		if strings.HasPrefix(lower, prefix) && len(lower) > len(prefix) {
+			return api.Name[len(prefix):]
+		}
+	}
+	// Try to extract from create/query steps
+	for _, step := range api.Steps {
+		if step.Type == "create" || step.Type == "query" {
+			if m := inferModelFromAction(step.Text); m != "" {
+				return m
+			}
+		}
+	}
+	return ""
 }

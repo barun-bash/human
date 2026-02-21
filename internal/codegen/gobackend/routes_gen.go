@@ -44,3 +44,18 @@ func Setup(r *gin.Engine, db *gorm.DB) {
 func generateMigration(app *ir.Application) string {
 	return "-- Initial Migration\n-- Schema auto-generated via GORM AutoMigrate is recommended for early dev, but here is a placeholder.\n\nSELECT 1;\n"
 }
+
+func generateSetupScript() string {
+	return `#!/bin/bash
+# Setup script for the generated Go backend
+# Run this once after code generation to download dependencies
+
+set -e
+
+echo "Downloading Go dependencies..."
+go mod tidy
+echo "Building..."
+go build ./...
+echo "Setup complete!"
+`
+}
