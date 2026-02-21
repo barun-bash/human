@@ -46,11 +46,13 @@ func generateDockerProd(app *ir.Application) string {
 	if hasDatabase(app) {
 		db := dbEngine(app)
 		port := "5432"
+		user := "postgres"
 		if db == "mysql" {
 			port = "3306"
+			user = "root"
 		}
-		b.WriteString(fmt.Sprintf("    \"%s://%s:${var.db_password}@%s-db-%s:%s/%s\",\n",
-			db, "postgres", name, "${var.environment}", port, appNameSnake(app)))
+		b.WriteString(fmt.Sprintf("    \"DATABASE_URL=%s://%s:${var.db_password}@%s-db-${var.environment}:%s/%s\",\n",
+			db, user, name, port, appNameSnake(app)))
 	}
 
 	b.WriteString("  ]\n\n")

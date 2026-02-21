@@ -435,7 +435,7 @@ func checkArchitecture(errs *cerr.CompilerErrors, app *ir.Application, models ma
 	}
 
 	// W401: Validate architecture style
-	validStyles := []string{"monolith", "microservices", "serverless", "event-driven"}
+	validStyles := []string{"monolith", "microservices", "serverless"}
 	style := strings.ToLower(app.Architecture.Style)
 	styleValid := false
 	for _, v := range validStyles {

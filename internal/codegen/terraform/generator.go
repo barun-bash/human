@@ -184,7 +184,7 @@ func generateMainTF(app *ir.Application, target string) string {
 		b.WriteString("  backend \"s3\" {\n")
 		b.WriteString(fmt.Sprintf("    bucket = \"%s-terraform-state\"\n", name))
 		b.WriteString(fmt.Sprintf("    key    = \"%s/terraform.tfstate\"\n", name))
-		b.WriteString("    region = var.aws_region\n")
+		b.WriteString("    region = \"us-east-1\"  # Set via -backend-config or TF_VAR_aws_region\n")
 		b.WriteString("  }\n")
 	case "gcp":
 		b.WriteString("  backend \"gcs\" {\n")
@@ -477,7 +477,18 @@ func generateEnvTFVars(app *ir.Application, env *ir.Environment, target string) 
 			if _, ok := env.Config["instance"]; !ok {
 				b.WriteString("db_instance_class = \"db.t3.small\"\n")
 			}
-			b.WriteString("desired_count     = 3\n")
+			// Only write desired_count if not already set from env config
+			hasCount := false
+			for k := range env.Config {
+				kl := strings.ToLower(strings.ReplaceAll(k, " ", "_"))
+				if strings.Contains(kl, "count") || strings.Contains(kl, "replicas") {
+					hasCount = true
+					break
+				}
+			}
+			if !hasCount {
+				b.WriteString("desired_count     = 3\n")
+			}
 			b.WriteString("cpu               = 512\n")
 			b.WriteString("memory            = 1024\n")
 		case "gcp":

@@ -773,6 +773,22 @@ func buildArchitecture(a *parser.ArchitectureDeclaration) *Architecture {
 				currentService.Port = p
 			}
 
+		case (strings.HasPrefix(lower, "owns ") || strings.HasPrefix(lower, "manages ")) && currentService != nil:
+			// "owns User, Task" or "manages Order"
+			var prefix string
+			if strings.HasPrefix(lower, "owns ") {
+				prefix = "owns "
+			} else {
+				prefix = "manages "
+			}
+			modelStr := strings.TrimSpace(s.Text[len(prefix):])
+			for _, m := range strings.Split(modelStr, ",") {
+				m = strings.TrimSpace(m)
+				if m != "" {
+					currentService.Models = append(currentService.Models, m)
+				}
+			}
+
 		case strings.HasPrefix(lower, "has its own database") && currentService != nil:
 			currentService.HasOwnDatabase = true
 

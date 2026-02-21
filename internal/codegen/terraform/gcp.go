@@ -132,9 +132,11 @@ func generateGCPCloudSQL(app *ir.Application) string {
 	b.WriteString("  settings {\n")
 	b.WriteString("    tier = var.db_tier\n\n")
 	b.WriteString("    backup_configuration {\n")
-	b.WriteString("      enabled            = true\n")
-	b.WriteString("      start_time         = \"03:00\"\n")
-	b.WriteString("      binary_log_enabled = false\n")
+	b.WriteString("      enabled    = true\n")
+	b.WriteString("      start_time = \"03:00\"\n")
+	if isMySQL(app) {
+		b.WriteString("      binary_log_enabled = true\n")
+	}
 	b.WriteString("    }\n\n")
 	b.WriteString("    ip_configuration {\n")
 	b.WriteString("      ipv4_enabled = true\n")
