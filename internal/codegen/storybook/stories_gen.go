@@ -7,13 +7,28 @@ import (
 	"github.com/barun-bash/human/internal/ir"
 )
 
-func generateComponentStory(comp *ComponentMeta, app *ir.Application) string {
+func generateComponentStory(comp *ComponentMeta, app *ir.Application, fw string) string {
 	var b strings.Builder
 
-	b.WriteString("import type { Meta, StoryObj } from '@storybook/react';\n")
+	frameworkStr := "@storybook/react"
+	if fw == "vue" {
+		frameworkStr = "@storybook/vue3"
+	} else if fw == "svelte" {
+		frameworkStr = "@storybook/svelte"
+	} else if fw == "angular" {
+		frameworkStr = "@storybook/angular"
+	}
+
+	b.WriteString(fmt.Sprintf("import type { Meta, StoryObj } from '%s';\n", frameworkStr))
 	b.WriteString("import { fn } from '@storybook/test';\n")
 
-	b.WriteString(fmt.Sprintf("import %s from '../../components/%s';\n", comp.Name, comp.Name))
+	ext := ""
+	if fw == "vue" {
+		ext = ".vue"
+	} else if fw == "svelte" {
+		ext = ".svelte"
+	}
+	b.WriteString(fmt.Sprintf("import %s from '../../components/%s%s';\n", comp.Name, comp.Name, ext))
 
 	needsMock := false
 	for _, prop := range comp.Props {
@@ -60,16 +75,54 @@ func generateComponentStory(comp *ComponentMeta, app *ir.Application) string {
 		}
 	}
 	b.WriteString("  },\n")
+	b.WriteString("};\n\n")
+
+	// Additional Component Variants
+	b.WriteString("export const Loading: Story = {\n")
+	b.WriteString("  args: {\n")
+	b.WriteString("    ...Default.args,\n")
+	b.WriteString("    loading: true,\n")
+	b.WriteString("  },\n")
+	b.WriteString("};\n\n")
+
+	b.WriteString("export const Empty: Story = {\n")
+	b.WriteString("  args: {\n")
+	b.WriteString("    ...Default.args,\n")
+	b.WriteString("    data: [],\n")
+	b.WriteString("  },\n")
+	b.WriteString("};\n\n")
+
+	b.WriteString("export const ErrorState: Story = {\n")
+	b.WriteString("  args: {\n")
+	b.WriteString("    ...Default.args,\n")
+	b.WriteString("    error: 'An unexpected error occurred',\n")
+	b.WriteString("  },\n")
 	b.WriteString("};\n")
 
 	return b.String()
 }
 
-func generatePageStory(page *PageMeta, app *ir.Application) string {
+func generatePageStory(page *PageMeta, app *ir.Application, fw string) string {
 	var b strings.Builder
 
-	b.WriteString("import type { Meta, StoryObj } from '@storybook/react';\n")
-	b.WriteString(fmt.Sprintf("import %sPage from '../../pages/%sPage';\n", page.Name, page.Name))
+	frameworkStr := "@storybook/react"
+	if fw == "vue" {
+		frameworkStr = "@storybook/vue3"
+	} else if fw == "svelte" {
+		frameworkStr = "@storybook/svelte"
+	} else if fw == "angular" {
+		frameworkStr = "@storybook/angular"
+	}
+
+	b.WriteString(fmt.Sprintf("import type { Meta, StoryObj } from '%s';\n", frameworkStr))
+	
+	ext := ""
+	if fw == "vue" {
+		ext = ".vue"
+	} else if fw == "svelte" {
+		ext = ".svelte"
+	}
+	b.WriteString(fmt.Sprintf("import %sPage from '../../pages/%sPage%s';\n", page.Name, page.Name, ext))
 	b.WriteString("\n")
 
 	b.WriteString(fmt.Sprintf("const meta: Meta<typeof %sPage> = {\n", page.Name))
@@ -87,20 +140,17 @@ func generatePageStory(page *PageMeta, app *ir.Application) string {
 
 	if page.HasLoading {
 		b.WriteString("export const Loading: Story = {\n")
-		b.WriteString("  // Note: Set up API mock to delay response to show loading state\n")
 		b.WriteString("  parameters: { mockData: [] },\n")
 		b.WriteString("};\n\n")
 	}
 
 	if page.HasEmpty {
 		b.WriteString("export const Empty: Story = {\n")
-		b.WriteString("  // Note: Set up API mock to return empty array\n")
 		b.WriteString("  parameters: { mockData: [] },\n")
 		b.WriteString("};\n\n")
 	}
 
 	b.WriteString("export const Error: Story = {\n")
-	b.WriteString("  // Note: Set up API mock to return 500 error\n")
 	b.WriteString("  parameters: { mockData: { error: true } },\n")
 	b.WriteString("};\n")
 

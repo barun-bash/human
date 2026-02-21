@@ -21,6 +21,14 @@ func generateMockData(app *ir.Application) string {
 			b.WriteString(fmt.Sprintf("  %s: %s,\n", field.Name, val))
 		}
 
+		for _, rel := range model.Relations {
+			if rel.Kind == "belongs_to" {
+				b.WriteString(fmt.Sprintf("  %s: undefined, // Replace with mock%s() if needed\n", rel.Target, rel.Target))
+			} else if rel.Kind == "has_many" || rel.Kind == "has_many_through" {
+				b.WriteString(fmt.Sprintf("  %ss: [], // Replace with mock%sList() if needed\n", rel.Target, rel.Target))
+			}
+		}
+
 		b.WriteString("  ...overrides,\n")
 		b.WriteString("});\n\n")
 

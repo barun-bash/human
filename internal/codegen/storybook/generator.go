@@ -4,11 +4,36 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/barun-bash/human/internal/ir"
 )
 
 type Generator struct{}
+
+func getFramework(app *ir.Application) string {
+	if app.Config == nil || app.Config.Frontend == "" {
+		return "react"
+	}
+	lower := strings.ToLower(app.Config.Frontend)
+	if strings.Contains(lower, "vue") {
+		return "vue"
+	}
+	if strings.Contains(lower, "svelte") {
+		return "svelte"
+	}
+	if strings.Contains(lower, "angular") {
+		return "angular"
+	}
+	return "react"
+}
+
+func getStoryExtension(fw string) string {
+	if fw == "react" {
+		return ".stories.tsx"
+	}
+	return ".stories.ts"
+}
 
 func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	dirs := []string{
@@ -24,23 +49,25 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	}
 
 	inventory := BuildInventory(app)
+	fw := getFramework(app)
+	ext := getStoryExtension(fw)
 
 	files := map[string]string{
-		filepath.Join(outputDir, ".storybook", "main.ts"):            generateMainTs(app),
+		filepath.Join(outputDir, ".storybook", "main.ts"):            generateMainTs(app, fw),
 		filepath.Join(outputDir, ".storybook", "preview.ts"):         generatePreviewTs(app),
 		filepath.Join(outputDir, "src", "mocks", "data.ts"):          generateMockData(app),
 		filepath.Join(outputDir, "src", "stories", "Introduction.mdx"): generateIntroduction(app, inventory),
-		filepath.Join(outputDir, "storybook-dependencies.json"):      generateDependencies(app),
+		filepath.Join(outputDir, "storybook-dependencies.json"):      generateDependencies(app, fw),
 	}
 
 	for _, comp := range inventory.Components {
-		path := filepath.Join(outputDir, "src", "stories", "components", comp.Name+".stories.tsx")
-		files[path] = generateComponentStory(comp, app)
+		path := filepath.Join(outputDir, "src", "stories", "components", comp.Name+ext)
+		files[path] = generateComponentStory(comp, app, fw)
 	}
 
 	for _, page := range inventory.Pages {
-		path := filepath.Join(outputDir, "src", "stories", "pages", page.Name+".stories.tsx")
-		files[path] = generatePageStory(page, app)
+		path := filepath.Join(outputDir, "src", "stories", "pages", page.Name+ext)
+		files[path] = generatePageStory(page, app, fw)
 	}
 
 	for path, content := range files {
@@ -59,18 +86,27 @@ func writeFile(path, content string) error {
 	return nil
 }
 
-func generateMainTs(app *ir.Application) string {
-	return `import type { StorybookConfig } from '@storybook/react-vite';
+func generateMainTs(app *ir.Application, fw string) string {
+	addon := "@storybook/react-vite"
+	if fw == "vue" {
+		addon = "@storybook/vue3-vite"
+	} else if fw == "svelte" {
+		addon = "@storybook/sveltekit"
+	} else if fw == "angular" {
+		addon = "@storybook/angular"
+	}
+
+	return fmt.Sprintf(`import type { StorybookConfig } from '%s';
 
 const config: StorybookConfig = {
-  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
+  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx|svelte)'],
   addons: [
     '@storybook/addon-links',
     '@storybook/addon-essentials',
     '@storybook/addon-interactions',
   ],
   framework: {
-    name: '@storybook/react-vite',
+    name: '%s',
     options: {},
   },
   docs: {
@@ -78,7 +114,7 @@ const config: StorybookConfig = {
   },
 };
 export default config;
-`
+`, addon, addon)
 }
 
 func generatePreviewTs(app *ir.Application) string {
@@ -99,15 +135,27 @@ export default preview;
 `
 }
 
-func generateDependencies(app *ir.Application) string {
-	return `{
+func generateDependencies(app *ir.Application, fw string) string {
+	sbDep := `"@storybook/react": "^8.0.0",
+    "@storybook/react-vite": "^8.0.0"`
+	
+	if fw == "vue" {
+		sbDep = `"@storybook/vue3": "^8.0.0",
+    "@storybook/vue3-vite": "^8.0.0"`
+	} else if fw == "svelte" {
+		sbDep = `"@storybook/svelte": "^8.0.0",
+    "@storybook/sveltekit": "^8.0.0"`
+	} else if fw == "angular" {
+		sbDep = `"@storybook/angular": "^8.0.0"`
+	}
+
+	return fmt.Sprintf(`{
   "devDependencies": {
     "@storybook/addon-essentials": "^8.0.0",
     "@storybook/addon-interactions": "^8.0.0",
     "@storybook/addon-links": "^8.0.0",
     "@storybook/blocks": "^8.0.0",
-    "@storybook/react": "^8.0.0",
-    "@storybook/react-vite": "^8.0.0",
+    %s,
     "@storybook/test": "^8.0.0",
     "storybook": "^8.0.0"
   },
@@ -116,7 +164,7 @@ func generateDependencies(app *ir.Application) string {
     "build-storybook": "storybook build"
   }
 }
-`
+`, sbDep)
 }
 
 func generateIntroduction(app *ir.Application, inv *ComponentInventory) string {
