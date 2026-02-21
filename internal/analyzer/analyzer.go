@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/barun-bash/human/internal/codegen/themes"
 	cerr "github.com/barun-bash/human/internal/errors"
 	"github.com/barun-bash/human/internal/ir"
 )
@@ -55,6 +56,9 @@ func Analyze(app *ir.Application, file string) *cerr.CompilerErrors {
 
 	// 8. Completeness
 	checkCompleteness(errs, app, apis, apiList)
+
+	// 9. Design system validation
+	checkDesignSystem(errs, app)
 
 	return errs
 }
@@ -341,4 +345,81 @@ func checkCompleteness(errs *cerr.CompilerErrors, app *ir.Application, apis map[
 	if app.Config != nil && app.Config.Frontend != "" && len(app.Pages) == 0 {
 		errs.AddError("E203", "Build config specifies a frontend but no pages are defined")
 	}
+}
+
+// ── Design system validation ──
+
+func checkDesignSystem(errs *cerr.CompilerErrors, app *ir.Application) {
+	if app.Theme == nil || app.Theme.DesignSystem == "" {
+		return
+	}
+
+	ds := themes.Registry(app.Theme.DesignSystem)
+	if ds == nil {
+		allIDs := themes.AllIDs()
+		msg := fmt.Sprintf("Unknown design system %q", app.Theme.DesignSystem)
+		if suggestion := cerr.FindClosest(app.Theme.DesignSystem, allIDs, 0.4); suggestion != "" {
+			errs.AddWarningWithSuggestion("W301", msg,
+				fmt.Sprintf("Did you mean %q? Supported: %s", suggestion, strings.Join(allIDs, ", ")))
+		} else {
+			errs.AddWarning("W301",
+				fmt.Sprintf("%s. Supported: %s", msg, strings.Join(allIDs, ", ")))
+		}
+		return
+	}
+
+	// Validate spacing value
+	if app.Theme.Spacing != "" {
+		validSpacing := []string{"compact", "comfortable", "spacious"}
+		found := false
+		for _, v := range validSpacing {
+			if app.Theme.Spacing == v {
+				found = true
+				break
+			}
+		}
+		if !found {
+			errs.AddWarning("W303", fmt.Sprintf(
+				"Unknown spacing %q — expected one of: compact, comfortable, spacious. Defaulting to comfortable",
+				app.Theme.Spacing))
+		}
+	}
+
+	// Validate border radius value
+	if app.Theme.BorderRadius != "" {
+		validRadius := []string{"sharp", "smooth", "rounded", "pill"}
+		found := false
+		for _, v := range validRadius {
+			if app.Theme.BorderRadius == v {
+				found = true
+				break
+			}
+		}
+		if !found {
+			errs.AddWarning("W304", fmt.Sprintf(
+				"Unknown border radius %q — expected one of: sharp, smooth, rounded, pill. Defaulting to smooth",
+				app.Theme.BorderRadius))
+		}
+	}
+
+	// Check framework compatibility
+	if app.Config != nil && app.Config.Frontend != "" {
+		framework := inferFramework(app.Config.Frontend)
+		if framework != "" && !themes.HasFrameworkSupport(app.Theme.DesignSystem, framework) {
+			errs.AddWarning("W302", fmt.Sprintf(
+				"Design system %q has no %s library — will use Tailwind CSS with %s color palette as fallback",
+				ds.Name, framework, ds.Name))
+		}
+	}
+}
+
+// inferFramework extracts the framework name from a build config string.
+func inferFramework(frontend string) string {
+	lower := strings.ToLower(frontend)
+	for _, fw := range []string{"react", "vue", "angular", "svelte"} {
+		if strings.Contains(lower, fw) {
+			return fw
+		}
+	}
+	return ""
 }

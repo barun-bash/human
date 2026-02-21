@@ -503,6 +503,93 @@ func TestBuildTheme(t *testing.T) {
 	}
 }
 
+func TestBuildTheme_DesignSystem(t *testing.T) {
+	source := `theme:
+  design system is Material UI
+  primary color is #1976d2`
+
+	app := mustBuild(t, source)
+
+	if app.Theme == nil {
+		t.Fatal("expected Theme")
+	}
+	if app.Theme.DesignSystem != "material" {
+		t.Errorf("design system: got %q, want \"material\"", app.Theme.DesignSystem)
+	}
+	if app.Theme.Colors["primary"] != "#1976d2" {
+		t.Errorf("primary color: got %q", app.Theme.Colors["primary"])
+	}
+}
+
+func TestBuildTheme_BorderRadius(t *testing.T) {
+	source := `theme:
+  border radius is smooth`
+
+	app := mustBuild(t, source)
+
+	if app.Theme == nil {
+		t.Fatal("expected Theme")
+	}
+	if app.Theme.BorderRadius != "smooth" {
+		t.Errorf("border radius: got %q, want \"smooth\"", app.Theme.BorderRadius)
+	}
+}
+
+func TestBuildTheme_Spacing(t *testing.T) {
+	source := `theme:
+  spacing is compact`
+
+	app := mustBuild(t, source)
+
+	if app.Theme == nil {
+		t.Fatal("expected Theme")
+	}
+	if app.Theme.Spacing != "compact" {
+		t.Errorf("spacing: got %q, want \"compact\"", app.Theme.Spacing)
+	}
+}
+
+func TestBuildTheme_DarkMode(t *testing.T) {
+	source := `theme:
+  dark mode is supported and toggles from the header`
+
+	app := mustBuild(t, source)
+
+	if app.Theme == nil {
+		t.Fatal("expected Theme")
+	}
+	if !app.Theme.DarkMode {
+		t.Error("expected DarkMode=true")
+	}
+	// Should also be in Options
+	if _, ok := app.Theme.Options["dark mode"]; !ok {
+		t.Error("expected 'dark mode' in Options")
+	}
+}
+
+func TestBuildTheme_NormalizeDesignSystem(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"Material UI", "material"},
+		{"MUI", "material"},
+		{"shadcn/ui", "shadcn"},
+		{"Tailwind CSS", "tailwind"},
+		{"Ant Design", "ant"},
+		{"Chakra UI", "chakra"},
+		{"Bootstrap", "bootstrap"},
+		{"Untitled UI", "untitled"},
+	}
+
+	for _, tt := range tests {
+		got := normalizeDesignSystem(tt.input)
+		if got != tt.want {
+			t.Errorf("normalizeDesignSystem(%q): got %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
 // ── Authentication ──
 
 func TestBuildAuth(t *testing.T) {

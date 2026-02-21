@@ -502,6 +502,79 @@ func TestGenerateWritesFiles(t *testing.T) {
 	}
 }
 
+// ── Theme Integration ──
+
+func TestGenerateAppWithMaterialTheme(t *testing.T) {
+	app := &ir.Application{
+		Pages: []*ir.Page{
+			{Name: "Home"},
+		},
+		Theme: &ir.Theme{
+			DesignSystem: "material",
+		},
+	}
+
+	output := generateApp(app)
+
+	if !strings.Contains(output, "ThemeProvider") {
+		t.Error("material theme should wrap in ThemeProvider")
+	}
+	if !strings.Contains(output, "import theme from './theme'") {
+		t.Error("material theme should import theme config")
+	}
+	if !strings.Contains(output, "CssBaseline") {
+		t.Error("material theme should include CssBaseline")
+	}
+}
+
+func TestGenerateAppWithChakraTheme(t *testing.T) {
+	app := &ir.Application{
+		Pages: []*ir.Page{
+			{Name: "Home"},
+		},
+		Theme: &ir.Theme{
+			DesignSystem: "chakra",
+		},
+	}
+
+	output := generateApp(app)
+
+	if !strings.Contains(output, "ChakraProvider") {
+		t.Error("chakra theme should wrap in ChakraProvider")
+	}
+}
+
+func TestGenerateWritesThemeFiles(t *testing.T) {
+	app := &ir.Application{
+		Name:     "ThemedApp",
+		Platform: "web",
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{{Type: "display", Text: "welcome"}}},
+		},
+		Theme: &ir.Theme{
+			DesignSystem: "material",
+			Colors:       map[string]string{"primary": "#1976d2"},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	themeFiles := []string{
+		"src/theme.ts",
+		"src/styles/global.css",
+	}
+	for _, f := range themeFiles {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected theme file %s to exist", f)
+		}
+	}
+}
+
 // ── Full Integration Test ──
 
 func TestFullIntegration(t *testing.T) {

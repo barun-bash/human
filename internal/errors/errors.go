@@ -83,6 +83,16 @@ func (ce *CompilerErrors) AddWarning(code, message string) {
 	})
 }
 
+// AddWarningWithSuggestion adds a warning with a "did you mean" suggestion.
+func (ce *CompilerErrors) AddWarningWithSuggestion(code, message, suggestion string) {
+	ce.Add(&CompilerError{
+		Code:       code,
+		Message:    message,
+		Severity:   SeverityWarning,
+		Suggestion: suggestion,
+	})
+}
+
 // AddErrorWithSuggestion adds an error with a "did you mean" suggestion.
 func (ce *CompilerErrors) AddErrorWithSuggestion(code, message, suggestion string) {
 	ce.Add(&CompilerError{

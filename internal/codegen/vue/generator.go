@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/barun-bash/human/internal/codegen/themes"
 	"github.com/barun-bash/human/internal/ir"
 )
 
@@ -43,6 +44,14 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	for _, comp := range app.Components {
 		path := filepath.Join(outputDir, "src", "components", comp.Name+".vue")
 		files[path] = generateComponent(comp, app)
+	}
+
+	// Generate theme files
+	if app.Theme != nil {
+		themeFiles := themes.GenerateVueTheme(app.Theme)
+		for relPath, content := range themeFiles {
+			files[filepath.Join(outputDir, relPath)] = content
+		}
 	}
 
 	for path, content := range files {

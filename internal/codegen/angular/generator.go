@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/barun-bash/human/internal/codegen/themes"
 	"github.com/barun-bash/human/internal/ir"
 )
 
@@ -48,6 +49,14 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		name := toKebabCase(comp.Name)
 		path := filepath.Join(outputDir, "src", "app", "components", name, name+".component.ts")
 		files[path] = generateComponent(comp, app)
+	}
+
+	// Generate theme files
+	if app.Theme != nil {
+		themeFiles := themes.GenerateAngularTheme(app.Theme)
+		for relPath, content := range themeFiles {
+			files[filepath.Join(outputDir, relPath)] = content
+		}
 	}
 
 	for path, content := range files {

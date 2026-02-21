@@ -170,9 +170,13 @@ type Action struct {
 
 // Theme holds visual configuration extracted from theme properties.
 type Theme struct {
-	Colors  map[string]string `json:"colors,omitempty"`
-	Fonts   map[string]string `json:"fonts,omitempty"`
-	Options map[string]string `json:"options,omitempty"` // other properties
+	DesignSystem string            `json:"design_system,omitempty"` // material, shadcn, ant, chakra, bootstrap, tailwind, untitled
+	Colors       map[string]string `json:"colors,omitempty"`
+	Fonts        map[string]string `json:"fonts,omitempty"`
+	Spacing      string            `json:"spacing,omitempty"`       // compact, comfortable, spacious
+	BorderRadius string            `json:"border_radius,omitempty"` // sharp, smooth, rounded, pill
+	DarkMode     bool              `json:"dark_mode,omitempty"`
+	Options      map[string]string `json:"options,omitempty"` // other properties
 }
 
 // ── Security ──

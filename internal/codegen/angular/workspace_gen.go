@@ -2,8 +2,10 @@ package angular
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
+	"github.com/barun-bash/human/internal/codegen/themes"
 	"github.com/barun-bash/human/internal/ir"
 )
 
@@ -122,39 +124,58 @@ func generatePackageJson(app *ir.Application) string {
 	if name == "" {
 		name = "app"
 	}
-	return fmt.Sprintf(`{
-  "name": "%s",
-  "version": "0.1.0",
-  "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
-  },
-  "private": true,
-  "dependencies": {
-    "@angular/animations": "^17.0.0",
-    "@angular/common": "^17.0.0",
-    "@angular/compiler": "^17.0.0",
-    "@angular/core": "^17.0.0",
-    "@angular/forms": "^17.0.0",
-    "@angular/platform-browser": "^17.0.0",
-    "@angular/platform-browser-dynamic": "^17.0.0",
-    "@angular/router": "^17.0.0",
-    "rxjs": "~7.8.0",
-    "tslib": "^2.3.0",
-    "zone.js": "~0.14.2"
-  },
-  "devDependencies": {
-    "@angular-devkit/build-angular": "^17.0.0",
-    "@angular/cli": "^17.0.0",
-    "@angular/compiler-cli": "^17.0.0",
-    "@types/node": "^18.18.0",
-    "typescript": "~5.2.2"
-  }
-}
-`, name)
+
+	deps := map[string]string{
+		"@angular/animations":              "^17.0.0",
+		"@angular/common":                  "^17.0.0",
+		"@angular/compiler":                "^17.0.0",
+		"@angular/core":                    "^17.0.0",
+		"@angular/forms":                   "^17.0.0",
+		"@angular/platform-browser":        "^17.0.0",
+		"@angular/platform-browser-dynamic": "^17.0.0",
+		"@angular/router":                  "^17.0.0",
+		"rxjs":                             "~7.8.0",
+		"tslib":                            "^2.3.0",
+		"zone.js":                          "~0.14.2",
+	}
+	devDeps := map[string]string{
+		"@angular-devkit/build-angular": "^17.0.0",
+		"@angular/cli":                 "^17.0.0",
+		"@angular/compiler-cli":        "^17.0.0",
+		"@types/node":                  "^18.18.0",
+		"typescript":                   "~5.2.2",
+	}
+
+	// Inject design system dependencies
+	if app.Theme != nil && app.Theme.DesignSystem != "" {
+		dsDeps, dsDevDeps := themes.Dependencies(app.Theme.DesignSystem, "angular")
+		for k, v := range dsDeps {
+			deps[k] = v
+		}
+		for k, v := range dsDevDeps {
+			devDeps[k] = v
+		}
+	}
+
+	var b strings.Builder
+	b.WriteString("{\n")
+	fmt.Fprintf(&b, "  \"name\": \"%s\",\n", name)
+	b.WriteString("  \"version\": \"0.1.0\",\n")
+	b.WriteString("  \"scripts\": {\n")
+	b.WriteString("    \"ng\": \"ng\",\n")
+	b.WriteString("    \"start\": \"ng serve\",\n")
+	b.WriteString("    \"build\": \"ng build\",\n")
+	b.WriteString("    \"watch\": \"ng build --watch --configuration development\",\n")
+	b.WriteString("    \"test\": \"ng test\"\n")
+	b.WriteString("  },\n")
+	b.WriteString("  \"private\": true,\n")
+
+	writeSortedDeps(&b, "dependencies", deps)
+	b.WriteString(",\n")
+	writeSortedDeps(&b, "devDependencies", devDeps)
+	b.WriteString("\n}\n")
+
+	return b.String()
 }
 
 func generateRoutes(app *ir.Application) string {
@@ -189,4 +210,22 @@ import { RouterModule } from '@angular/router';
 })
 export class AppComponent {}
 `
+}
+
+// writeSortedDeps writes a JSON object with sorted keys.
+func writeSortedDeps(b *strings.Builder, label string, m map[string]string) {
+	b.WriteString(fmt.Sprintf("  \"%s\": {\n", label))
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for i, k := range keys {
+		fmt.Fprintf(b, "    \"%s\": \"%s\"", k, m[k])
+		if i < len(keys)-1 {
+			b.WriteString(",")
+		}
+		b.WriteString("\n")
+	}
+	b.WriteString("  }")
 }

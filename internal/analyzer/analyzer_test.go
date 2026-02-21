@@ -285,6 +285,70 @@ func TestFrontendWithoutPages(t *testing.T) {
 	assertCode(t, errs.Errors(), "E203")
 }
 
+// ── Design system validation ──
+
+func TestUnknownDesignSystem(t *testing.T) {
+	app := minApp()
+	app.Theme = &ir.Theme{DesignSystem: "materail"}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W301")
+}
+
+func TestValidDesignSystem(t *testing.T) {
+	app := minApp()
+	app.Theme = &ir.Theme{DesignSystem: "material"}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W301" {
+			t.Errorf("unexpected W301 — material is valid: %s", w.Message)
+		}
+	}
+}
+
+func TestDesignSystemFrameworkIncompatibility(t *testing.T) {
+	app := minApp()
+	app.Theme = &ir.Theme{DesignSystem: "chakra"}
+	app.Config = &ir.BuildConfig{Frontend: "Vue with TypeScript"}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W302")
+}
+
+func TestInvalidSpacing(t *testing.T) {
+	app := minApp()
+	app.Theme = &ir.Theme{DesignSystem: "material", Spacing: "huge"}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W303")
+}
+
+func TestValidSpacing(t *testing.T) {
+	app := minApp()
+	app.Theme = &ir.Theme{DesignSystem: "material", Spacing: "compact"}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W303" {
+			t.Errorf("unexpected W303 — compact is valid: %s", w.Message)
+		}
+	}
+}
+
+func TestInvalidBorderRadius(t *testing.T) {
+	app := minApp()
+	app.Theme = &ir.Theme{DesignSystem: "material", BorderRadius: "extreme"}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W304")
+}
+
+func TestValidBorderRadius(t *testing.T) {
+	app := minApp()
+	app.Theme = &ir.Theme{DesignSystem: "material", BorderRadius: "rounded"}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W304" {
+			t.Errorf("unexpected W304 — rounded is valid: %s", w.Message)
+		}
+	}
+}
+
 // ── Integration: taskflow-like example ──
 
 func TestAnalyzeTaskflowIR(t *testing.T) {
@@ -379,6 +443,16 @@ func assertCode(t *testing.T, errs []*cerr.CompilerError, code string) {
 		}
 	}
 	t.Errorf("expected at least one error with code %s, found none", code)
+}
+
+func assertWarningCode(t *testing.T, warnings []*cerr.CompilerError, code string) {
+	t.Helper()
+	for _, w := range warnings {
+		if w.Code == code {
+			return
+		}
+	}
+	t.Errorf("expected at least one warning with code %s, found none", code)
 }
 
 func assertSuggestion(t *testing.T, errs []*cerr.CompilerError, contains string) {

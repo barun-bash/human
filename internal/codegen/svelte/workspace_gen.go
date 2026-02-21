@@ -2,7 +2,10 @@ package svelte
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
+	"github.com/barun-bash/human/internal/codegen/themes"
 	"github.com/barun-bash/human/internal/ir"
 )
 
@@ -11,31 +14,55 @@ func generatePackageJson(app *ir.Application) string {
 	if name == "" {
 		name = "app"
 	}
-	return fmt.Sprintf(`{
-  "name": "%s",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "vite dev",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
-  },
-  "devDependencies": {
-    "@sveltejs/adapter-auto": "^3.0.0",
-    "@sveltejs/kit": "^2.0.0",
-    "@sveltejs/vite-plugin-svelte": "^3.0.0",
-    "svelte": "^5.0.0",
-    "svelte-check": "^3.6.0",
-    "tslib": "^2.4.1",
-    "typescript": "^5.0.0",
-    "vite": "^5.0.3"
-  },
-  "type": "module"
-}
-`, name)
+
+	devDeps := map[string]string{
+		"@sveltejs/adapter-auto":       "^3.0.0",
+		"@sveltejs/kit":                "^2.0.0",
+		"@sveltejs/vite-plugin-svelte": "^3.0.0",
+		"svelte":                       "^5.0.0",
+		"svelte-check":                 "^3.6.0",
+		"tslib":                        "^2.4.1",
+		"typescript":                   "^5.0.0",
+		"vite":                         "^5.0.3",
+	}
+
+	// Inject design system dependencies
+	deps := map[string]string{}
+	if app.Theme != nil && app.Theme.DesignSystem != "" {
+		dsDeps, dsDevDeps := themes.Dependencies(app.Theme.DesignSystem, "svelte")
+		for k, v := range dsDeps {
+			deps[k] = v
+		}
+		for k, v := range dsDevDeps {
+			devDeps[k] = v
+		}
+	}
+
+	var b strings.Builder
+	b.WriteString("{\n")
+	fmt.Fprintf(&b, "  \"name\": \"%s\",\n", name)
+	b.WriteString("  \"version\": \"0.1.0\",\n")
+	b.WriteString("  \"private\": true,\n")
+	b.WriteString("  \"scripts\": {\n")
+	b.WriteString("    \"dev\": \"vite dev\",\n")
+	b.WriteString("    \"build\": \"vite build\",\n")
+	b.WriteString("    \"preview\": \"vite preview\",\n")
+	b.WriteString("    \"start\": \"vite dev\",\n")
+	b.WriteString("    \"check\": \"svelte-kit sync && svelte-check --tsconfig ./tsconfig.json\",\n")
+	b.WriteString("    \"check:watch\": \"svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch\"\n")
+	b.WriteString("  },\n")
+
+	if len(deps) > 0 {
+		writeSortedDeps(&b, "dependencies", deps)
+		b.WriteString(",\n")
+	}
+
+	writeSortedDeps(&b, "devDependencies", devDeps)
+	b.WriteString(",\n")
+	b.WriteString("  \"type\": \"module\"\n")
+	b.WriteString("}\n")
+
+	return b.String()
 }
 
 func generateSvelteConfig() string {
@@ -78,8 +105,7 @@ func generateTsConfig() string {
     "strict": true,
     "moduleResolution": "bundler"
   }
-}
-`
+}`
 }
 
 func generateAppHtml(app *ir.Application) string {
@@ -118,4 +144,22 @@ declare global {
 
 export {};
 `
+}
+
+// writeSortedDeps writes a JSON object with sorted keys.
+func writeSortedDeps(b *strings.Builder, label string, m map[string]string) {
+	b.WriteString(fmt.Sprintf("  \"%s\": {\n", label))
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for i, k := range keys {
+		fmt.Fprintf(b, "    \"%s\": \"%s\"", k, m[k])
+		if i < len(keys)-1 {
+			b.WriteString(",")
+		}
+		b.WriteString("\n")
+	}
+	b.WriteString("  }")
 }

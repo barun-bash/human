@@ -370,6 +370,28 @@ func buildTheme(t *parser.ThemeDeclaration) *Theme {
 		lower := strings.ToLower(text)
 
 		switch {
+		// "design system is Material UI"
+		case strings.HasPrefix(lower, "design system is "):
+			raw := strings.TrimSpace(text[len("design system is "):])
+			theme.DesignSystem = normalizeDesignSystem(raw)
+
+		// "border radius is smooth"
+		case strings.HasPrefix(lower, "border radius is "):
+			theme.BorderRadius = strings.TrimSpace(strings.ToLower(text[len("border radius is "):]))
+
+		// "spacing is comfortable"
+		case strings.HasPrefix(lower, "spacing is "):
+			theme.Spacing = strings.TrimSpace(strings.ToLower(text[len("spacing is "):]))
+
+		// "dark mode is supported..."
+		case strings.HasPrefix(lower, "dark mode is "):
+			theme.DarkMode = true
+			// Also store full text in Options for downstream use
+			parts := strings.SplitN(text, " is ", 2)
+			if len(parts) == 2 {
+				theme.Options[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+			}
+
 		// "primary color is #6C5CE7"
 		case strings.Contains(lower, "color is"):
 			parts := strings.SplitN(lower, "color is", 2)
@@ -385,7 +407,7 @@ func buildTheme(t *parser.ThemeDeclaration) *Theme {
 			parseFontEntry(theme.Fonts, strings.TrimSpace(fontText))
 
 		default:
-			// Generic option: "dark mode is supported and toggles from the header"
+			// Generic option
 			parts := strings.SplitN(text, " is ", 2)
 			if len(parts) == 2 {
 				theme.Options[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
@@ -394,6 +416,38 @@ func buildTheme(t *parser.ThemeDeclaration) *Theme {
 	}
 
 	return theme
+}
+
+// normalizeDesignSystem maps user-facing names to canonical registry IDs.
+func normalizeDesignSystem(name string) string {
+	lower := strings.ToLower(strings.TrimSpace(name))
+	// Strip common suffixes
+	lower = strings.TrimSuffix(lower, " css")
+	lower = strings.TrimSuffix(lower, " ui")
+
+	aliases := map[string]string{
+		"material":    "material",
+		"mui":         "material",
+		"material ui": "material",
+		"shadcn":      "shadcn",
+		"shadcn/ui":   "shadcn",
+		"ant":         "ant",
+		"ant design":  "ant",
+		"antd":        "ant",
+		"chakra":      "chakra",
+		"chakra ui":   "chakra",
+		"bootstrap":   "bootstrap",
+		"tailwind":    "tailwind",
+		"tailwindcss": "tailwind",
+		"tailwind css":"tailwind",
+		"untitled":    "untitled",
+		"untitled ui": "untitled",
+	}
+
+	if id, ok := aliases[lower]; ok {
+		return id
+	}
+	return lower
 }
 
 // parseFontEntry parses "Inter for body and Poppins for headings" into the fonts map.
