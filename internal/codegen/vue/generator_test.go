@@ -437,8 +437,8 @@ func TestFullIntegration(t *testing.T) {
 	}
 	routerTs := string(routerContent)
 	routeCount := strings.Count(routerTs, "path: ")
-	if routeCount != 3 {
-		t.Errorf("router.ts: expected 3 routes, got %d", routeCount)
+	if routeCount != 4 { // 3 pages + 404 catch-all
+		t.Errorf("router.ts: expected 4 routes, got %d", routeCount)
 	}
 	if !strings.Contains(routerTs, `path: '/'`) {
 		t.Error("router.ts: Home should route to /")

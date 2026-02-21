@@ -170,6 +170,7 @@ func TestFullIntegration(t *testing.T) {
 		"src/app/services/api.service.ts",
 		"src/app/pages/dashboard/dashboard.component.ts",
 		"src/app/components/task-card/task-card.component.ts",
+		"src/app/pages/not-found/not-found.component.ts",
 	}
 
 	for _, f := range expectedFiles {

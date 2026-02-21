@@ -24,6 +24,7 @@ func generateRouter(app *ir.Application) string {
 		path := routePath(page.Name)
 		fmt.Fprintf(&b, "  { path: '%s', name: '%s', component: %s },\n", path, name, name)
 	}
+	b.WriteString("  { path: '/:pathMatch(.*)*', name: 'NotFound', component: { template: '<div style=\"text-align:center;padding:4rem\"><h1>404</h1><p>Page not found</p></div>' } },\n")
 	b.WriteString("];\n\n")
 
 	b.WriteString("export const router = createRouter({\n")

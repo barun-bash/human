@@ -989,8 +989,8 @@ func TestFullIntegration(t *testing.T) {
 	}
 	appTsx := string(appContent)
 	routeCount := strings.Count(appTsx, "<Route ")
-	if routeCount != 3 {
-		t.Errorf("App.tsx: expected 3 routes, got %d", routeCount)
+	if routeCount != 4 { // 3 pages + 404 catch-all
+		t.Errorf("App.tsx: expected 4 routes, got %d", routeCount)
 	}
 
 	// Verify Home → "/"

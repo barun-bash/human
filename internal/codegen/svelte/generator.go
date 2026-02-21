@@ -34,6 +34,7 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		filepath.Join(outputDir, "src", "lib", "types.ts"):   generateTypes(app),
 		filepath.Join(outputDir, "src", "lib", "api.ts"):     generateApi(app),
 		filepath.Join(outputDir, "src", "routes", "+layout.svelte"): generateLayout(app),
+		filepath.Join(outputDir, "src", "routes", "+error.svelte"):  generateErrorPage(),
 	}
 
 	for _, page := range app.Pages {

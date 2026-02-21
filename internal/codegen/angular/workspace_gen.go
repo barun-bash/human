@@ -192,6 +192,7 @@ func generateRoutes(app *ir.Application) string {
 		compName := toPascalCase(page.Name) + "Component"
 		b.WriteString(fmt.Sprintf("  { path: '%s', loadComponent: () => import('./pages/%s/%s.component').then(m => m.%s) },\n", routePath, fileName, fileName, compName))
 	}
+	b.WriteString("  { path: '**', loadComponent: () => import('./pages/not-found/not-found.component').then(m => m.NotFoundComponent) },\n")
 
 	b.WriteString("];\n")
 	return b.String()
@@ -209,6 +210,18 @@ import { RouterModule } from '@angular/router';
   template: '<router-outlet></router-outlet>'
 })
 export class AppComponent {}
+`
+}
+
+func generateNotFoundComponent() string {
+	return `import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-not-found',
+  standalone: true,
+  template: '<div style="text-align:center;padding:4rem"><h1>404</h1><p>Page not found</p></div>'
+})
+export class NotFoundComponent {}
 `
 }
 

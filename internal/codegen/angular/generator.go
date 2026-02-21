@@ -51,6 +51,9 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		files[path] = generateComponent(comp, app)
 	}
 
+	// 404 not-found page
+	files[filepath.Join(outputDir, "src", "app", "pages", "not-found", "not-found.component.ts")] = generateNotFoundComponent()
+
 	// Generate theme files
 	if app.Theme != nil {
 		themeFiles := themes.GenerateAngularTheme(app.Theme)

@@ -177,6 +177,7 @@ func TestFullIntegration(t *testing.T) {
 		"src/lib/types.ts",
 		"src/lib/api.ts",
 		"src/routes/+layout.svelte",
+		"src/routes/+error.svelte",
 		"src/routes/+page.svelte", // Home page
 		"src/routes/dashboard/+page.svelte",
 		"src/lib/components/TaskCard.svelte",

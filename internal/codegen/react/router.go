@@ -78,6 +78,7 @@ func generateApp(app *ir.Application) string {
 		path := routePath(page.Name)
 		fmt.Fprintf(&b, "%s    <Route path=\"%s\" element={<%s />} />\n", indent, path, name)
 	}
+	fmt.Fprintf(&b, "%s    <Route path=\"*\" element={<div style={{ textAlign: 'center', padding: '4rem' }}><h1>404</h1><p>Page not found</p></div>} />\n", indent)
 
 	fmt.Fprintf(&b, "%s  </Routes>\n", indent)
 	fmt.Fprintf(&b, "%s</BrowserRouter>\n", indent)
