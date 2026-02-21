@@ -473,7 +473,7 @@
 
     .targets-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 32px;
     }
     .target-column h3 {
@@ -489,6 +489,12 @@
       padding: 5px 0;
       font-size: 16px;
       color: var(--text);
+    }
+    .target-planned {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      font-style: italic;
     }
 
     /* ══════════════════════════════════════════════
@@ -692,7 +698,7 @@
         <a href="https://github.com/barun-bash/human" class="btn btn-secondary" target="_blank" rel="noopener">GitHub</a>
       </div>
       <div class="hero-status">
-        <a href="https://github.com/barun-bash/human/releases/tag/v0.2.0" data-version="link"><span data-version="tag">v0.2.0 released</span></a> — <span data-version="status">228+ tests passing. Semantic analyzer, code generators, quality engine, and project scaffolder.</span>
+        <a href="https://github.com/barun-bash/human/releases/tag/v0.4.0" data-version="link"><span data-version="tag">v0.4.0 released</span></a> — <span data-version="status">600+ tests across 28 packages. 10+ generators. Multi-framework full-stack output.</span>
       </div>
     </div>
   </section>
@@ -739,10 +745,11 @@
           <h2>That's a complete, deployable application.</h2>
           <p>No semicolons. No imports. No framework knowledge required. The compiler reads your English and produces:</p>
           <ul class="produces">
-            <li>A React + TypeScript frontend with pages and components</li>
-            <li>A Node + Express backend with API routes and validation</li>
-            <li>A PostgreSQL database with models and migrations</li>
+            <li>Frontend (React, Vue, Angular, or Svelte) with TypeScript</li>
+            <li>Backend (Node, Python, or Go) with API routes and validation</li>
+            <li>PostgreSQL database with models and migrations</li>
             <li>JWT authentication and authorization</li>
+            <li>Docker, Terraform, CI/CD, and monitoring config</li>
             <li>Tests, security audit, and quality checks</li>
           </ul>
         </div>
@@ -804,12 +811,12 @@
         <div class="flow-card flow-output reveal reveal-delay-5">
           <div class="flow-card-label">You get</div>
           <ul>
-            <li>React + TypeScript frontend</li>
-            <li>Node + Express API</li>
+            <li>React / Vue / Angular / Svelte frontend</li>
+            <li>Node / Python / Go backend</li>
             <li>PostgreSQL + migrations</li>
             <li>JWT authentication</li>
             <li>Tests & security audit</li>
-            <li>Docker-ready deploy</li>
+            <li>Docker, Terraform & CI/CD</li>
           </ul>
         </div>
       </div>
@@ -831,7 +838,7 @@
         </div>
         <div class="principle-card reveal reveal-delay-3">
           <h3>Target-agnostic</h3>
-          <p>One source, any framework. The same code compiles to React, Vue, Angular, Node, Python, Go, or Rust.</p>
+          <p>One source, any framework. The same code compiles to React, Vue, Angular, Svelte, Node, Python, or Go.</p>
         </div>
         <div class="principle-card reveal reveal-delay-4">
           <h3>Quality is mandatory</h3>
@@ -864,7 +871,7 @@
         <div class="code-body"><pre><span class="qs-prompt">$</span> <span data-version="install">go install github.com/barun-bash/human/cmd/human@v0.2.0</span>
 <span class="qs-prompt">$</span> human check app.human      <span class="qs-comment"># validate your .human file</span>
 <span class="qs-prompt">$</span> human build app.human      <span class="qs-comment"># compile to production-ready code</span>
-<span class="qs-prompt">$</span> cd output && bash start.sh  <span class="qs-comment"># run the generated project</span></pre></div>
+<span class="qs-prompt">$</span> cd .human/output && bash start.sh  <span class="qs-comment"># run the generated project</span></pre></div>
       </div>
     </div>
   </section>
@@ -881,36 +888,54 @@
             <li>Angular</li>
             <li>Vue</li>
             <li>Svelte</li>
-            <li>HTMX</li>
           </ul>
+          <p class="target-planned">Planned: HTMX</p>
         </div>
         <div class="target-column reveal reveal-delay-2">
           <h3>Backend</h3>
           <ul>
-            <li>Node (Express / Fastify)</li>
-            <li>Python (FastAPI / Django)</li>
-            <li>Go (Gin / Fiber)</li>
-            <li>Rust (Axum)</li>
+            <li>Node + Express</li>
+            <li>Python + FastAPI</li>
+            <li>Go + Gin</li>
           </ul>
+          <p class="target-planned">Planned: Rust, Fastify, Django, Fiber</p>
         </div>
         <div class="target-column reveal reveal-delay-3">
           <h3>Database</h3>
           <ul>
             <li>PostgreSQL</li>
-            <li>MySQL</li>
-            <li>MongoDB</li>
-            <li>SQLite</li>
-            <li>Supabase</li>
           </ul>
+          <p class="target-planned">Planned: MySQL, MongoDB, SQLite, Supabase</p>
         </div>
         <div class="target-column reveal reveal-delay-4">
-          <h3>Deploy</h3>
+          <h3>Infrastructure</h3>
           <ul>
-            <li>Vercel</li>
-            <li>AWS</li>
-            <li>GCP</li>
-            <li>Docker</li>
-            <li>Kubernetes</li>
+            <li>Docker + Compose</li>
+            <li>Terraform (AWS, GCP)</li>
+            <li>GitHub Actions CI/CD</li>
+            <li>Prometheus + Grafana</li>
+          </ul>
+          <p class="target-planned">Planned: Kubernetes, Vercel</p>
+        </div>
+        <div class="target-column reveal reveal-delay-5">
+          <h3>Integrations</h3>
+          <ul>
+            <li>Stripe (payments)</li>
+            <li>SendGrid (email)</li>
+            <li>AWS S3 (storage)</li>
+            <li>OAuth (Google, GitHub)</li>
+            <li>Slack (messaging)</li>
+          </ul>
+        </div>
+        <div class="target-column reveal reveal-delay-6">
+          <h3>Design Systems</h3>
+          <ul>
+            <li>Material UI</li>
+            <li>Shadcn/ui</li>
+            <li>Ant Design</li>
+            <li>Chakra UI</li>
+            <li>Bootstrap</li>
+            <li>Tailwind CSS</li>
           </ul>
         </div>
       </div>
