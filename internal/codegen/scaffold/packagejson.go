@@ -2,8 +2,10 @@ package scaffold
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
+	"github.com/barun-bash/human/internal/codegen/themes"
 	"github.com/barun-bash/human/internal/ir"
 )
 
@@ -179,73 +181,140 @@ func generateNodePackageJSON(app *ir.Application) string {
 }
 
 // generateReactPackageJSON produces react/package.json with React, Vite,
-// and frontend dependencies.
+// and frontend dependencies. Design system dependencies are injected
+// based on the app's theme configuration.
 func generateReactPackageJSON(app *ir.Application) string {
-	var b strings.Builder
 	name := appNameLower(app)
 
-	b.WriteString("{\n")
-	fmt.Fprintf(&b, "  \"name\": \"%s-frontend\",\n", name)
-	b.WriteString("  \"version\": \"0.1.0\",\n")
-	b.WriteString("  \"private\": true,\n")
-	b.WriteString("  \"type\": \"module\",\n")
-	b.WriteString("  \"scripts\": {\n")
-	b.WriteString("    \"dev\": \"vite\",\n")
-	b.WriteString("    \"build\": \"tsc && vite build\",\n")
-	b.WriteString("    \"preview\": \"vite preview\",\n")
-	b.WriteString("    \"start\": \"vite preview\"\n")
-	b.WriteString("  },\n")
-	b.WriteString("  \"dependencies\": {\n")
-	b.WriteString("    \"react\": \"^19.0.0\",\n")
-	b.WriteString("    \"react-dom\": \"^19.0.0\",\n")
-	b.WriteString("    \"react-router-dom\": \"^7.0.0\"\n")
-	b.WriteString("  },\n")
-	b.WriteString("  \"devDependencies\": {\n")
-	b.WriteString("    \"@types/react\": \"^19.0.0\",\n")
-	b.WriteString("    \"@types/react-dom\": \"^19.0.0\",\n")
-	b.WriteString("    \"@vitejs/plugin-react\": \"^4.3.0\",\n")
-	b.WriteString("    \"autoprefixer\": \"^10.4.0\",\n")
-	b.WriteString("    \"postcss\": \"^8.4.0\",\n")
-	b.WriteString("    \"tailwindcss\": \"^3.4.0\",\n")
-	b.WriteString("    \"typescript\": \"^5.7.0\",\n")
-	b.WriteString("    \"vite\": \"^6.0.0\"\n")
-	b.WriteString("  }\n")
-	b.WriteString("}\n")
+	deps := map[string]string{
+		"react":            "^19.0.0",
+		"react-dom":        "^19.0.0",
+		"react-router-dom": "^7.0.0",
+	}
+	devDeps := map[string]string{
+		"@types/react":         "^19.0.0",
+		"@types/react-dom":     "^19.0.0",
+		"@vitejs/plugin-react": "^4.3.0",
+		"typescript":           "^5.7.0",
+		"vite":                 "^6.0.0",
+	}
 
-	return b.String()
+	// Inject design system dependencies
+	systemID := ""
+	if app.Theme != nil && app.Theme.DesignSystem != "" {
+		systemID = app.Theme.DesignSystem
+	}
+
+	if systemID != "" {
+		dsDeps, dsDevDeps := themes.Dependencies(systemID, "react")
+		for k, v := range dsDeps {
+			deps[k] = v
+		}
+		for k, v := range dsDevDeps {
+			devDeps[k] = v
+		}
+	} else {
+		// Default: include tailwind
+		devDeps["tailwindcss"] = "^3.4.0"
+		devDeps["autoprefixer"] = "^10.4.0"
+		devDeps["postcss"] = "^8.4.0"
+	}
+
+	// If design system needs tailwind (shadcn, tailwind, untitled), ensure it's included
+	if themes.NeedsTailwind(systemID) {
+		devDeps["tailwindcss"] = "^3.4.0"
+		devDeps["autoprefixer"] = "^10.4.0"
+		devDeps["postcss"] = "^8.4.0"
+	}
+
+	return writePackageJSON(name+"-frontend", "tsc && vite build", deps, devDeps)
 }
 
 // generateVuePackageJSON produces vue/package.json with Vue 3, Vite,
-// and frontend dependencies.
+// and frontend dependencies. Design system dependencies are injected
+// based on the app's theme configuration.
 func generateVuePackageJSON(app *ir.Application) string {
-	var b strings.Builder
 	name := appNameLower(app)
 
+	deps := map[string]string{
+		"vue":        "^3.5.0",
+		"vue-router": "^4.4.0",
+		"pinia":      "^2.2.0",
+	}
+	devDeps := map[string]string{
+		"@vitejs/plugin-vue": "^5.2.0",
+		"typescript":         "^5.7.0",
+		"vite":               "^6.0.0",
+		"vue-tsc":            "^2.1.0",
+	}
+
+	systemID := ""
+	if app.Theme != nil && app.Theme.DesignSystem != "" {
+		systemID = app.Theme.DesignSystem
+	}
+
+	if systemID != "" {
+		dsDeps, dsDevDeps := themes.Dependencies(systemID, "vue")
+		for k, v := range dsDeps {
+			deps[k] = v
+		}
+		for k, v := range dsDevDeps {
+			devDeps[k] = v
+		}
+	} else {
+		devDeps["tailwindcss"] = "^3.4.0"
+		devDeps["autoprefixer"] = "^10.4.0"
+		devDeps["postcss"] = "^8.4.0"
+	}
+
+	if themes.NeedsTailwind(systemID) {
+		devDeps["tailwindcss"] = "^3.4.0"
+		devDeps["autoprefixer"] = "^10.4.0"
+		devDeps["postcss"] = "^8.4.0"
+	}
+
+	return writePackageJSON(name+"-frontend", "vue-tsc && vite build", deps, devDeps)
+}
+
+// writePackageJSON produces a formatted package.json from sorted dependency maps.
+// The buildCmd parameter controls the "build" script (e.g. "tsc && vite build" for React,
+// "vue-tsc && vite build" for Vue).
+func writePackageJSON(pkgName, buildCmd string, deps, devDeps map[string]string) string {
+	var b strings.Builder
+
 	b.WriteString("{\n")
-	fmt.Fprintf(&b, "  \"name\": \"%s-frontend\",\n", name)
+	fmt.Fprintf(&b, "  \"name\": \"%s\",\n", pkgName)
 	b.WriteString("  \"version\": \"0.1.0\",\n")
 	b.WriteString("  \"private\": true,\n")
 	b.WriteString("  \"type\": \"module\",\n")
 	b.WriteString("  \"scripts\": {\n")
 	b.WriteString("    \"dev\": \"vite\",\n")
-	b.WriteString("    \"build\": \"vue-tsc && vite build\",\n")
+	fmt.Fprintf(&b, "    \"build\": \"%s\",\n", buildCmd)
 	b.WriteString("    \"preview\": \"vite preview\",\n")
 	b.WriteString("    \"start\": \"vite preview\"\n")
 	b.WriteString("  },\n")
-	b.WriteString("  \"dependencies\": {\n")
-	b.WriteString("    \"vue\": \"^3.5.0\",\n")
-	b.WriteString("    \"vue-router\": \"^4.4.0\",\n")
-	b.WriteString("    \"pinia\": \"^2.2.0\"\n")
-	b.WriteString("  },\n")
-	b.WriteString("  \"devDependencies\": {\n")
-	b.WriteString("    \"@vitejs/plugin-vue\": \"^5.2.0\",\n")
-	b.WriteString("    \"autoprefixer\": \"^10.4.0\",\n")
-	b.WriteString("    \"postcss\": \"^8.4.0\",\n")
-	b.WriteString("    \"tailwindcss\": \"^3.4.0\",\n")
-	b.WriteString("    \"typescript\": \"^5.7.0\",\n")
-	b.WriteString("    \"vite\": \"^6.0.0\",\n")
-	b.WriteString("    \"vue-tsc\": \"^2.1.0\"\n")
-	b.WriteString("  }\n")
+
+	writeSortedDeps := func(label string, m map[string]string) {
+		b.WriteString(fmt.Sprintf("  \"%s\": {\n", label))
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for i, k := range keys {
+			fmt.Fprintf(&b, "    \"%s\": \"%s\"", k, m[k])
+			if i < len(keys)-1 {
+				b.WriteString(",")
+			}
+			b.WriteString("\n")
+		}
+		b.WriteString("  }")
+	}
+
+	writeSortedDeps("dependencies", deps)
+	b.WriteString(",\n")
+	writeSortedDeps("devDependencies", devDeps)
+	b.WriteString("\n")
 	b.WriteString("}\n")
 
 	return b.String()
