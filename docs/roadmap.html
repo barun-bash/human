@@ -1005,7 +1005,7 @@
             <ul class="task-list">
               <li class="task-item done"><span class="task-checkbox"></span>Project website (6 pages: landing, getting started, language spec, roadmap, manifesto, contributing)</li>
               <li class="task-item"><span class="task-checkbox"></span>Tutorial: &ldquo;Build your first app in Human&rdquo;</li>
-              <li class="task-item done"><span class="task-checkbox"></span>8 complete example applications (taskflow, blog, ecommerce, saas, api-only, test-app, recipes, projects)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>12 example applications (taskflow, blog, ecommerce, saas, api-only, test-app, recipes, projects, events, fitness, inventory, figma-demo)</li>
               <li class="task-item"><span class="task-checkbox"></span>Performance optimization</li>
               <li class="task-item done"><span class="task-checkbox"></span>Semantic error messages with codes and fix suggestions (17 errors, 10 warnings)</li>
               <li class="task-item done"><span class="task-checkbox"></span>Installation scripts (install.sh, Homebrew formula, GoReleaser cross-platform binaries)</li>
@@ -1037,65 +1037,65 @@
           <thead>
             <tr>
               <th>Generator</th>
+              <th>Files</th>
               <th>Output</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td>React + TypeScript</td>
-              <td>Types, API client, pages, components, router, Vite entry files</td>
+              <td>React / Vue / Angular / Svelte</td>
+              <td class="target-phase">7-12</td>
+              <td>Types, API client, pages, components, router, entry files</td>
             </tr>
             <tr>
-              <td>Vue 3 + TypeScript</td>
-              <td>Pages, components, router, Pinia stores, API client</td>
-            </tr>
-            <tr>
-              <td>Angular 17+</td>
-              <td>Components, services, routing, signals, standalone modules</td>
-            </tr>
-            <tr>
-              <td>Svelte 5 + SvelteKit</td>
-              <td>Pages, components, stores, routing</td>
-            </tr>
-            <tr>
-              <td>Node + Express</td>
-              <td>Prisma schema, auth middleware, error handler, route files, server</td>
-            </tr>
-            <tr>
-              <td>Python + FastAPI</td>
-              <td>SQLAlchemy models, routes, auth, Alembic migrations</td>
-            </tr>
-            <tr>
-              <td>Go + Gin</td>
-              <td>GORM models, handlers, routes, auth middleware</td>
-            </tr>
-            <tr>
-              <td>PostgreSQL</td>
-              <td>Migration (001_initial.sql), seed data</td>
+              <td>Node / Python / Go Backend</td>
+              <td class="target-phase">8-13</td>
+              <td>ORM schema, auth middleware, route handlers, server, error handling</td>
             </tr>
             <tr>
               <td>Docker + Compose</td>
-              <td>Framework-aware Dockerfiles, docker-compose.yml, .env.example, .dockerignore</td>
+              <td class="target-phase">5-7</td>
+              <td>Dockerfiles (frontend + backend), docker-compose.yml, .env.example, .dockerignore, start.sh</td>
             </tr>
             <tr>
-              <td>GitHub Actions CI/CD</td>
-              <td>Test, build, deploy workflows from pipeline declarations</td>
+              <td>PostgreSQL</td>
+              <td class="target-phase">2</td>
+              <td>Migration SQL, seed data</td>
             </tr>
             <tr>
               <td>Terraform</td>
-              <td>AWS ECS/RDS, GCP Cloud Run/SQL from architecture + environment blocks</td>
+              <td class="target-phase">3-5</td>
+              <td>AWS ECS/RDS or GCP Cloud Run/SQL, variables, outputs</td>
+            </tr>
+            <tr>
+              <td>CI/CD</td>
+              <td class="target-phase">1-2</td>
+              <td>GitHub Actions workflows</td>
             </tr>
             <tr>
               <td>Monitoring</td>
-              <td>Prometheus rules, Grafana dashboards from monitoring declarations</td>
+              <td class="target-phase">3-4</td>
+              <td>Prometheus config, Grafana dashboard, metrics endpoint</td>
+            </tr>
+            <tr>
+              <td>Storybook</td>
+              <td class="target-phase">3-5</td>
+              <td>Story files, preview config, main config</td>
+            </tr>
+            <tr>
+              <td>Design Systems</td>
+              <td class="target-phase">2-3</td>
+              <td>Theme config, CSS variables, provider wrapper</td>
             </tr>
             <tr>
               <td>Quality Engine</td>
+              <td class="target-phase">11</td>
               <td>Test files, security-report.md, lint-report.md, build-report.md</td>
             </tr>
             <tr>
               <td>Scaffold</td>
-              <td>Stack-aware package.json, tsconfigs, configs, README, start.sh</td>
+              <td class="target-phase">7</td>
+              <td>package.json files, tsconfigs, vite config, README, start.sh</td>
             </tr>
           </tbody>
         </table>

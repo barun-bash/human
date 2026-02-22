@@ -716,6 +716,11 @@
           </div>
           <div class="code-body"><pre><span class="kw">app</span> TaskFlow <span class="kw">is a</span> web application
 
+<span class="kw">data</span> User:
+  <span class="kw">has a</span> name <span class="kw">which is</span> text
+  <span class="kw">has an</span> email <span class="kw">which is</span> unique email
+  <span class="kw">has a</span> password <span class="kw">which is</span> encrypted text
+
 <span class="kw">data</span> Task:
   <span class="kw">belongs to a</span> User
   <span class="kw">has a</span> title <span class="kw">which is</span> text
@@ -735,6 +740,9 @@
   <span class="kw">create</span> the task for the current user
   <span class="kw">respond with</span> the created task
 
+<span class="kw">authentication</span>:
+  method JWT tokens that expire in 7 days
+
 <span class="kw">build with</span>:
   frontend using React with TypeScript
   backend using Node with Express
@@ -751,6 +759,7 @@
             <li>JWT authentication and authorization</li>
             <li>Docker, Terraform, CI/CD, and monitoring config</li>
             <li>Tests, security audit, and quality checks</li>
+            <li>7 design systems to choose from</li>
           </ul>
         </div>
       </div>
@@ -898,14 +907,14 @@
             <li>Python + FastAPI</li>
             <li>Go + Gin</li>
           </ul>
-          <p class="target-planned">Planned: Rust, Fastify, Django, Fiber</p>
+          <p class="target-planned">Planned: Rust (Axum), Django</p>
         </div>
         <div class="target-column reveal reveal-delay-3">
           <h3>Database</h3>
           <ul>
             <li>PostgreSQL</li>
           </ul>
-          <p class="target-planned">Planned: MySQL, MongoDB, SQLite, Supabase</p>
+          <p class="target-planned">Planned: MySQL, MongoDB, SQLite</p>
         </div>
         <div class="target-column reveal reveal-delay-4">
           <h3>Infrastructure</h3>
@@ -936,6 +945,7 @@
             <li>Chakra UI</li>
             <li>Bootstrap</li>
             <li>Tailwind CSS</li>
+            <li>Untitled UI</li>
           </ul>
         </div>
       </div>
