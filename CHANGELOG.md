@@ -4,6 +4,32 @@ All notable changes to the Human compiler are documented in this file.
 
 ---
 
+## Unreleased
+
+### New Features
+- **MCP Server**: 6 tools exposing the Human compiler for LLM integration (human_build, human_validate, human_ir, human_examples, human_spec, human_read_file). Works with Claude Desktop and Claude Code.
+- **Figma Intelligence**: Component classifier with 4-tier heuristics (name → instance → structure → type), data model inference from UI patterns, Human code generator from Figma node trees
+- **LLM System Prompt**: Optimized prompt (~3600 tokens) enabling Claude/GPT/Gemini to generate valid .human files with syntax reference, examples, and Figma guidance
+- **Language Specification**: Complete `docs/HUMAN_LANG_SPEC.md` covering all 16 block types, 215 tokens, 12 field types, 17 error codes, 10 warning codes
+- **Svelte Form Bindings**: `bind:value`, `bind:checked` for inputs, textareas, selects, checkboxes
+- **Angular Form Bindings**: `ReactiveFormsModule`, `FormBuilder`, `formControlName` integration
+- **Docker Startup Hardening**: Node Dockerfile now generates start.sh with `prisma migrate deploy` before server start
+- **4 New Examples**: fitness (Vue + Python + Material), events (Angular + Node + Ant), inventory (React + Go + Chakra), figma-demo (React + Python + Untitled UI)
+- **Demo Documentation**: `docs/DEMO.md` with setup guide, MCP config, design system matrix, example gallery
+
+### Infrastructure
+- **Build Pipeline Refactor**: Extracted `build.RunGenerators()` from main.go into reusable `internal/build/` package
+- **MCP Protocol**: Full JSON-RPC 2.0 implementation with stdio transport in `internal/mcp/`
+- **Figma Package**: 8 files in `internal/figma/` (types, classifier, inference, mapper, generator, prompt, helpers, tests)
+- **Test Coverage**: 33 packages, all passing. 35 new Figma tests, 12 new MCP tests, 15 new build pipeline tests
+
+### Bug Fixes
+- **ecommerce example**: Added missing Slack integration block (W503)
+- **saas example**: Fixed border radius value (W304)
+- **.gitignore**: Fixed `build/` pattern matching `internal/build/` directory
+
+---
+
 ## v0.4.2 — 2026-02-22
 
 **Documentation and examples release.** Adds a compiler-derived language specification, an LLM system prompt for generating valid `.human` files, and two new example applications.
