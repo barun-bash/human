@@ -580,6 +580,7 @@
       <li><a href="#llm-connector" onclick="document.getElementById('mobileToc').classList.remove('open')">6. LLM Connector</a></li>
       <li><a href="#cli-reference" onclick="document.getElementById('mobileToc').classList.remove('open')">7. CLI Reference</a></li>
       <li><a href="#error-messages" onclick="document.getElementById('mobileToc').classList.remove('open')">8. Error Messages</a></li>
+      <li><a href="#what-not-to-write" onclick="document.getElementById('mobileToc').classList.remove('open')">8.5 What NOT to Write</a></li>
       <li><a href="#reserved-keywords" onclick="document.getElementById('mobileToc').classList.remove('open')">9. Reserved Keywords</a></li>
       <li><a href="#version-history" onclick="document.getElementById('mobileToc').classList.remove('open')">10. Version History</a></li>
     </ul>
@@ -602,6 +603,7 @@
         <li><a href="#llm-connector">6. LLM Connector</a></li>
         <li><a href="#cli-reference">7. CLI Reference</a></li>
         <li><a href="#error-messages">8. Error Messages</a></li>
+        <li><a href="#what-not-to-write">8.5 What NOT to Write</a></li>
         <li><a href="#reserved-keywords">9. Reserved Keywords</a></li>
         <li><a href="#version-history">10. Version History</a></li>
       </ul>
@@ -613,7 +615,7 @@
     <main class="content">
 
       <h1 id="overview">Human Language Specification</h1>
-      <p class="spec-version">Version 0.4</p>
+      <p class="spec-version">Version 0.4.2</p>
 
       <div class="overview-box">
         <p><strong>Human</strong> is a natural language programming language that compiles structured English and design files into production-ready full-stack applications. It is deterministic, target-agnostic, and enforces mandatory quality guarantees.</p>
@@ -665,7 +667,7 @@
   <span class="yaml-key">frontend:</span> <span class="yaml-val">react with typescript</span>
   <span class="yaml-key">backend:</span> <span class="yaml-val">node with express</span>
   <span class="yaml-key">database:</span> <span class="yaml-val">postgresql</span>
-  <span class="yaml-key">deploy:</span> <span class="yaml-val">vercel</span>
+  <span class="yaml-key">deploy:</span> <span class="yaml-val">docker</span>
 
 <span class="yaml-key">options:</span>
   <span class="yaml-key">test_coverage_minimum:</span> <span class="yaml-val">90</span>
@@ -738,6 +740,7 @@ platform := <span class="str">"web"</span> | <span class="str">"mobile"</span> |
           <tr><td><code>file</code></td><td>File upload</td><td><code>has an avatar which is file</code></td></tr>
           <tr><td><code>image</code></td><td>Image file</td><td><code>has a photo which is image</code></td></tr>
           <tr><td><code>json</code></td><td>Arbitrary JSON</td><td><code>has metadata which is json</code></td></tr>
+          <tr><td><code>timestamp</code></td><td>Unix timestamp</td><td><code>has a modified timestamp</code></td></tr>
         </tbody>
       </table>
 
@@ -1065,11 +1068,24 @@ there <span class="kw">is</span> a form to <span class="kw">create</span> &lt;da
     sends &lt;fields&gt;
     returns &lt;fields&gt;</pre></div>
 
-      <p>Example:</p>
+      <p>Examples:</p>
 
       <div class="code-block"><pre><span class="kw">integrate with</span> Stripe:
   <span class="kw">api</span> key <span class="kw">from</span> <span class="kw">environment</span> variable STRIPE_KEY
   use <span class="kw">for</span> payment processing
+
+<span class="kw">integrate with</span> SendGrid:
+  <span class="kw">api</span> key <span class="kw">from</span> <span class="kw">environment</span> variable SENDGRID_API_KEY
+  use <span class="kw">for</span> sending transactional emails
+
+<span class="kw">integrate with</span> AWS S3:
+  <span class="kw">api</span> key <span class="kw">from</span> <span class="kw">environment</span> variable AWS_ACCESS_KEY
+  secret <span class="kw">from</span> <span class="kw">environment</span> variable AWS_SECRET_KEY
+  use <span class="kw">for</span> storing user avatars <span class="kw">and</span> file attachments
+
+<span class="kw">integrate with</span> Slack:
+  <span class="kw">api</span> key <span class="kw">from</span> <span class="kw">environment</span> variable SLACK_WEBHOOK_URL
+  use <span class="kw">for</span> team notifications <span class="kw">and</span> alerts
 
 <span class="kw">integrate with</span> custom <span class="kw">api</span> <span class="str">"InventoryService"</span>:
   base url <span class="kw">from</span> <span class="kw">environment</span> variable INVENTORY_API_URL
@@ -1078,6 +1094,27 @@ there <span class="kw">is</span> a form to <span class="kw">create</span> &lt;da
   endpoint CheckStock:
     method GET to /stock/{product_id}
     returns quantity <span class="kw">as</span> number <span class="kw">and</span> warehouse <span class="kw">as</span> text</pre></div>
+
+      <h4>Known Services</h4>
+
+      <p>The compiler auto-detects integration type from the service name:</p>
+
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Services</th>
+            <th>Auto-detected Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Email</td><td>SendGrid, Mailgun, SES, Postmark, Mailchimp</td><td><code>email</code></td></tr>
+          <tr><td>Storage</td><td>AWS S3, GCS, Cloudinary, Minio</td><td><code>storage</code></td></tr>
+          <tr><td>Payment</td><td>Stripe, PayPal, Braintree, Square</td><td><code>payment</code></td></tr>
+          <tr><td>Messaging</td><td>Slack, Discord, Twilio, Telegram</td><td><code>messaging</code></td></tr>
+          <tr><td>OAuth</td><td>Google, GitHub, Facebook, Auth0, Okta</td><td><code>oauth</code></td></tr>
+        </tbody>
+      </table>
 
       <!-- 3.6 Architecture Declaration -->
       <h3 id="architecture-declaration">3.6 Architecture Declaration</h3>
@@ -1375,18 +1412,18 @@ keep logs <span class="kw">for</span> &lt;duration&gt;</pre></div>
           </tr>
         </thead>
         <tbody>
-          <tr><td><code>human init [name]</code></td><td>Create new project with interactive setup</td></tr>
+          <tr><td><code>human init [name]</code></td><td>Create new project with interactive setup <span style="color:var(--text-muted);">(planned)</span></td></tr>
           <tr><td><code>human build &lt;file&gt;</code></td><td>Compile .human files to target code</td></tr>
           <tr><td><code>human build --inspect &lt;file&gt;</code></td><td>Parse and print the Intent IR as YAML without generating code</td></tr>
-          <tr><td><code>human build --watch &lt;file&gt;</code></td><td>Rebuild automatically on file changes</td></tr>
+          <tr><td><code>human build --watch &lt;file&gt;</code></td><td>Rebuild automatically on file changes <span style="color:var(--text-muted);">(planned)</span></td></tr>
           <tr><td><code>human check &lt;file&gt;</code></td><td>Validate .human files and report findings</td></tr>
-          <tr><td><code>human run</code></td><td>Start development server</td></tr>
-          <tr><td><code>human test</code></td><td>Run all generated tests</td></tr>
-          <tr><td><code>human audit</code></td><td>Run security and quality audit</td></tr>
-          <tr><td><code>human deploy [--dry-run] [--env &lt;name&gt;]</code></td><td>Deploy to configured environment</td></tr>
-          <tr><td><code>human eject [path]</code></td><td>Export generated code as standalone project</td></tr>
-          <tr><td><code>human convert "&lt;description&gt;"</code></td><td>Convert English description to .human code</td></tr>
-          <tr><td><code>human edit &lt;file&gt;</code></td><td>Start interactive AI-assisted editing session</td></tr>
+          <tr><td><code>human run</code></td><td>Start development server <span style="color:var(--text-muted);">(planned)</span></td></tr>
+          <tr><td><code>human test</code></td><td>Run all generated tests <span style="color:var(--text-muted);">(planned)</span></td></tr>
+          <tr><td><code>human audit</code></td><td>Run security and quality audit <span style="color:var(--text-muted);">(planned)</span></td></tr>
+          <tr><td><code>human deploy [--dry-run] [--env &lt;name&gt;]</code></td><td>Deploy to configured environment <span style="color:var(--text-muted);">(planned)</span></td></tr>
+          <tr><td><code>human eject [path]</code></td><td>Export generated code as standalone project <span style="color:var(--text-muted);">(planned)</span></td></tr>
+          <tr><td><code>human convert "&lt;description&gt;"</code></td><td>Convert English description to .human code <span style="color:var(--text-muted);">(planned)</span></td></tr>
+          <tr><td><code>human edit &lt;file&gt;</code></td><td>Start interactive AI-assisted editing session <span style="color:var(--text-muted);">(planned)</span></td></tr>
           <tr><td><code>human ask "&lt;question&gt;"</code></td><td>Generate .human code from a description (LLM-powered)</td></tr>
           <tr><td><code>human suggest &lt;file&gt;</code></td><td>Get improvement suggestions from LLM</td></tr>
           <tr><td><code>human version</code></td><td>Print compiler version</td></tr>
@@ -1419,6 +1456,102 @@ queried fields. Add to your <span class="kw">database</span> section:
   index User by email
   index User by created date</pre></div>
 
+      <h3>Error Codes</h3>
+
+      <p>The compiler produces structured error codes. Errors halt compilation.</p>
+
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>E101</code></td><td>Data model references a model that does not exist (in relationships)</td></tr>
+          <tr><td><code>E102</code></td><td>Database index references a model or field that does not exist</td></tr>
+          <tr><td><code>E103</code></td><td>Page navigates to a page that does not exist</td></tr>
+          <tr><td><code>E104</code></td><td>API references a model that does not exist (in CRUD operations)</td></tr>
+          <tr><td><code>E105</code></td><td>Through-model missing required belongs_to relation to source or target</td></tr>
+          <tr><td><code>E201</code></td><td>API requires authentication but no <code>authentication</code> block is defined</td></tr>
+          <tr><td><code>E202</code></td><td>Build config specifies a database but no data models are defined</td></tr>
+          <tr><td><code>E203</code></td><td>Build config specifies a frontend but no pages are defined</td></tr>
+          <tr><td><code>E301</code></td><td>Duplicate data model name</td></tr>
+          <tr><td><code>E302</code></td><td>Duplicate page name</td></tr>
+          <tr><td><code>E303</code></td><td>Duplicate component name</td></tr>
+          <tr><td><code>E304</code></td><td>Duplicate API name</td></tr>
+          <tr><td><code>E305</code></td><td>Duplicate policy name</td></tr>
+          <tr><td><code>E306</code></td><td>Duplicate field name within a data model</td></tr>
+          <tr><td><code>E401</code></td><td>Microservices architecture declared but no services defined</td></tr>
+          <tr><td><code>E402</code></td><td>Serverless architecture declared but no APIs defined</td></tr>
+          <tr><td><code>E501</code></td><td>Duplicate integration (same service declared twice)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Warning Codes</h3>
+
+      <p>Warnings do not halt compilation but indicate potential issues.</p>
+
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>W301</code></td><td>Unknown design system (with suggestions)</td></tr>
+          <tr><td><code>W302</code></td><td>Design system has no library for chosen frontend framework (Tailwind fallback)</td></tr>
+          <tr><td><code>W303</code></td><td>Unknown spacing value (expected: compact, comfortable, spacious)</td></tr>
+          <tr><td><code>W304</code></td><td>Unknown border radius value (expected: sharp, smooth, rounded, pill)</td></tr>
+          <tr><td><code>W401</code></td><td>Unknown architecture style</td></tr>
+          <tr><td><code>W402</code></td><td>Service references a model that does not exist</td></tr>
+          <tr><td><code>W403</code></td><td>Service talks_to a service that does not exist</td></tr>
+          <tr><td><code>W501</code></td><td>Integration has no credentials configured</td></tr>
+          <tr><td><code>W502</code></td><td>Workflow sends email but no email integration is declared</td></tr>
+          <tr><td><code>W503</code></td><td>Workflow references Slack but no messaging integration is declared</td></tr>
+        </tbody>
+      </table>
+
+      <p>All errors and warnings include "did you mean?" suggestions when a close match is found (using Levenshtein distance).</p>
+
+      <!-- ── 8.5 What NOT to Write ── -->
+      <h2 id="what-not-to-write">8.5 What NOT to Write</h2>
+
+      <p>Human is not a general-purpose language. These constructs do not exist.</p>
+
+      <h3>Never Do These</h3>
+
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Wrong</th>
+            <th>Why</th>
+            <th>Right</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>import React</code></td><td>No imports — the compiler handles all dependencies</td><td>(just use React in <code>build with</code>)</td></tr>
+          <tr><td><code>let count = 0</code></td><td>No variable declarations</td><td><code>has a count which is number</code></td></tr>
+          <tr><td><code>for task in tasks:</code></td><td>No for-loops</td><td><code>each task shows its title</code></td></tr>
+          <tr><td><code>function validate():</code></td><td>No function definitions</td><td><code>api Validate:</code></td></tr>
+          <tr><td><code>{ ... }</code> or <code>;</code></td><td>No braces or semicolons</td><td>Indentation-based scoping</td></tr>
+          <tr><td><code>has an id which is number</code></td><td>Don't declare <code>id</code></td><td>Auto-generated</td></tr>
+          <tr><td><code>has a created_at which is datetime</code></td><td>Don't declare <code>created_at</code></td><td>Auto-generated</td></tr>
+          <tr><td><code>has an updated_at which is datetime</code></td><td>Don't declare <code>updated_at</code></td><td>Auto-generated</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Common Mistakes</h3>
+
+      <ol>
+        <li><strong>Forgetting the colon</strong> after block headers: <code>data User</code> should be <code>data User:</code></li>
+        <li><strong>Using <code>is</code> instead of <code>using</code></strong> in build config: prefer <code>frontend using React with TypeScript</code></li>
+        <li><strong>Declaring auto-fields:</strong> <code>id</code>, <code>created_at</code>, <code>updated_at</code> are automatic. Declaring them creates duplicate fields.</li>
+        <li><strong>Missing through-model:</strong> For many-to-many relationships, you must define the join model with <code>belongs to</code> on both sides.</li>
+        <li><strong>Referencing non-existent models:</strong> The analyzer catches typos — always use the exact model name as declared.</li>
+      </ol>
+
       <!-- ── 9. Reserved Keywords ── -->
       <h2 id="reserved-keywords">9. Reserved Keywords</h2>
 
@@ -1428,7 +1561,7 @@ queried fields. Add to your <span class="kw">database</span> section:
 
 <span class="cmt"># Types</span>
 text, number, decimal, boolean, date, datetime, email, url, file,
-image, json
+image, json, timestamp
 
 <span class="cmt"># Relationships</span>
 <span class="kw">belongs to</span>, <span class="kw">has many</span>, <span class="kw">has a</span>, <span class="kw">has an</span>, <span class="kw">through</span>
@@ -1468,13 +1601,18 @@ monolith, microservices, <span class="kw">serverless</span>, <span class="kw">ga
         </thead>
         <tbody>
           <tr>
+            <td>0.4.2</td>
+            <td>2026-02-22</td>
+            <td>Added timestamp field type (12 types), structured error/warning codes (E101–E501, W301–W503), all 5 integrations (Stripe, SendGrid, AWS S3, OAuth, Slack), "What NOT to Write" section, marked planned CLI commands</td>
+          </tr>
+          <tr>
             <td>0.4</td>
-            <td>2025-06-01</td>
+            <td>2026-02-21</td>
             <td>Updated CLI reference, supported targets, and design systems to match compiler v0.4.x</td>
           </tr>
           <tr>
             <td>0.1</td>
-            <td>2025-02-19</td>
+            <td>2026-02-19</td>
             <td>Initial specification</td>
           </tr>
         </tbody>

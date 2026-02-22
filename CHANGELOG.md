@@ -45,6 +45,7 @@ All notable changes to the Human compiler are documented in this file.
 ### Website
 - **`docs/roadmap.html`**: Updated project roadmap to reflect current status — Phases 1–12 complete, Phase 14 in progress, Current Output table expanded to 85+ files across 14 generators with file counts, Success Metrics table expanded to 14 rows with accurate statuses, Phase 14 updated to 12 examples
 - **`docs/index.html`**: Hero code example fixed to compile (added User data + auth blocks), supported targets updated (added Untitled UI, trimmed planned lists), added "7 design systems" to produces list
+- **`docs/language-spec.html`**: Aligned with compiler-derived spec — added timestamp field type (12 types), structured error/warning codes (E101–E501, W301–W503), all 5 known integrations with auto-detected types table, "What NOT to Write" section, marked planned CLI commands, fixed deploy target (Vercel → Docker), fixed version history dates to 2026
 - **`docs/getting-started.html`**: Updated install version fallback to v0.4.2, added multi-framework mentions (4 frontend + 3 backend + 7 design systems), fixed MySQL reference (not implemented), updated CLI commands to match current behavior, added framework alternatives as comments in build block
 - **`ROADMAP.md`**: Updated Phase 7 (design import progress), Phase 14 (12 examples, MCP server), added example gallery table (12 apps with framework/design system matrix), added MCP server tool documentation
 - Updated website hero status fallback to v0.4.2 (`docs/version.js` and `docs/index.html`)
