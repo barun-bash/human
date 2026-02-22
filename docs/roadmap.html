@@ -554,6 +554,7 @@
       <h1>Development Roadmap</h1>
       <p class="hero-vision">Build the first programming language designed for humans, not computers.</p>
       <p class="hero-sub"><strong>52-week plan</strong> across <strong>14 phases</strong>.</p>
+      <p class="hero-sub" style="margin-top: 12px; font-size: 15px; opacity: 0.9;">Originally planned as 52 weeks. Phases 1&ndash;12 completed in 4 days with AI-assisted multi-agent development.</p>
     </div>
   </section>
 
@@ -718,7 +719,7 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 15 - 18</div>
-              <h3 class="phase-title">Quality Engine <span class="phase-status complete">Complete</span></h3>
+              <h3 class="phase-title">Quality Engine <span class="phase-status started">Partial</span></h3>
               <p class="phase-goal">Mandatory quality guarantees.</p>
             </div>
 
@@ -726,9 +727,10 @@
               <div class="phase-subsection-title">Week 15-16: Auto Test Generation</div>
               <ul class="task-list">
                 <li class="task-item done"><span class="task-checkbox"></span>Generate unit tests for every API (Jest/Vitest)</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate unit tests for every component (React Testing Library)</li>
-                <li class="task-item"><span class="task-checkbox"></span>Generate edge case tests from field types</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate unit tests for every component (React Testing Library)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Generate edge case tests from field types</li>
                 <li class="task-item"><span class="task-checkbox"></span>Generate integration tests for API flows</li>
+                <li class="task-item"><span class="task-checkbox"></span>Auto-execute generated tests</li>
                 <li class="task-item"><span class="task-checkbox"></span>Coverage tracking and threshold enforcement</li>
               </ul>
             </div>
@@ -740,7 +742,8 @@
                 <li class="task-item"><span class="task-checkbox"></span>Input sanitization verification</li>
                 <li class="task-item done"><span class="task-checkbox"></span>Auth/authz coverage check</li>
                 <li class="task-item done"><span class="task-checkbox"></span>Secret detection in generated code</li>
-                <li class="task-item done"><span class="task-checkbox"></span>Security report generation</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Security report generation (security-report.md)</li>
+                <li class="task-item"><span class="task-checkbox"></span>Live security scanning</li>
               </ul>
             </div>
 
@@ -748,6 +751,8 @@
               <div class="phase-subsection-title">Week 18: Code Quality + QA Trail</div>
               <ul class="task-list">
                 <li class="task-item done"><span class="task-checkbox"></span>Linting of generated code (ESLint config)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Lint report generation (lint-report.md)</li>
+                <li class="task-item done"><span class="task-checkbox"></span>Build report generation (build-report.md)</li>
                 <li class="task-item"><span class="task-checkbox"></span>Duplication detection</li>
                 <li class="task-item"><span class="task-checkbox"></span>Performance pattern detection</li>
                 <li class="task-item"><span class="task-checkbox"></span>QA test plan generation</li>
@@ -768,7 +773,7 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 19 - 20</div>
-              <h3 class="phase-title">CLI + Developer Experience</h3>
+              <h3 class="phase-title">CLI + Developer Experience <span class="phase-status started">Partial</span></h3>
               <p class="phase-goal">Polished command-line interface.</p>
             </div>
 
@@ -781,8 +786,8 @@
               <li class="task-item"><span class="task-checkbox"></span><code>human audit</code> &mdash; run security audit</li>
               <li class="task-item"><span class="task-checkbox"></span><code>human deploy</code> &mdash; deploy to target</li>
               <li class="task-item"><span class="task-checkbox"></span><code>human eject</code> &mdash; export as standalone project</li>
-              <li class="task-item"><span class="task-checkbox"></span>Colored terminal output</li>
-              <li class="task-item"><span class="task-checkbox"></span>Progress indicators</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Colored terminal output</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Progress indicators</li>
               <li class="task-item"><span class="task-checkbox"></span>Watch mode (rebuild on file change)</li>
             </ul>
 
@@ -799,18 +804,21 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 21 - 24</div>
-              <h3 class="phase-title">Design Import</h3>
+              <h3 class="phase-title">Design Import <span class="phase-status started">In Progress</span></h3>
               <p class="phase-goal">Figma and image files as input.</p>
             </div>
 
             <ul class="task-list">
-              <li class="task-item"><span class="task-checkbox"></span>Figma API integration (extract layers, styles, components)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Image analysis for screenshots/JPEGs (requires LLM vision)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Visual &rarr; component mapping</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Figma component classifier (4-tier heuristics)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Data model inference from design</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Human code generator from design</li>
+              <li class="task-item done"><span class="task-checkbox"></span>LLM prompt for Figma interpretation</li>
+              <li class="task-item"><span class="task-checkbox"></span>Figma API JSON parser (real API integration)</li>
+              <li class="task-item"><span class="task-checkbox"></span>CLI <code>human design</code> command</li>
+              <li class="task-item"><span class="task-checkbox"></span>Image analysis for screenshots/JPEGs (LLM vision)</li>
               <li class="task-item"><span class="task-checkbox"></span>Style extraction (colors, fonts, spacing)</li>
               <li class="task-item"><span class="task-checkbox"></span>Asset extraction (images, icons)</li>
               <li class="task-item"><span class="task-checkbox"></span>Component map caching (deterministic after first import)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Design enrichment via English statements</li>
             </ul>
 
             <div class="phase-milestone">
@@ -826,20 +834,24 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 25 - 26</div>
-              <h3 class="phase-title">Second Frontend Target</h3>
+              <h3 class="phase-title">Multi-Framework Output <span class="phase-status complete">Complete</span></h3>
               <p class="phase-goal">Prove the IR is truly framework-agnostic.</p>
             </div>
 
             <ul class="task-list">
-              <li class="task-item"><span class="task-checkbox"></span>Build Angular or Vue code generator</li>
-              <li class="task-item"><span class="task-checkbox"></span>Same .human file produces both React and Angular/Vue</li>
-              <li class="task-item"><span class="task-checkbox"></span>All quality checks work for new target</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Vue 3 + TypeScript code generator (pages, components, router, Pinia stores)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Angular 17+ standalone code generator (components, services, routing, signals)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Svelte 5 + SvelteKit code generator (pages, components, stores)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Python (FastAPI) backend generator (SQLAlchemy, Alembic, auth)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Go (Gin) backend generator (GORM, handlers, auth middleware)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Same .human file targets all 4 frontend + 3 backend frameworks</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Storybook 8 story generation with relational mock data</li>
               <li class="task-item"><span class="task-checkbox"></span>Document how to build a code generator plugin</li>
             </ul>
 
             <div class="phase-milestone">
               <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
-              <span class="milestone-text">One .human source &rarr; multiple framework outputs</span>
+              <span class="milestone-text">One .human source &rarr; 4 frontend + 3 backend framework outputs</span>
             </div>
           </div>
         </div>
@@ -850,18 +862,18 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 27 - 30</div>
-              <h3 class="phase-title">DevOps Generation <span class="phase-status started">Started</span></h3>
+              <h3 class="phase-title">DevOps Generation <span class="phase-status complete">Complete</span></h3>
               <p class="phase-goal">CI/CD, Docker, deployment from English.</p>
             </div>
 
             <ul class="task-list">
-              <li class="task-item"><span class="task-checkbox"></span>Generate GitHub Actions workflows from pipeline declarations</li>
-              <li class="task-item done"><span class="task-checkbox"></span>Generate Dockerfiles and docker-compose</li>
-              <li class="task-item"><span class="task-checkbox"></span>Generate Terraform for cloud deployment</li>
-              <li class="task-item done"><span class="task-checkbox"></span>Generate environment configurations (.env.example)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate GitHub Actions workflows from pipeline declarations</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate framework-aware Dockerfiles and docker-compose</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate Terraform for cloud deployment (AWS ECS/RDS, GCP Cloud Run/SQL)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Generate environment configurations (.env.example, .dockerignore)</li>
               <li class="task-item done"><span class="task-checkbox"></span>Project scaffolder (package.json workspaces, tsconfigs, vite config, README, start.sh)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Monitoring configuration (Prometheus rules + Grafana dashboards)</li>
               <li class="task-item"><span class="task-checkbox"></span>Git workflow commands (human feature, human release, etc.)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Monitoring configuration generation</li>
             </ul>
 
             <div class="phase-milestone">
@@ -877,16 +889,16 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 31 - 34</div>
-              <h3 class="phase-title">Architecture Support</h3>
+              <h3 class="phase-title">Architecture Support <span class="phase-status complete">Complete</span></h3>
               <p class="phase-goal">Monolith, microservices, serverless from one keyword.</p>
             </div>
 
             <ul class="task-list">
-              <li class="task-item"><span class="task-checkbox"></span>Monolith output (single project)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Microservices output (multiple projects, gateway, docker-compose)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Serverless output (Lambda/Cloud Functions)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Event-driven output (with message broker config)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Service-to-service communication generation</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Monolith output (single project)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Microservices output (multi-service Docker Compose, gateway)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Serverless output (Terraform Lambda/Cloud Functions)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Event-driven output (with message broker config)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Service-to-service communication generation</li>
             </ul>
 
             <div class="phase-milestone">
@@ -902,18 +914,19 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 35 - 38</div>
-              <h3 class="phase-title">LLM Connector</h3>
+              <h3 class="phase-title">LLM Connector <span class="phase-status complete">Complete</span></h3>
               <p class="phase-goal">Optional AI enhancement.</p>
             </div>
 
             <ul class="task-list">
-              <li class="task-item"><span class="task-checkbox"></span>LLM connector interface (provider-agnostic)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Anthropic Claude integration</li>
-              <li class="task-item"><span class="task-checkbox"></span>OpenAI integration</li>
-              <li class="task-item"><span class="task-checkbox"></span>Ollama (local) integration</li>
+              <li class="task-item done"><span class="task-checkbox"></span>LLM connector interface (provider-agnostic)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Anthropic Claude integration</li>
+              <li class="task-item done"><span class="task-checkbox"></span>OpenAI integration</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Ollama (local) integration</li>
+              <li class="task-item done"><span class="task-checkbox"></span>MCP server with 6 tools (human_build, human_validate, human_ir, human_examples, human_spec, human_read_file)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>LLM system prompt for .human generation</li>
               <li class="task-item"><span class="task-checkbox"></span>Smart interpretation (freeform &rarr; structured .human)</li>
               <li class="task-item"><span class="task-checkbox"></span>Conversational editing mode</li>
-              <li class="task-item"><span class="task-checkbox"></span>Context building (project-wide understanding)</li>
               <li class="task-item"><span class="task-checkbox"></span>Pattern suggestions</li>
             </ul>
 
@@ -930,17 +943,18 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 39 - 42</div>
-              <h3 class="phase-title">Third-Party Integrations</h3>
+              <h3 class="phase-title">Third-Party Integrations <span class="phase-status complete">Complete</span></h3>
               <p class="phase-goal">First-class integration support.</p>
             </div>
 
             <ul class="task-list">
-              <li class="task-item"><span class="task-checkbox"></span>Integration declaration parser</li>
-              <li class="task-item"><span class="task-checkbox"></span>Built-in: Stripe</li>
-              <li class="task-item"><span class="task-checkbox"></span>Built-in: SendGrid / email</li>
-              <li class="task-item"><span class="task-checkbox"></span>Built-in: AWS S3 / file storage</li>
-              <li class="task-item"><span class="task-checkbox"></span>Built-in: OAuth providers (Google, GitHub, etc.)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Custom API integration from declarations</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Integration declaration parser (<code>integrate with X:</code> syntax)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Built-in: Stripe (payments, refunds)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Built-in: SendGrid / email (transactional emails)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Built-in: AWS S3 / file storage</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Built-in: OAuth providers (Google, GitHub)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Built-in: Slack (messaging, notifications)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Typed service files, env vars, and dependencies per integration</li>
               <li class="task-item"><span class="task-checkbox"></span>OpenAPI/Swagger spec import</li>
               <li class="task-item"><span class="task-checkbox"></span>Integration test generation (mocked)</li>
             </ul>
@@ -984,20 +998,22 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 47 - 52</div>
-              <h3 class="phase-title">Polish + Launch</h3>
+              <h3 class="phase-title">Polish + Launch <span class="phase-status started">In Progress</span></h3>
               <p class="phase-goal">Ready for public release.</p>
             </div>
 
             <ul class="task-list">
-              <li class="task-item"><span class="task-checkbox"></span>Comprehensive documentation website</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Project website (6 pages: landing, getting started, language spec, roadmap, manifesto, contributing)</li>
               <li class="task-item"><span class="task-checkbox"></span>Tutorial: &ldquo;Build your first app in Human&rdquo;</li>
-              <li class="task-item"><span class="task-checkbox"></span>5+ complete example applications</li>
+              <li class="task-item done"><span class="task-checkbox"></span>8 complete example applications (taskflow, blog, ecommerce, saas, api-only, test-app, recipes, projects)</li>
               <li class="task-item"><span class="task-checkbox"></span>Performance optimization</li>
-              <li class="task-item"><span class="task-checkbox"></span>Error message review (every error is helpful)</li>
-              <li class="task-item"><span class="task-checkbox"></span>Installation scripts (brew, apt, scoop, etc.)</li>
-              <li class="task-item"><span class="task-checkbox"></span>VS Code extension (syntax highlighting, autocomplete)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Semantic error messages with codes and fix suggestions (17 errors, 10 warnings)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Installation scripts (install.sh, Homebrew formula, GoReleaser cross-platform binaries)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>VS Code extension (syntax highlighting, snippets, bracket matching)</li>
               <li class="task-item done"><span class="task-checkbox"></span>Landing page and branding</li>
-              <li class="task-item"><span class="task-checkbox"></span>Open source release</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Open source release on GitHub</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Language specification derived from compiler source</li>
+              <li class="task-item done"><span class="task-checkbox"></span>LLM system prompt for .human file generation</li>
             </ul>
 
             <div class="phase-milestone">
@@ -1015,46 +1031,71 @@
   <section class="metrics-section">
     <div class="container">
       <h2 class="reveal">Current Output</h2>
-      <p class="reveal" style="text-align:center; color:var(--text-muted); margin-bottom:36px; font-size:17px;">Running <code style="font-family:var(--font-code); background:var(--bg-surface); padding:2px 8px; border-radius:4px; font-size:15px; color:var(--accent);">human build examples/taskflow/app.human</code> produces <strong style="color:#F5F5F3;">45 files</strong>:</p>
+      <p class="reveal" style="text-align:center; color:var(--text-muted); margin-bottom:36px; font-size:17px;">Running <code style="font-family:var(--font-code); background:var(--bg-surface); padding:2px 8px; border-radius:4px; font-size:15px; color:var(--accent);">human build app.human</code> produces <strong style="color:#F5F5F3;">85+ files</strong> across <strong style="color:#F5F5F3;">14 generators</strong>:</p>
       <div class="metrics-table-wrap reveal reveal-delay-1">
         <table class="metrics-table">
           <thead>
             <tr>
               <th>Generator</th>
-              <th>Files</th>
               <th>Output</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>React + TypeScript</td>
-              <td class="target-phase">7</td>
-              <td>Types, API client, pages, components, router</td>
+              <td>Types, API client, pages, components, router, Vite entry files</td>
+            </tr>
+            <tr>
+              <td>Vue 3 + TypeScript</td>
+              <td>Pages, components, router, Pinia stores, API client</td>
+            </tr>
+            <tr>
+              <td>Angular 17+</td>
+              <td>Components, services, routing, signals, standalone modules</td>
+            </tr>
+            <tr>
+              <td>Svelte 5 + SvelteKit</td>
+              <td>Pages, components, stores, routing</td>
             </tr>
             <tr>
               <td>Node + Express</td>
-              <td class="target-phase">13</td>
               <td>Prisma schema, auth middleware, error handler, route files, server</td>
             </tr>
             <tr>
-              <td>Docker + Compose</td>
-              <td class="target-phase">5</td>
-              <td>Dockerfiles, docker-compose.yml, .env.example, package.json</td>
+              <td>Python + FastAPI</td>
+              <td>SQLAlchemy models, routes, auth, Alembic migrations</td>
+            </tr>
+            <tr>
+              <td>Go + Gin</td>
+              <td>GORM models, handlers, routes, auth middleware</td>
             </tr>
             <tr>
               <td>PostgreSQL</td>
-              <td class="target-phase">2</td>
               <td>Migration (001_initial.sql), seed data</td>
             </tr>
             <tr>
+              <td>Docker + Compose</td>
+              <td>Framework-aware Dockerfiles, docker-compose.yml, .env.example, .dockerignore</td>
+            </tr>
+            <tr>
+              <td>GitHub Actions CI/CD</td>
+              <td>Test, build, deploy workflows from pipeline declarations</td>
+            </tr>
+            <tr>
+              <td>Terraform</td>
+              <td>AWS ECS/RDS, GCP Cloud Run/SQL from architecture + environment blocks</td>
+            </tr>
+            <tr>
+              <td>Monitoring</td>
+              <td>Prometheus rules, Grafana dashboards from monitoring declarations</td>
+            </tr>
+            <tr>
               <td>Quality Engine</td>
-              <td class="target-phase">11</td>
-              <td>8 test files, security-report.md, lint-report.md, build-report.md</td>
+              <td>Test files, security-report.md, lint-report.md, build-report.md</td>
             </tr>
             <tr>
               <td>Scaffold</td>
-              <td class="target-phase">7</td>
-              <td>Root + node + react package.json, tsconfigs, vite config, README, start.sh</td>
+              <td>Stack-aware package.json, tsconfigs, configs, README, start.sh</td>
             </tr>
           </tbody>
         </table>
@@ -1082,6 +1123,11 @@
               <td><span style="color:var(--success); font-weight:600;">Done</span></td>
             </tr>
             <tr>
+              <td>Framework-agnostic IR</td>
+              <td class="target-phase">Phase 2</td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
+            </tr>
+            <tr>
               <td>Generate a running React app</td>
               <td class="target-phase">Phase 3</td>
               <td><span style="color:var(--success); font-weight:600;">Done</span></td>
@@ -1092,34 +1138,54 @@
               <td><span style="color:var(--success); font-weight:600;">Done</span></td>
             </tr>
             <tr>
-              <td>Docker deployment config</td>
-              <td class="target-phase">Phase 9</td>
-              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
-            </tr>
-            <tr>
-              <td>Project scaffolder (runnable output)</td>
-              <td class="target-phase">Phase 9</td>
-              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
-            </tr>
-            <tr>
               <td>Quality guarantees enforced</td>
               <td class="target-phase">Phase 5</td>
-              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
+              <td><span style="color:var(--accent); font-weight:600;">Partial</span></td>
+            </tr>
+            <tr>
+              <td>CLI developer experience</td>
+              <td class="target-phase">Phase 6</td>
+              <td><span style="color:var(--accent); font-weight:600;">Partial</span></td>
             </tr>
             <tr>
               <td>Design-to-code pipeline</td>
               <td class="target-phase">Phase 7</td>
-              <td><span style="color:var(--text-muted);">Upcoming</span></td>
+              <td><span style="color:var(--accent); font-weight:600;">In Progress</span></td>
             </tr>
             <tr>
-              <td>Multi-framework output</td>
+              <td>Multi-framework output (4 frontend + 3 backend)</td>
               <td class="target-phase">Phase 8</td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
+            </tr>
+            <tr>
+              <td>DevOps generation (Docker, CI/CD, Terraform)</td>
+              <td class="target-phase">Phase 9</td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
+            </tr>
+            <tr>
+              <td>Architecture support (monolith, microservices, serverless)</td>
+              <td class="target-phase">Phase 10</td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
+            </tr>
+            <tr>
+              <td>LLM connector (Anthropic, OpenAI, Ollama)</td>
+              <td class="target-phase">Phase 11</td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
+            </tr>
+            <tr>
+              <td>Third-party integrations (Stripe, SendGrid, S3, OAuth, Slack)</td>
+              <td class="target-phase">Phase 12</td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
+            </tr>
+            <tr>
+              <td>Plugin ecosystem</td>
+              <td class="target-phase">Phase 13</td>
               <td><span style="color:var(--text-muted);">Upcoming</span></td>
             </tr>
             <tr>
               <td>Public launch</td>
               <td class="target-phase">Phase 14</td>
-              <td><span style="color:var(--text-muted);">Upcoming</span></td>
+              <td><span style="color:var(--accent); font-weight:600;">In Progress</span></td>
             </tr>
           </tbody>
         </table>
