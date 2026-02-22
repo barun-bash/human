@@ -17,7 +17,9 @@ All notable changes to the Human compiler are documented in this file.
 - **`examples/projects/app.human`**: Project management app — exercises teams, tasks, comments, policies, Slack integration, CI/CD pipelines (React + Node + shadcn)
 
 ### Website
-- **`docs/roadmap.html`**: Updated project roadmap to reflect current status — Phases 1–12 complete, Phase 14 in progress, Current Output table expanded to 85+ files across 14 generators, Success Metrics table expanded to 14 rows with accurate statuses
+- **`docs/roadmap.html`**: Updated project roadmap to reflect current status — Phases 1–12 complete, Phase 14 in progress, Current Output table expanded to 85+ files across 14 generators with file counts, Success Metrics table expanded to 14 rows with accurate statuses, Phase 14 updated to 12 examples
+- **`docs/index.html`**: Hero code example fixed to compile (added User data + auth blocks), supported targets updated (added Untitled UI, trimmed planned lists), added "7 design systems" to produces list
+- **`docs/getting-started.html`**: Updated install version fallback to v0.4.2, added multi-framework mentions (4 frontend + 3 backend + 7 design systems), fixed MySQL reference (not implemented), updated CLI commands to match current behavior, added framework alternatives as comments in build block
 - Updated website hero status fallback to v0.4.2 (`docs/version.js` and `docs/index.html`)
 
 ### Bug Fixes

@@ -447,7 +447,7 @@
           <span class="code-filename">terminal</span>
         </div>
         <div class="code-body"><pre><span class="cm"># Install the compiler</span>
-<span class="kw">$</span> <span data-version="install">go install github.com/barun-bash/human/cmd/human@v0.2.0</span>
+<span class="kw">$</span> <span data-version="install">go install github.com/barun-bash/human/cmd/human@v0.4.2</span>
 
 <span class="cm"># Make sure Go binaries are in your PATH</span>
 <span class="kw">$</span> export PATH="$PATH:$(go env GOPATH)/bin"
@@ -563,7 +563,7 @@
       </div>
       <div class="explanation">
         <div class="explanation-label">What this does</div>
-        <p>This generates a complete Dashboard page: a React component with a greeting header, summary statistics, a sortable and filterable task list, search input, status dropdown, an empty state message, a loading skeleton, and a floating action button that opens a creation form. Every interaction described in English becomes a real event handler. Every conditional becomes a proper render branch.</p>
+        <p>This generates a complete Dashboard page with a greeting header, summary statistics, a sortable and filterable task list, search input, status dropdown, an empty state message, a loading skeleton, and a floating action button that opens a creation form. The output targets whichever frontend you choose &mdash; React, Vue, Angular, or Svelte. Every interaction described in English becomes a real event handler. Every conditional becomes a proper render branch.</p>
       </div>
     </div>
 
@@ -706,20 +706,20 @@
           <span class="code-filename">app.human</span>
         </div>
         <div class="code-body"><pre><span class="kw">build with</span>:
-  frontend using React with TypeScript
-  backend using Node with Express
+  frontend using React with TypeScript    <span class="cm"># or Vue, Angular, Svelte</span>
+  backend using Node with Express         <span class="cm"># or Python with FastAPI, Go with Gin</span>
   <span class="kw">database</span> using PostgreSQL
   <span class="kw">deploy</span> to Docker</pre></div>
       </div>
       <div class="explanation">
         <div class="explanation-label">What this does</div>
-        <p>The compiler reads your entire <code>.human</code> file and generates a complete project: React components with TypeScript types, Express API routes with middleware, PostgreSQL schemas with migrations, a Dockerfile, and a full test suite. Same source file could target Vue + FastAPI + MySQL &mdash; just change the build block.</p>
+        <p>The compiler reads your entire <code>.human</code> file and generates a complete project: frontend components with TypeScript types, backend API routes with middleware, PostgreSQL schemas with migrations, Dockerfiles, Terraform configs, CI/CD workflows, and a full test suite. Same source file could target Vue + Python + PostgreSQL or Angular + Go + PostgreSQL &mdash; just change the build block. 4 frontends, 3 backends, and 7 design systems are supported.</p>
       </div>
       <div class="cli-block">
         <p>Then run it from your terminal:</p>
-        <div class="cli-commands"><pre><span class="accent">$</span> human check      <span class="cm"># Validate your .human files</span>
-<span class="accent">$</span> human build      <span class="cm"># Compile to your target stack</span>
-<span class="accent">$</span> human run        <span class="cm"># Start the development server</span></pre></div>
+        <div class="cli-commands"><pre><span class="accent">$</span> human check app.human      <span class="cm"># Validate your .human file</span>
+<span class="accent">$</span> human build app.human      <span class="cm"># Compile to your target stack</span>
+<span class="accent">$</span> cd .human/output && bash start.sh  <span class="cm"># Run the generated project</span></pre></div>
       </div>
     </div>
 
