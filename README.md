@@ -10,7 +10,7 @@
   <br>
   Write in structured English. Get production-ready applications.
   <br><br>
-  <a href="https://github.com/barun-bash/human/releases/tag/v0.4.1"><img src="https://img.shields.io/badge/release-v0.4.1-E85D3A.svg" alt="v0.4.1"></a>&nbsp;
+  <a href="https://github.com/barun-bash/human/releases/tag/v0.4.2"><img src="https://img.shields.io/badge/release-v0.4.2-E85D3A.svg" alt="v0.4.2"></a>&nbsp;
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>&nbsp;
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8.svg" alt="Go 1.21+"></a>&nbsp;
   <a href="https://barun-bash.github.io/human/"><img src="https://img.shields.io/badge/website-live-E85D3A.svg" alt="Website"></a>
@@ -28,6 +28,11 @@
 ```
 app TaskFlow is a web application
 
+data User:
+  has a name which is text
+  has an email which is unique email
+  has a password which is encrypted text
+
 data Task:
   belongs to a User
   has a title which is text
@@ -35,10 +40,9 @@ data Task:
   has a due date
 
 page Dashboard:
-  show a list of all tasks sorted by due date
+  show a list of tasks sorted by due date
   each task shows its title, status, and due date
   clicking a task toggles its status
-  there is a search bar that filters by title
   if no tasks match, show "No tasks found"
 
 api CreateTask:
@@ -47,6 +51,9 @@ api CreateTask:
   check that title is not empty
   create the task for the current user
   respond with the created task
+
+authentication:
+  method JWT tokens that expire in 7 days
 
 build with:
   frontend using React with TypeScript
@@ -153,11 +160,11 @@ cd .human/output && bash start.sh
 | Layer | Implemented | Planned |
 |-------|-------------|---------|
 | **Frontend** | React, Angular, Vue, Svelte (all with TypeScript) | HTMX |
-| **Backend** | Node + Express, Python + FastAPI, Go + Gin | Rust (Axum), Node + Fastify, Python + Django, Go + Fiber |
-| **Database** | PostgreSQL | MySQL, MongoDB, SQLite, Supabase |
+| **Backend** | Node + Express, Python + FastAPI, Go + Gin | Rust (Axum), Django |
+| **Database** | PostgreSQL | MySQL, MongoDB, SQLite |
 | **Infra** | Docker + Compose, Terraform (AWS ECS/RDS, GCP Cloud Run/SQL), GitHub Actions CI/CD | Kubernetes, Vercel, AWS Lambda |
-| **Monitoring** | Prometheus rules, Grafana dashboards | Datadog, PagerDuty |
-| **Integrations** | Stripe, SendGrid, AWS S3, OAuth (Google/GitHub), Slack | Twilio, Firebase, Supabase |
+| **Monitoring** | Prometheus rules, Grafana dashboards | — |
+| **Integrations** | Stripe, SendGrid, AWS S3, OAuth (Google/GitHub), Slack | — |
 | **Design Systems** | Material UI, Shadcn/ui, Ant Design, Chakra UI, Bootstrap, Tailwind CSS, Untitled UI | — |
 
 ---
@@ -211,7 +218,7 @@ my-app/
 
 ## Project Status
 
-**[v0.4.0 released](https://github.com/barun-bash/human/releases/tag/v0.4.0)** — Full-stack multi-framework output. 4 frontend frameworks, 3 backend languages, Terraform, monitoring, CI/CD, 7 design systems, 5 integrations, LLM connector, VS Code extension, 6 example apps. 600+ tests across 28 packages. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) and [Changelog](CHANGELOG.md) for details.
+**[v0.4.2 released](https://github.com/barun-bash/human/releases/tag/v0.4.2)** — Full-stack multi-framework output. 4 frontend frameworks, 3 backend languages, Terraform, monitoring, CI/CD, 7 design systems, 5 integrations, LLM connector, VS Code extension, 12 example apps, language specification, LLM system prompt. 600+ tests across 28 packages. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) and [Changelog](CHANGELOG.md) for details.
 
 ---
 
@@ -226,7 +233,7 @@ my-app/
 | [Manifesto](https://barun-bash.github.io/human/manifesto.html) | Why Human exists |
 | [Contributing](https://barun-bash.github.io/human/contributing.html) | How to contribute |
 | [Changelog](CHANGELOG.md) | Release history |
-| [Examples](examples/) | Sample applications (TaskFlow, Blog, E-commerce, SaaS, API-only, test-app) |
+| [Examples](examples/) | 12 sample applications (TaskFlow, Blog, E-commerce, SaaS, API-only, test-app, Recipes, Projects, Events, Fitness, Inventory, Figma-demo) |
 
 ---
 

@@ -48,6 +48,8 @@ All notable changes to the Human compiler are documented in this file.
 - **`docs/getting-started.html`**: Updated install version fallback to v0.4.2, added multi-framework mentions (4 frontend + 3 backend + 7 design systems), fixed MySQL reference (not implemented), updated CLI commands to match current behavior, added framework alternatives as comments in build block
 - **`ROADMAP.md`**: Updated Phase 7 (design import progress), Phase 14 (12 examples, MCP server), added example gallery table (12 apps with framework/design system matrix), added MCP server tool documentation
 - Updated website hero status fallback to v0.4.2 (`docs/version.js` and `docs/index.html`)
+- **`README.md`**: Synced with website — hero code example fixed to compile (added User data + auth blocks), version badge and project status updated to v0.4.2, example count updated to 12, supported targets planned lists trimmed to match website
+- **`ROADMAP.md`**: Synced with roadmap.html — Phase 4 unchecked authorization middleware, Phase 5 changed to Partial, Phase 6 changed to Partial (only build/check implemented), Phase 8 renamed to Multi-Framework Output, Phase 10 checked event-driven + service-to-service, Phase 11 unchecked conversational editing + pattern suggestions and added MCP server + LLM prompt items, Phase 12 added typed service files, Phase 14 aligned with website, success metrics aligned with 14-row website table, file count updated to 85+
 
 ### Bug Fixes
 - **ecommerce example**: Added missing Slack integration block (fixes W503 warning — Slack referenced without integration declared)

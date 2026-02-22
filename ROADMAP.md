@@ -89,7 +89,7 @@ English in → production-ready applications out.
 - [x] Generate data models (Prisma)
 - [x] Generate database migrations (PostgreSQL)
 - [x] Generate authentication middleware (JWT)
-- [x] Generate authorization middleware (from policies)
+- [ ] Generate authorization middleware (from policies)
 - [x] Generate error handling
 - [x] Connect frontend to backend (API client generation)
 
@@ -97,15 +97,15 @@ English in → production-ready applications out.
 
 ---
 
-## Phase 5: Quality Engine (Weeks 15-18) ✅
+## Phase 5: Quality Engine (Weeks 15-18) ⚠️ Partial
 **Goal: Mandatory quality guarantees**
 
 ### Week 15-16: Auto Test Generation
 - [x] Generate unit tests for every API (Jest/Vitest)
 - [x] Generate unit tests for every component (React Testing Library)
 - [x] Generate edge case tests from field types
-- [x] Generate integration tests for API flows
-- [x] Coverage tracking and threshold enforcement
+- [ ] Generate integration tests for API flows
+- [ ] Coverage tracking and threshold enforcement
 
 ### Week 17: Security Audit
 - [ ] Dependency vulnerability scanning
@@ -121,26 +121,26 @@ English in → production-ready applications out.
 - [ ] QA test plan generation
 - [ ] Traceability matrix generation
 
-### Milestone: ✅ Quality checks enforced on every build
+### Milestone: ⚠️ Quality checks enforced on every build (partial — core reports work, advanced analysis remaining)
 
 ---
 
-## Phase 6: CLI + Developer Experience (Weeks 19-20) ✅
+## Phase 6: CLI + Developer Experience (Weeks 19-20) ⚠️ Partial
 **Goal: Polished command-line interface**
 
-- [x] `human init` — interactive project creation
+- [ ] `human init` — interactive project creation
 - [x] `human build` — compile to target
-- [x] `human run` — development server
+- [ ] `human run` — development server
 - [x] `human check` — validate .human files
-- [x] `human test` — run generated tests
-- [x] `human audit` — run security audit
-- [x] `human deploy` — deploy to target
-- [x] `human eject` — export as standalone project
+- [ ] `human test` — run generated tests
+- [ ] `human audit` — run security audit
+- [ ] `human deploy` — deploy to target
+- [ ] `human eject` — export as standalone project
 - [x] Colored terminal output
-- [ ] Progress indicators
-- [x] Watch mode (rebuild on file change)
+- [x] Progress indicators
+- [ ] Watch mode (rebuild on file change)
 
-### Milestone: ✅ Complete developer experience from init to deploy
+### Milestone: ⚠️ Core CLI works (build, check); remaining commands planned
 
 ---
 
@@ -163,7 +163,7 @@ English in → production-ready applications out.
 
 ---
 
-## Phase 8: Second Frontend Target (Weeks 25-26) ✅
+## Phase 8: Multi-Framework Output (Weeks 25-26) ✅
 **Goal: Prove the IR is truly framework-agnostic**
 
 - [x] Build Angular or Vue code generator
@@ -196,8 +196,8 @@ English in → production-ready applications out.
 - [x] Monolith output (single project)
 - [x] Microservices output (multiple projects, gateway, docker-compose)
 - [x] Serverless output (Terraform Lambda/Cloud Functions)
-- [ ] Event-driven output (with message broker config)
-- [ ] Service-to-service communication generation
+- [x] Event-driven output (with message broker config)
+- [x] Service-to-service communication generation
 
 ### Milestone: ✅ Architecture as a first-class language feature
 
@@ -210,10 +210,12 @@ English in → production-ready applications out.
 - [x] Anthropic Claude integration
 - [x] OpenAI integration
 - [x] Ollama (local) integration
+- [x] MCP server with 6 tools (human_build, human_validate, human_ir, human_examples, human_spec, human_read_file)
+- [x] LLM system prompt for .human generation
 - [ ] Smart interpretation (freeform → structured .human)
-- [x] Conversational editing mode (`human edit --with-llm`)
+- [ ] Conversational editing mode (`human edit --with-llm`)
 - [ ] Context building (project-wide understanding)
-- [x] Pattern suggestions (`human suggest`)
+- [ ] Pattern suggestions (`human suggest`)
 
 ### Milestone: ✅ AI-enhanced editing while maintaining deterministic compilation
 
@@ -228,6 +230,7 @@ English in → production-ready applications out.
 - [x] Built-in: AWS S3 / file storage
 - [x] Built-in: OAuth providers (Google, GitHub)
 - [x] Built-in: Slack (messaging)
+- [x] Typed service files, env vars, and dependencies per integration
 - [ ] Custom API integration from declarations
 - [ ] OpenAPI/Swagger spec import
 - [ ] Integration test generation (mocked)
@@ -253,17 +256,17 @@ English in → production-ready applications out.
 ## Phase 14: Polish + Launch (Weeks 47-52)
 **Goal: Ready for public release**
 
-- [ ] Comprehensive documentation website
+- [x] Project website (6 pages: landing, getting started, language spec, roadmap, manifesto, contributing)
 - [ ] Tutorial: "Build your first app in Human"
-- [x] 5+ complete example applications (12 examples covering all framework+design system combos)
+- [x] 12 example applications (taskflow, blog, ecommerce, saas, api-only, test-app, recipes, projects, events, fitness, inventory, figma-demo)
 - [ ] Performance optimization
-- [ ] Error message review (every error is helpful)
-- [ ] Installation scripts (brew, apt, scoop, etc.)
-- [ ] VS Code extension (syntax highlighting, autocomplete)
+- [x] Semantic error messages with codes and fix suggestions (17 errors, 10 warnings)
+- [x] Installation scripts (install.sh, Homebrew formula, GoReleaser cross-platform binaries)
+- [x] VS Code extension (syntax highlighting, snippets, bracket matching)
 - [x] Landing page and branding
-- [x] MCP server for Claude Desktop integration (6 tools: build, validate, IR, examples, spec, read_file)
-- [x] Demo documentation (`docs/DEMO.md`) — setup, MCP config, design system showcase, example gallery
-- [ ] Open source release
+- [x] Open source release on GitHub
+- [x] Language specification derived from compiler source
+- [x] LLM system prompt for .human file generation
 
 ### Milestone: v1.0 public launch
 
@@ -271,7 +274,7 @@ English in → production-ready applications out.
 
 ## Current Output
 
-Running `human build examples/taskflow/app.human` produces **77 files** (React + Node stack). File count varies by stack:
+Running `human build examples/taskflow/app.human` produces **85+ files** (React + Node stack). File count varies by stack:
 
 | Generator | Files | Output |
 |-----------|-------|--------|
@@ -341,23 +344,19 @@ The MCP server (`cmd/human-mcp/`) exposes 6 tools over JSON-RPC 2.0 (stdin/stdou
 | Metric | Target | Status |
 |---|---|---|
 | Parse a .human file | Phase 1 | ✅ Done |
+| Framework-agnostic IR | Phase 2 | ✅ Done |
 | Generate a running React app | Phase 3 | ✅ Done |
 | Full-stack app from English | Phase 4 | ✅ Done |
-| Multi-framework output (4 frontends, 3 backends) | Phase 8 | ✅ Done |
-| Docker deployment config | Phase 9 | ✅ Done |
-| Terraform cloud deployment | Phase 9 | ✅ Done |
-| CI/CD pipeline generation | Phase 9 | ✅ Done |
-| Architecture support (mono/micro/serverless) | Phase 10 | ✅ Done |
+| Quality guarantees enforced | Phase 5 | ⚠️ Partial |
+| CLI developer experience | Phase 6 | ⚠️ Partial |
+| Design-to-code pipeline | Phase 7 | 🔄 In Progress |
+| Multi-framework output (4 frontend + 3 backend) | Phase 8 | ✅ Done |
+| DevOps generation (Docker, CI/CD, Terraform) | Phase 9 | ✅ Done |
+| Architecture support (monolith, microservices, serverless) | Phase 10 | ✅ Done |
 | LLM connector (Anthropic, OpenAI, Ollama) | Phase 11 | ✅ Done |
-| Third-party integrations (Stripe, S3, etc.) | Phase 12 | ✅ Done |
-| Quality guarantees enforced | Phase 5 | ✅ Done |
-| 600+ compiler tests | — | ✅ Done |
-| Design-to-code mapping intelligence | Phase 7 | ✅ Done (API integration remaining) |
-| MCP server for LLM integration | Phase 14 | ✅ Done |
-| 12 example applications | Phase 14 | ✅ Done |
-| Demo documentation | Phase 14 | ✅ Done |
+| Third-party integrations (Stripe, SendGrid, S3, OAuth, Slack) | Phase 12 | ✅ Done |
 | Plugin ecosystem | Phase 13 | Upcoming |
-| Public launch | Phase 14 | Upcoming |
+| Public launch | Phase 14 | 🔄 In Progress |
 
 ---
 
