@@ -1,0 +1,309 @@
+app FitTrack is a web application
+
+# ─────────────────────────────────────────────────────────────
+── theme ──
+# ─────────────────────────────────────────────────────────────
+
+theme:
+  primary color is #4CAF50
+  secondary color is #FF9800
+  accent color is #2196F3
+  font is Roboto for body and headings
+  border radius is rounded
+  dark mode is supported and toggles from the header
+  spacing is comfortable
+  design system is material
+
+# ─────────────────────────────────────────────────────────────
+── frontend ──
+# ─────────────────────────────────────────────────────────────
+
+page Dashboard:
+  show a greeting with the user's name
+  show a summary card with total workouts this week, calories burned, and active goals
+  show a line chart of workout frequency over the last 30 days
+  show a list of recent workouts sorted by date descending
+  each workout shows its type, duration, calories burned, and date
+  clicking a workout navigates to WorkoutDetail
+  there is a button to log a new workout
+  if no workouts exist, show "Start your fitness journey — log your first workout!"
+  while loading, show a skeleton screen
+
+page WorkoutLog:
+  show a form to create a new Workout
+  there is a dropdown to select workout type
+  there is a number input for duration in minutes
+  there is a number input for calories burned
+  there is a text area for notes
+  there is a date picker defaulting to today
+  clicking "Save Workout" creates the workout
+  if the save succeeds, show "Workout logged!" and navigate to Dashboard
+  if there is an error, show the error message
+
+page WorkoutDetail:
+  show the workout type as a large heading
+  show the date and duration
+  show the calories burned as a highlighted number
+  show notes if present
+  there is a button to edit the workout
+  there is a button to delete the workout with confirmation
+  if workout does not exist, show "Workout not found"
+
+page Goals:
+  show a list of the user's fitness goals
+  each goal shows its name, target, progress percentage, and deadline
+  each goal has a progress bar showing current vs target
+  clicking a goal opens an inline editor
+  there is a button to create a new goal
+  if a goal is completed, show a checkmark badge
+  if no goals exist, show "Set your first fitness goal!"
+
+component WorkoutCard:
+  accepts workout as Workout
+  show the workout type with an icon
+  show the duration in minutes
+  show the calories burned
+  show the date in relative format like "2 hours ago"
+  clicking the card triggers on_click
+
+component GoalProgress:
+  accepts goal as Goal
+  show the goal name in bold
+  show a progress bar from 0 to target
+  show the current value and target value
+  if progress is at 100 percent or more, show "Goal reached!"
+
+# ─────────────────────────────────────────────────────────────
+── backend ──
+# ─────────────────────────────────────────────────────────────
+
+data User:
+  has a name which is text
+  has an email which is unique email
+  has a password which is encrypted text
+  has an optional avatar which is image
+  has a created datetime
+
+data Workout:
+  belongs to a User
+  has a type which is either "running" or "cycling" or "swimming" or "weights" or "yoga" or "other"
+  has a duration which is number
+  has a calories which is number
+  has an optional notes which is text
+  has a workout_date which is date
+  has a created datetime
+
+data Goal:
+  belongs to a User
+  has a name which is text
+  has a target which is number
+  has a current which is number
+  has a unit which is text
+  has an optional deadline which is date
+  has a status which is either "active" or "completed" or "abandoned"
+  has a created datetime
+
+api SignUp:
+  accepts name, email, and password
+  check that name is not empty
+  check that email is a valid email
+  check that password is at least 8 characters
+  check that email is not already taken
+  create a User with the given fields
+  respond with the created user and auth token
+
+api Login:
+  accepts email and password
+  check that email is not empty
+  check that password is not empty
+  fetch the user by email
+  if user does not exist, respond with "invalid credentials"
+  check that password matches the stored hash
+  if password does not match, respond with "invalid credentials"
+  respond with the user and auth token
+
+api LogWorkout:
+  requires authentication
+  accepts type, duration, calories, notes, and workout_date
+  check that type is not empty
+  check that duration is greater than 0
+  check that calories is at least 0
+  create a Workout with the given fields and current user
+  respond with the created workout
+
+api ListWorkouts:
+  requires authentication
+  fetch all workouts for the current user
+  sort by workout_date descending
+  support filtering by type
+  support filtering by date range
+  paginate with 20 per page
+  respond with workouts and pagination info
+
+api GetWorkout:
+  requires authentication
+  accepts workout_id
+  fetch the Workout by workout_id
+  if workout does not exist, respond with "workout not found"
+  check that current user owns the workout
+  respond with the workout
+
+api DeleteWorkout:
+  requires authentication
+  accepts workout_id
+  fetch the Workout by workout_id
+  if workout does not exist, respond with "workout not found"
+  check that current user owns the workout
+  delete the Workout
+  respond with "workout deleted"
+
+api CreateGoal:
+  requires authentication
+  accepts name, target, unit, and deadline
+  check that name is not empty
+  check that target is greater than 0
+  create a Goal with the given fields and current user
+  set current to 0
+  set status to "active"
+  respond with the created goal
+
+api UpdateGoal:
+  requires authentication
+  accepts goal_id, current, and status
+  fetch the Goal by goal_id
+  if goal does not exist, respond with "goal not found"
+  check that current user owns the goal
+  update the Goal with the given fields
+  if current is at or above target, set status to "completed"
+  respond with the updated goal
+
+api GetDashboardStats:
+  requires authentication
+  fetch all Workout for the current user
+  fetch all Goal with status "active" for the current user
+  respond with the stats
+
+# ─────────────────────────────────────────────────────────────
+── security ──
+# ─────────────────────────────────────────────────────────────
+
+authentication:
+  method JWT tokens that expire in 30 days
+  passwords are hashed with bcrypt using 12 rounds
+  all api requests require a valid token except SignUp and Login
+  rate limit all endpoints to 100 requests per minute per user
+  sanitize all text inputs against XSS
+  enable CORS only for our frontend domain
+
+# ─────────────────────────────────────────────────────────────
+── policies ──
+# ─────────────────────────────────────────────────────────────
+
+policy FreeUser:
+  can log up to 30 workouts per month
+  can create up to 3 goals
+  can view their own data only
+
+policy ProUser:
+  can log unlimited workouts
+  can create unlimited goals
+  can export data as CSV
+  can view analytics and charts
+
+# ─────────────────────────────────────────────────────────────
+── workflows ──
+# ─────────────────────────────────────────────────────────────
+
+when a user signs up:
+  create their account
+  assign FreeUser policy
+  send welcome email with template "welcome-to-fittrack"
+
+when a goal is completed:
+  send congratulations email to the user
+  log the achievement for analytics
+
+when a workout is logged:
+  check all active goals for the user
+  if any goal target is met, mark the goal as completed
+
+# ─────────────────────────────────────────────────────────────
+── logic ──
+# ─────────────────────────────────────────────────────────────
+
+if database is unreachable:
+  retry 3 times with 1 second delay
+  if still failing, respond with "service temporarily unavailable"
+
+if an api request fails validation:
+  respond with a clear message explaining what is wrong
+  do not reveal internal details
+
+# ─────────────────────────────────────────────────────────────
+── database ──
+# ─────────────────────────────────────────────────────────────
+
+database:
+  use PostgreSQL
+  when the app starts, create tables if they don't exist
+  index User by email
+  index Workout by user and workout_date
+  index Workout by type
+  index Goal by user and status
+  backup daily at 3am
+  keep backups for 30 days
+
+# ─────────────────────────────────────────────────────────────
+── integrations ──
+# ─────────────────────────────────────────────────────────────
+
+integrate with SendGrid:
+  api key from environment variable SENDGRID_API_KEY
+  use for sending transactional emails
+
+# ─────────────────────────────────────────────────────────────
+── devops ──
+# ─────────────────────────────────────────────────────────────
+
+architecture: monolith
+
+source control using Git on GitHub
+repository: https://github.com/example/fittrack
+
+branches:
+  main is the production branch
+  feature branches from main with prefix "feat/"
+
+when code is pushed to a feature branch:
+  run all tests
+  check code formatting
+  report results back to the pull request
+
+when code is merged to main:
+  run all tests
+  build the application
+  deploy to production environment
+  run health checks
+  if health checks fail, rollback automatically
+
+environment production:
+  url is fittrack.example.com
+  uses production database
+  has auto-scaling enabled
+
+track response times for all api endpoints
+track error rates per endpoint
+track active users daily and monthly
+alert on Slack if error rate exceeds 5 percent
+log all api requests to CloudWatch
+keep logs for 90 days
+
+# ─────────────────────────────────────────────────────────────
+── build ──
+# ─────────────────────────────────────────────────────────────
+
+build with:
+  frontend using Vue with TypeScript
+  backend using Python with FastAPI
+  database using PostgreSQL
+  deploy to Docker

@@ -1,0 +1,340 @@
+app StockBase is a web application
+
+# ─────────────────────────────────────────────────────────────
+── theme ──
+# ─────────────────────────────────────────────────────────────
+
+theme:
+  primary color is #319795
+  secondary color is #805AD5
+  accent color is #DD6B20
+  font is Inter for body and headings
+  border radius is rounded
+  dark mode is supported and toggles from the header
+  spacing is comfortable
+  design system is chakra
+
+# ─────────────────────────────────────────────────────────────
+── frontend ──
+# ─────────────────────────────────────────────────────────────
+
+page Dashboard:
+  show a greeting with the user's name
+  show a summary card with total products, low stock alerts, and total stock value
+  show a bar chart of stock levels by category
+  show a list of recent stock movements sorted by date descending
+  each movement shows the product name, type, quantity, and date
+  there is a button to add a new product
+  there is a button to record a stock movement
+  if no products exist, show "Add your first product to get started"
+  while loading, show a skeleton screen
+
+page ProductList:
+  show a table of all products
+  each row shows the product name, SKU, category, current stock, and unit price
+  there is a search bar that filters products by name or SKU
+  there is a dropdown to filter by category
+  rows with stock below reorder level are highlighted in warning color
+  clicking a product navigates to ProductDetail
+  there is a button to add a new product
+  support sorting by name, stock, or price
+
+page ProductDetail:
+  show the product name as a large heading
+  show the SKU and category
+  show the current stock level with a visual indicator
+  show the unit price and total value
+  show the reorder level and reorder quantity
+  show a list of recent stock movements for this product
+  there is a button to record a stock movement
+  there is a button to edit the product
+  there is a button to delete the product with confirmation
+  if product does not exist, show "Product not found"
+
+page StockMovements:
+  show a table of all stock movements sorted by date descending
+  each row shows the product name, movement type, quantity, notes, and date
+  there is a dropdown to filter by movement type
+  there is a date range picker to filter by date
+  support searching by product name
+  paginate with 25 per page
+
+component ProductRow:
+  accepts product as Product
+  show the product name in bold
+  show the SKU in monospace font
+  show the current stock with a color indicator
+  if stock is below reorder level, show a warning icon
+  show the unit price with currency formatting
+  clicking the row triggers on_click
+
+component MovementBadge:
+  accepts type as text
+  show the type as a colored badge
+  if type is "in", use green
+  if type is "out", use red
+  if type is "adjustment", use blue
+  if type is "return", use yellow
+
+# ─────────────────────────────────────────────────────────────
+── backend ──
+# ─────────────────────────────────────────────────────────────
+
+data User:
+  has a name which is text
+  has an email which is unique email
+  has a password which is encrypted text
+  has a role which is either "viewer" or "manager" or "admin"
+  has a created datetime
+
+data Product:
+  has a name which is text
+  has a sku which is unique text
+  has an optional description which is text
+  has a category which is text
+  has a unit_price which is decimal
+  has a current_stock which is number
+  has a reorder_level which is number
+  has a reorder_quantity which is number
+  has a created datetime
+  has many StockMovement
+
+data StockMovement:
+  belongs to a Product
+  belongs to a User
+  has a type which is either "in" or "out" or "adjustment" or "return"
+  has a quantity which is number
+  has an optional notes which is text
+  has a created datetime
+
+api SignUp:
+  accepts name, email, and password
+  check that name is not empty
+  check that email is a valid email
+  check that password is at least 8 characters
+  check that email is not already taken
+  create a User with the given fields
+  assign "viewer" role
+  respond with the created user and auth token
+
+api Login:
+  accepts email and password
+  check that email is not empty
+  check that password is not empty
+  fetch the user by email
+  if user does not exist, respond with "invalid credentials"
+  check that password matches the stored hash
+  if password does not match, respond with "invalid credentials"
+  respond with the user and auth token
+
+api CreateProduct:
+  requires authentication
+  accepts name, sku, description, category, unit_price, current_stock, reorder_level, and reorder_quantity
+  check that name is not empty
+  check that sku is not empty
+  check that sku is not already taken
+  check that unit_price is greater than 0
+  check that current_stock is at least 0
+  check that current user is a manager or admin
+  create a Product with the given fields
+  respond with the created product
+
+api UpdateProduct:
+  requires authentication
+  accepts product_id, name, description, category, unit_price, reorder_level, and reorder_quantity
+  fetch the Product by product_id
+  if product does not exist, respond with "product not found"
+  check that current user is a manager or admin
+  update the Product with the given fields
+  respond with the updated product
+
+api DeleteProduct:
+  requires authentication
+  accepts product_id
+  fetch the Product by product_id
+  if product does not exist, respond with "product not found"
+  check that current user is an admin
+  delete the Product
+  respond with "product deleted"
+
+api ListProducts:
+  requires authentication
+  fetch all products
+  sort by name ascending
+  support filtering by category
+  support searching by name or sku
+  paginate with 25 per page
+  respond with products and pagination info
+
+api GetProduct:
+  requires authentication
+  accepts product_id
+  fetch the Product by product_id
+  if product does not exist, respond with "product not found"
+  respond with the product and recent stock movements
+
+api RecordMovement:
+  requires authentication
+  accepts product_id, type, quantity, and notes
+  check that quantity is greater than 0
+  fetch the Product by product_id
+  if product does not exist, respond with "product not found"
+  check that current user is a manager or admin
+  if type is "out", check that current stock is sufficient
+  create a StockMovement with the given fields and current user
+  update the product current_stock based on movement type
+  respond with the created movement
+
+api ListMovements:
+  requires authentication
+  fetch all stock movements
+  sort by created date descending
+  support filtering by type
+  support filtering by product
+  support filtering by date range
+  paginate with 25 per page
+  respond with movements and pagination info
+
+api GetDashboardStats:
+  requires authentication
+  fetch all Product for the current user
+  fetch all StockMovement for the current user
+  respond with the stats
+
+# ─────────────────────────────────────────────────────────────
+── security ──
+# ─────────────────────────────────────────────────────────────
+
+authentication:
+  method JWT tokens that expire in 7 days
+  passwords are hashed with bcrypt using 12 rounds
+  all api requests require a valid token except SignUp and Login
+  rate limit all endpoints to 120 requests per minute per user
+  sanitize all text inputs against XSS
+  enable CORS only for our frontend domain
+
+# ─────────────────────────────────────────────────────────────
+── policies ──
+# ─────────────────────────────────────────────────────────────
+
+policy Viewer:
+  can view all products and stock levels
+  can view stock movements
+  cannot create or edit products
+  cannot record stock movements
+
+policy Manager:
+  can create and edit products
+  can record stock movements
+  can view all data
+  cannot delete products
+
+policy Admin:
+  can view all users and their data
+  can create, edit, and delete products
+  can record stock movements
+  can manage user roles
+  can view analytics
+
+# ─────────────────────────────────────────────────────────────
+── workflows ──
+# ─────────────────────────────────────────────────────────────
+
+when a user signs up:
+  create their account
+  assign Viewer policy
+  send welcome email with template "welcome-to-stockbase"
+
+when a product stock falls below reorder level:
+  send alert email to all managers
+  notify via Slack with product details
+
+when a stock movement is recorded:
+  update the product current stock
+  if stock falls below reorder level, trigger the low stock alert
+  log the movement for audit trail
+
+# ─────────────────────────────────────────────────────────────
+── logic ──
+# ─────────────────────────────────────────────────────────────
+
+if database is unreachable:
+  retry 3 times with 1 second delay
+  if still failing, respond with "service temporarily unavailable"
+
+if an api request fails validation:
+  respond with a clear message explaining what is wrong
+  do not reveal internal details
+
+# ─────────────────────────────────────────────────────────────
+── database ──
+# ─────────────────────────────────────────────────────────────
+
+database:
+  use PostgreSQL
+  when the app starts, create tables if they don't exist
+  index User by email
+  index Product by sku
+  index Product by category
+  index StockMovement by product
+  index StockMovement by type and created
+  backup daily at 2am
+  keep backups for 30 days
+
+# ─────────────────────────────────────────────────────────────
+── integrations ──
+# ─────────────────────────────────────────────────────────────
+
+integrate with SendGrid:
+  api key from environment variable SENDGRID_API_KEY
+  use for sending transactional emails
+
+integrate with Slack:
+  api key from environment variable SLACK_WEBHOOK_URL
+  use for team notifications and low stock alerts
+
+# ─────────────────────────────────────────────────────────────
+── devops ──
+# ─────────────────────────────────────────────────────────────
+
+architecture: monolith
+
+source control using Git on GitHub
+repository: https://github.com/example/stockbase
+
+branches:
+  main is the production branch
+  feature branches from main with prefix "feat/"
+
+when code is pushed to a feature branch:
+  run all tests
+  check code formatting
+  report results back to the pull request
+
+when code is merged to main:
+  run all tests
+  build the application
+  deploy to production environment
+  run health checks
+  if health checks fail, rollback automatically
+
+environment production:
+  url is stockbase.example.com
+  uses production database
+  has auto-scaling enabled
+
+track response times for all api endpoints
+track error rates per endpoint
+alert on Slack if error rate exceeds 5 percent
+log all api requests to CloudWatch
+keep logs for 90 days
+
+# ─────────────────────────────────────────────────────────────
+── build ──
+# ─────────────────────────────────────────────────────────────
+
+build with:
+  frontend using React with TypeScript
+  backend using Go with Gin
+  database using PostgreSQL
+  deploy to Docker

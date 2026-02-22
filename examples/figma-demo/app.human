@@ -1,0 +1,406 @@
+app InsightBoard is a web application
+
+# ─────────────────────────────────────────────────────────────
+── theme ──
+# ─────────────────────────────────────────────────────────────
+
+theme:
+  primary color is #7F56D9
+  secondary color is #6941C6
+  accent color is #F79009
+  font is Inter for body and headings
+  border radius is rounded
+  dark mode is supported and toggles from the header
+  spacing is comfortable
+  design system is untitled
+
+# ─────────────────────────────────────────────────────────────
+── frontend ──
+# ─────────────────────────────────────────────────────────────
+
+page Dashboard:
+  show a greeting with the user's name and team name
+  show a row of metric cards with total users, active projects, revenue, and growth rate
+  show a line chart of user activity over the last 30 days
+  show a bar chart of project activity by team member
+  show a table of recent activities sorted by date descending
+  each activity shows the user name, action, project name, and timestamp
+  there is a date range picker to filter all charts
+  if no data exists, show "No activity yet — invite your team to get started"
+  while loading, show a skeleton screen
+
+page Users:
+  show a table of all users in the team
+  each row shows the user name, email, role, last active date, and status
+  there is a search bar that filters users by name or email
+  there is a dropdown to filter by role
+  clicking a user opens a detail panel
+  there is a button to invite a new user
+  support sorting by name, role, or last active date
+  paginate with 20 per page
+
+page Projects:
+  show a grid of projects
+  each project card shows the name, description, member count, and activity score
+  there is a search bar that filters projects by name
+  clicking a project navigates to ProjectDetail
+  there is a button to create a new project
+  if no projects exist, show "Create your first project"
+  while loading, show a skeleton screen
+
+page ProjectDetail:
+  show the project name as a large heading
+  show the project description
+  show a list of team members assigned to the project
+  show a line chart of project activity over time
+  show a list of recent metrics for this project
+  there is a button to edit the project
+  there is a button to add a team member
+  if project does not exist, show "Project not found"
+
+page Settings:
+  show the team name and settings
+  show a form to update the team name and description
+  show a list of team members with roles
+  each member has a dropdown to change their role
+  there is a button to remove a member from the team
+  show the current plan with usage statistics
+  show a "Upgrade Plan" button if on a free plan
+  there is a "Delete Team" button with confirmation dialog
+
+component Sidebar:
+  show the app logo at the top
+  show navigation links for Dashboard, Users, Projects, and Settings
+  highlight the current page link
+  show the current user's avatar and name at the bottom
+  there is a "Log Out" button
+  on mobile, the sidebar collapses into a hamburger menu
+
+component MetricCard:
+  accepts title as text
+  accepts value as text
+  accepts change as text
+  show the title in small text
+  show the value in large bold text
+  show the change as a percentage with an up or down arrow
+  if change is positive, use green
+  if change is negative, use red
+
+component ActivityRow:
+  accepts activity as Activity
+  show the user avatar and name
+  show the action description
+  show the project name as a link
+  show the timestamp in relative format like "2 hours ago"
+
+# ─────────────────────────────────────────────────────────────
+── backend ──
+# ─────────────────────────────────────────────────────────────
+
+data Team:
+  has a name which is text
+  has an optional description which is text
+  has a plan which is either "free" or "pro" or "enterprise"
+  has a created datetime
+  has many User
+  has many Project
+
+data User:
+  belongs to a Team
+  has a name which is text
+  has an email which is unique email
+  has a password which is encrypted text
+  has a role which is either "owner" or "admin" or "member" or "viewer"
+  has an optional avatar which is image
+  has an optional last_active which is datetime
+  has a created datetime
+  has many Activity
+
+data Project:
+  belongs to a Team
+  has a name which is text
+  has an optional description which is text
+  has a status which is either "active" or "archived"
+  has a created datetime
+  has many Metric
+  has many User through ProjectMember
+
+data ProjectMember:
+  belongs to a Project
+  belongs to a User
+
+data Activity:
+  belongs to a User
+  belongs to a Project
+  has an action which is text
+  has an optional details which is text
+  has a created datetime
+
+data Metric:
+  belongs to a Project
+  has a name which is text
+  has a value which is decimal
+  has a period which is date
+  has a created datetime
+
+api SignUp:
+  accepts name, email, password, and team_name
+  check that name is not empty
+  check that email is a valid email
+  check that password is at least 8 characters
+  check that team_name is not empty
+  check that email is not already taken
+  create a Team with team_name and "free" plan
+  create a User with the given fields and assign to the team
+  assign "owner" role
+  respond with the created user, team, and auth token
+
+api Login:
+  accepts email and password
+  check that email is not empty
+  check that password is not empty
+  fetch the user by email
+  if user does not exist, respond with "invalid credentials"
+  check that password matches the stored hash
+  if password does not match, respond with "invalid credentials"
+  update user last_active to now
+  respond with the user, team, and auth token
+
+api InviteMember:
+  requires authentication
+  accepts email and role
+  check that email is a valid email
+  check that current user is an owner or admin
+  check that team has not exceeded member limit for current plan
+  send invitation email to the given email
+  respond with "invitation sent"
+
+api CreateProject:
+  requires authentication
+  accepts name and description
+  check that name is not empty
+  create a Project with the given fields and current user's team
+  set status to "active"
+  add current user as a project member
+  respond with the created project
+
+api UpdateProject:
+  requires authentication
+  accepts project_id, name, description, and status
+  fetch the Project by project_id
+  if project does not exist, respond with "project not found"
+  check that current user belongs to the project's team
+  update the Project with the given fields
+  respond with the updated project
+
+api ListProjects:
+  requires authentication
+  fetch all projects for the current user's team
+  sort by created date descending
+  support filtering by status
+  support searching by name
+  respond with projects
+
+api GetProject:
+  requires authentication
+  accepts project_id
+  fetch the Project by project_id
+  if project does not exist, respond with "project not found"
+  check that current user belongs to the project's team
+  respond with the project, members, and recent metrics
+
+api RecordActivity:
+  requires authentication
+  accepts project_id, action, and details
+  check that action is not empty
+  fetch the Project by project_id
+  if project does not exist, respond with "project not found"
+  create an Activity with the given fields and current user
+  respond with the created activity
+
+api RecordMetric:
+  requires authentication
+  accepts project_id, name, value, and period
+  check that name is not empty
+  fetch the Project by project_id
+  if project does not exist, respond with "project not found"
+  check that current user is an owner or admin
+  create a Metric with the given fields
+  respond with the created metric
+
+api GetDashboardStats:
+  requires authentication
+  fetch all User for the current team
+  fetch all Project with status "active" for the current team
+  fetch all Activity for the current team
+  respond with the stats
+
+api ListActivities:
+  requires authentication
+  fetch all activities for the current user's team
+  sort by created date descending
+  support filtering by project
+  support filtering by user
+  paginate with 20 per page
+  respond with activities and pagination info
+
+# ─────────────────────────────────────────────────────────────
+── security ──
+# ─────────────────────────────────────────────────────────────
+
+authentication:
+  method JWT tokens that expire in 30 days
+  method Google OAuth with redirect to /auth/google/callback
+  passwords are hashed with bcrypt using 12 rounds
+  all api requests require a valid token except SignUp and Login
+  rate limit all endpoints to 120 requests per minute per user
+  sanitize all text inputs against XSS
+  enable CORS only for our frontend domain
+
+# ─────────────────────────────────────────────────────────────
+── policies ──
+# ─────────────────────────────────────────────────────────────
+
+policy FreePlan:
+  can create up to 3 projects
+  can have up to 5 team members
+  can view basic analytics
+  cannot export data
+
+policy ProPlan:
+  can create up to 50 projects
+  can have up to 50 team members
+  can view full analytics
+  can export data as CSV
+
+policy EnterprisePlan:
+  can create unlimited projects
+  can have unlimited team members
+  can view full analytics and audit logs
+  can export data in all formats
+  can use SSO for authentication
+
+# ─────────────────────────────────────────────────────────────
+── workflows ──
+# ─────────────────────────────────────────────────────────────
+
+when a user signs up:
+  create their account and team
+  assign FreePlan policy
+  send welcome email with template "welcome-to-insightboard"
+  create a sample project with example data
+
+when a team member is invited:
+  send invitation email with signup link
+  after 7 days, if invitation is not accepted,
+    send reminder email
+
+when a project is archived:
+  notify all project members via email
+  log the archive action for audit trail
+
+when a team upgrades to Pro or Enterprise:
+  unlock additional features immediately
+  send confirmation email to the team owner
+
+# ─────────────────────────────────────────────────────────────
+── logic ──
+# ─────────────────────────────────────────────────────────────
+
+if database is unreachable:
+  retry 3 times with 1 second delay
+  if still failing, respond with "service temporarily unavailable"
+  alert the engineering team via Slack
+
+if an api request fails validation:
+  respond with a clear message explaining what is wrong
+  log the attempt for analytics
+  do not reveal internal details
+
+# ─────────────────────────────────────────────────────────────
+── database ──
+# ─────────────────────────────────────────────────────────────
+
+database:
+  use PostgreSQL
+  when the app starts, create tables if they don't exist
+  index User by email
+  index User by team
+  index Project by team
+  index Activity by user and created
+  index Activity by project
+  index Metric by project and period
+  backup daily at 2am
+  keep backups for 30 days
+
+# ─────────────────────────────────────────────────────────────
+── integrations ──
+# ─────────────────────────────────────────────────────────────
+
+integrate with SendGrid:
+  api key from environment variable SENDGRID_API_KEY
+  use for sending transactional emails and invitations
+
+integrate with Stripe:
+  api key from environment variable STRIPE_SECRET_KEY
+  use for processing subscription payments
+
+integrate with Slack:
+  api key from environment variable SLACK_WEBHOOK_URL
+  use for team notifications and alerts
+
+# ─────────────────────────────────────────────────────────────
+── devops ──
+# ─────────────────────────────────────────────────────────────
+
+architecture: monolith
+
+source control using Git on GitHub
+repository: https://github.com/example/insightboard
+
+branches:
+  main is the production branch
+  staging is the pre-release branch
+  feature branches from main with prefix "feat/"
+
+when code is pushed to a feature branch:
+  run all tests
+  check code formatting
+  report results back to the pull request
+
+when code is merged to main:
+  run all tests
+  build the application
+  deploy to production environment
+  run health checks
+  if health checks fail, rollback automatically
+  notify the team on Slack
+
+environment staging:
+  url is staging.insightboard.example.com
+  uses staging database
+  seeds with test data
+
+environment production:
+  url is insightboard.example.com
+  uses production database
+  requires manual approval for deployment
+  has auto-scaling enabled
+
+track response times for all api endpoints
+track error rates per endpoint
+track active users daily and monthly
+alert on Slack if error rate exceeds 3 percent
+alert on Slack if response time exceeds 1 second
+log all api requests to CloudWatch
+keep logs for 90 days
+
+# ─────────────────────────────────────────────────────────────
+── build ──
+# ─────────────────────────────────────────────────────────────
+
+build with:
+  frontend using React with TypeScript
+  backend using Python with FastAPI
+  database using PostgreSQL
+  deploy to Docker

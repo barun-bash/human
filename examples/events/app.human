@@ -1,0 +1,358 @@
+app EventHub is a web application
+
+# ─────────────────────────────────────────────────────────────
+── theme ──
+# ─────────────────────────────────────────────────────────────
+
+theme:
+  primary color is #722ED1
+  secondary color is #13C2C2
+  accent color is #FA541C
+  font is Inter for body and Poppins for headings
+  border radius is rounded
+  dark mode is supported and toggles from the header
+  spacing is comfortable
+  design system is ant
+
+# ─────────────────────────────────────────────────────────────
+── frontend ──
+# ─────────────────────────────────────────────────────────────
+
+page Home:
+  show a hero section with the app name and a search bar
+  show a grid of upcoming events sorted by date
+  each event shows its name, date, location, price, and remaining tickets
+  there is a filter bar to filter by category and date range
+  clicking an event navigates to EventDetail
+  if no events match, show "No events found"
+  while loading, show a skeleton screen
+  scrolling to bottom loads more events
+
+page EventDetail:
+  show the event name as a large heading
+  show the event image as a banner
+  show the date, time, and location with a map link
+  show the event description as rich text
+  show the organizer name and avatar
+  show the ticket price and remaining count
+  there is a number input to select ticket quantity
+  there is a "Buy Tickets" button
+  if event is sold out, show "Sold Out" and disable the button
+  if event has passed, show "This event has ended"
+  if event does not exist, show "Event not found"
+
+page MyTickets:
+  show a list of the user's tickets sorted by event date
+  each ticket shows the event name, date, location, quantity, and a QR code
+  there is a tab to switch between upcoming and past tickets
+  clicking a ticket navigates to EventDetail
+  if no tickets exist, show "You haven't purchased any tickets yet"
+
+page CreateEvent:
+  show a form to create a new Event
+  there is a text input for event name
+  there is a rich text editor for description
+  there is a date and time picker for event date
+  there is a text input for location
+  there is a number input for ticket price
+  there is a number input for total tickets
+  there is a dropdown to select a category
+  there is a file upload for event image
+  clicking "Create Event" creates the event
+  if the save succeeds, show "Event created!" and navigate to EventDetail
+  if there is an error, show the error message
+
+component EventCard:
+  accepts event as Event
+  show the event image at the top
+  show the event name in bold
+  show the date and location
+  show the price and remaining tickets
+  if event is sold out, show a "Sold Out" badge
+  clicking the card triggers on_click
+
+component TicketCard:
+  accepts ticket as Ticket
+  show the event name in bold
+  show the event date and location
+  show the ticket quantity
+  show a QR code for the ticket
+  if event has passed, show a muted style
+
+# ─────────────────────────────────────────────────────────────
+── backend ──
+# ─────────────────────────────────────────────────────────────
+
+data User:
+  has a name which is text
+  has an email which is unique email
+  has a password which is encrypted text
+  has a role which is either "attendee" or "organizer" or "admin"
+  has an optional avatar which is image
+  has a created datetime
+  has many Ticket
+  has many Event
+
+data Event:
+  belongs to a User
+  has a name which is text
+  has a slug which is unique text
+  has a description which is text
+  has an optional image which is image
+  has a date which is datetime
+  has a location which is text
+  has a category which is either "conference" or "workshop" or "concert" or "sports" or "meetup" or "other"
+  has a ticket_price which is decimal
+  has a total_tickets which is number
+  has a tickets_sold which is number
+  has a status which is either "draft" or "published" or "cancelled"
+  has a created datetime
+  has many Ticket
+
+data Ticket:
+  belongs to a User
+  belongs to an Event
+  has a quantity which is number
+  has a total_price which is decimal
+  has a ticket_code which is unique text
+  has a status which is either "confirmed" or "cancelled" or "used"
+  has a created datetime
+
+api SignUp:
+  accepts name, email, and password
+  check that name is not empty
+  check that email is a valid email
+  check that password is at least 8 characters
+  check that email is not already taken
+  create a User with the given fields
+  assign "attendee" role
+  respond with the created user and auth token
+
+api Login:
+  accepts email and password
+  check that email is not empty
+  check that password is not empty
+  fetch the user by email
+  if user does not exist, respond with "invalid credentials"
+  check that password matches the stored hash
+  if password does not match, respond with "invalid credentials"
+  respond with the user and auth token
+
+api CreateEvent:
+  requires authentication
+  accepts name, description, date, location, category, ticket_price, total_tickets, and image
+  check that name is not empty
+  check that date is in the future
+  check that ticket_price is at least 0
+  check that total_tickets is greater than 0
+  check that current user is an organizer or admin
+  create an Event with the given fields and current user
+  generate slug from name
+  set tickets_sold to 0
+  set status to "published"
+  respond with the created event
+
+api ListEvents:
+  fetch all events with status "published" and date in the future
+  sort by date ascending
+  support filtering by category
+  support searching by name or description
+  paginate with 12 per page
+  respond with events and pagination info
+
+api GetEvent:
+  accepts slug
+  fetch the Event by slug
+  if event does not exist, respond with "event not found"
+  respond with the event and organizer info
+
+api PurchaseTicket:
+  requires authentication
+  accepts event_id and quantity
+  check that quantity is at least 1
+  fetch the Event by event_id
+  if event does not exist, respond with "event not found"
+  check that event is published and date is in the future
+  check that enough tickets are available
+  calculate total price
+  create a Ticket with the given fields and current user
+  generate unique ticket code
+  set status to "confirmed"
+  increment tickets_sold on the event
+  respond with the created ticket
+
+api ListMyTickets:
+  requires authentication
+  fetch all tickets for the current user
+  sort by event date descending
+  respond with tickets and event details
+
+api CancelTicket:
+  requires authentication
+  accepts ticket_id
+  fetch the Ticket by ticket_id
+  if ticket does not exist, respond with "ticket not found"
+  check that current user owns the ticket
+  check that event date is in the future
+  set status to "cancelled"
+  decrement tickets_sold on the event
+  respond with "ticket cancelled"
+
+# ─────────────────────────────────────────────────────────────
+── security ──
+# ─────────────────────────────────────────────────────────────
+
+authentication:
+  method JWT tokens that expire in 14 days
+  passwords are hashed with bcrypt using 12 rounds
+  all api requests require a valid token except SignUp, Login, ListEvents, and GetEvent
+  rate limit all endpoints to 100 requests per minute per user
+  sanitize all text inputs against XSS
+  enable CORS only for our frontend domain
+
+# ─────────────────────────────────────────────────────────────
+── policies ──
+# ─────────────────────────────────────────────────────────────
+
+policy Attendee:
+  can view all published events
+  can purchase tickets
+  can view only their own tickets
+  can cancel only their own tickets
+  cannot create events
+
+policy Organizer:
+  can create events
+  can edit only their own events
+  can view ticket sales for their events
+  can cancel their own events
+
+policy Admin:
+  can view all users and their data
+  can edit any event
+  can cancel any event
+  can view site analytics
+  can manage categories
+
+# ─────────────────────────────────────────────────────────────
+── workflows ──
+# ─────────────────────────────────────────────────────────────
+
+when a user signs up:
+  create their account
+  assign Attendee policy
+  send welcome email with template "welcome-to-eventhub"
+
+when a ticket is purchased:
+  send confirmation email to the buyer with ticket details
+  notify the event organizer of the sale
+
+when an event is cancelled:
+  notify all ticket holders via email
+  mark all tickets as cancelled
+  log the cancellation for analytics
+
+when an event is sold out:
+  notify the organizer via email
+  update the event display to show "Sold Out"
+
+# ─────────────────────────────────────────────────────────────
+── logic ──
+# ─────────────────────────────────────────────────────────────
+
+if database is unreachable:
+  retry 3 times with 1 second delay
+  if still failing, respond with "service temporarily unavailable"
+
+if an api request fails validation:
+  respond with a clear message explaining what is wrong
+  do not reveal internal details
+
+# ─────────────────────────────────────────────────────────────
+── database ──
+# ─────────────────────────────────────────────────────────────
+
+database:
+  use PostgreSQL
+  when the app starts, create tables if they don't exist
+  index User by email
+  index Event by slug
+  index Event by date and status
+  index Event by category
+  index Ticket by user
+  index Ticket by event
+  index Ticket by ticket_code
+  backup daily at 2am
+  keep backups for 30 days
+
+# ─────────────────────────────────────────────────────────────
+── integrations ──
+# ─────────────────────────────────────────────────────────────
+
+integrate with SendGrid:
+  api key from environment variable SENDGRID_API_KEY
+  use for sending transactional emails
+
+integrate with Stripe:
+  api key from environment variable STRIPE_SECRET_KEY
+  use for processing ticket payments
+
+integrate with Slack:
+  api key from environment variable SLACK_WEBHOOK_URL
+  use for team notifications and alerts
+
+# ─────────────────────────────────────────────────────────────
+── devops ──
+# ─────────────────────────────────────────────────────────────
+
+architecture: monolith
+
+source control using Git on GitHub
+repository: https://github.com/example/eventhub
+
+branches:
+  main is the production branch
+  staging is the pre-release branch
+  feature branches from main with prefix "feat/"
+
+when code is pushed to a feature branch:
+  run all tests
+  check code formatting
+  report results back to the pull request
+
+when code is merged to main:
+  run all tests
+  build the application
+  deploy to production environment
+  run health checks
+  if health checks fail, rollback automatically
+  notify the team on Slack
+
+environment staging:
+  url is staging.eventhub.example.com
+  uses staging database
+  seeds with test data
+
+environment production:
+  url is eventhub.example.com
+  uses production database
+  requires manual approval for deployment
+  has auto-scaling enabled
+
+track response times for all api endpoints
+track error rates per endpoint
+track active users daily and monthly
+alert on Slack if error rate exceeds 5 percent
+alert on Slack if response time exceeds 2 seconds
+log all api requests to CloudWatch
+keep logs for 90 days
+
+# ─────────────────────────────────────────────────────────────
+── build ──
+# ─────────────────────────────────────────────────────────────
+
+build with:
+  frontend using Angular with TypeScript
+  backend using Node with Express
+  database using PostgreSQL
+  deploy to Docker
