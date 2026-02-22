@@ -1,6 +1,9 @@
 # Build artifacts
-build/
+/build/
 /human
+
+# MCP server embedded files (copied by Makefile)
+cmd/human-mcp/embedded/
 
 # Go
 *.exe

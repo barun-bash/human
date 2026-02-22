@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "human": {
+      "command": "human-mcp",
+      "args": []
+    }
+  }
+}
