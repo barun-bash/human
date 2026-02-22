@@ -144,18 +144,22 @@ English in → production-ready applications out.
 
 ---
 
-## Phase 7: Design Import (Weeks 21-24)
+## Phase 7: Design Import (Weeks 21-24) 🔄
 **Goal: Figma and image files as input**
 
 - [ ] Figma API integration (extract layers, styles, components)
 - [ ] Image analysis for screenshots/JPEGs (requires LLM vision)
-- [ ] Visual → component mapping
-- [ ] Style extraction (colors, fonts, spacing)
+- [x] Visual → component mapping (heuristic classifier by name, structure, type)
+- [x] Style extraction (colors, fonts, spacing) — theme extraction from Figma nodes
 - [ ] Asset extraction (images, icons)
 - [ ] Component map caching (deterministic after first import)
 - [ ] Design enrichment via English statements
+- [x] Data model inference from forms, cards, and tables
+- [x] Complete `.human` source generation from design elements (pages, models, CRUD APIs)
+- [x] LLM prompt generation for assisted design-to-code workflows
+- [x] Figma demo example (`examples/figma-demo/app.human`) — SaaS analytics dashboard
 
-### Milestone: Figma file + English → working React components
+### Milestone: 🔄 Figma → Human mapping intelligence complete; Figma API integration remaining
 
 ---
 
@@ -251,12 +255,14 @@ English in → production-ready applications out.
 
 - [ ] Comprehensive documentation website
 - [ ] Tutorial: "Build your first app in Human"
-- [ ] 5+ complete example applications
+- [x] 5+ complete example applications (12 examples covering all framework+design system combos)
 - [ ] Performance optimization
 - [ ] Error message review (every error is helpful)
 - [ ] Installation scripts (brew, apt, scoop, etc.)
 - [ ] VS Code extension (syntax highlighting, autocomplete)
 - [x] Landing page and branding
+- [x] MCP server for Claude Desktop integration (6 tools: build, validate, IR, examples, spec, read_file)
+- [x] Demo documentation (`docs/DEMO.md`) — setup, MCP config, design system showcase, example gallery
 - [ ] Open source release
 
 ### Milestone: v1.0 public launch
@@ -288,10 +294,41 @@ Running `human build examples/taskflow/app.human` produces **77 files** (React +
 
 All generators are wired into the CLI. The scaffolder adapts to the selected stack — only files relevant to the chosen frontend/backend are generated.
 
+### Example Gallery (12 applications)
+
+| Example | Frontend | Backend | Design System | Unique Coverage |
+|---------|----------|---------|---------------|-----------------|
+| taskflow | React | Node | — | Reference example |
+| blog | Vue | Python | — | CMS with nested comments |
+| ecommerce | Angular | Go | — | Microservices architecture |
+| saas | Svelte | Node | Shadcn | Serverless + tiered pricing |
+| recipes | React | Node | Tailwind | Community content + favorites |
+| projects | React | Node | Shadcn | Kanban board + teams |
+| api-only | — | Node | — | Pure API (no frontend) |
+| test-app | React | Node | — | Minimal test target |
+| fitness | Vue | Python | Material | Vuetify integration |
+| events | Angular | Node | Ant Design | ng-zorro-antd integration |
+| inventory | React | Go | Chakra | @chakra-ui/react integration |
+| figma-demo | React | Python | Untitled UI | Figma→Human translation demo |
+
+### MCP Server
+
+The MCP server (`cmd/human-mcp/`) exposes 6 tools over JSON-RPC 2.0 (stdin/stdout) for Claude Desktop integration:
+
+| Tool | Description |
+|------|-------------|
+| `human_build` | Compile .human source through the full pipeline |
+| `human_validate` | Validate without code generation, return diagnostics |
+| `human_ir` | Parse and return Intent IR as YAML |
+| `human_examples` | List or retrieve example .human applications |
+| `human_spec` | Return the complete language specification |
+| `human_read_file` | Read a file from the last build output |
+
 ---
 
 ## What's Next — v0.5.0
 
+- 🔄 **Figma API integration** — connect the mapping intelligence (`internal/figma/`) to live Figma files via API
 - 🔄 **Runtime correctness hardening** — end-to-end `docker compose up` validation, `tsc --noEmit` clean across all stacks
 - 🔜 **Display statement intelligence** — smarter JSX/template generation from natural language descriptions
 - 🔜 **Plugin system** — community-extensible code generators and integration adapters
@@ -315,7 +352,10 @@ All generators are wired into the CLI. The scaffolder adapts to the selected sta
 | Third-party integrations (Stripe, S3, etc.) | Phase 12 | ✅ Done |
 | Quality guarantees enforced | Phase 5 | ✅ Done |
 | 600+ compiler tests | — | ✅ Done |
-| Design-to-code pipeline | Phase 7 | Upcoming |
+| Design-to-code mapping intelligence | Phase 7 | ✅ Done (API integration remaining) |
+| MCP server for LLM integration | Phase 14 | ✅ Done |
+| 12 example applications | Phase 14 | ✅ Done |
+| Demo documentation | Phase 14 | ✅ Done |
 | Plugin ecosystem | Phase 13 | Upcoming |
 | Public launch | Phase 14 | Upcoming |
 
