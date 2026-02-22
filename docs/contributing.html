@@ -494,7 +494,8 @@
         <div class="code-block">
           <pre><span class="cmd">git</span> clone https://github.com/barun-bash/human.git
 <span class="cmd">cd</span> human
-<span class="cmd">make</span> build
+<span class="cmd">make</span> build        <span class="comment"># Build the CLI compiler</span>
+<span class="cmd">make</span> mcp          <span class="comment"># Build the MCP server</span>
 <span class="cmd">make</span> test</pre>
         </div>
       </div>
@@ -562,6 +563,10 @@
             <span class="file-tree-desc">CLI entry point</span>
           </div>
           <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>cmd/human-mcp/</span>
+            <span class="file-tree-desc">MCP server entry point</span>
+          </div>
+          <div class="file-tree-item">
             <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/lexer/</span>
             <span class="file-tree-desc">Tokenizer</span>
           </div>
@@ -578,20 +583,40 @@
             <span class="file-tree-desc">Semantic analysis</span>
           </div>
           <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/build/</span>
+            <span class="file-tree-desc">Shared build pipeline (used by CLI and MCP)</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/cli/</span>
+            <span class="file-tree-desc">CLI helpers (color output)</span>
+          </div>
+          <div class="file-tree-item">
             <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/codegen/</span>
             <span class="file-tree-desc">Code generators (per target)</span>
           </div>
           <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/quality/</span>
-            <span class="file-tree-desc">Quality engine (tests, security, lint, QA)</span>
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/config/</span>
+            <span class="file-tree-desc">Configuration loading</span>
           </div>
           <div class="file-tree-item">
             <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/errors/</span>
             <span class="file-tree-desc">Error types and messages</span>
           </div>
           <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/config/</span>
-            <span class="file-tree-desc">Configuration loading</span>
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/figma/</span>
+            <span class="file-tree-desc">Figma design import</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/llm/</span>
+            <span class="file-tree-desc">LLM connector (ask, suggest, edit)</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/mcp/</span>
+            <span class="file-tree-desc">MCP server protocol and tool handlers</span>
+          </div>
+          <div class="file-tree-item">
+            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/quality/</span>
+            <span class="file-tree-desc">Quality engine (tests, security, lint, QA)</span>
           </div>
         </div>
       </div>

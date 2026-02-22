@@ -613,7 +613,7 @@
     <main class="content">
 
       <h1 id="overview">Human Language Specification</h1>
-      <p class="spec-version">Version 0.1</p>
+      <p class="spec-version">Version 0.4</p>
 
       <div class="overview-box">
         <p><strong>Human</strong> is a natural language programming language that compiles structured English and design files into production-ready full-stack applications. It is deterministic, target-agnostic, and enforces mandatory quality guarantees.</p>
@@ -1172,44 +1172,44 @@ keep logs <span class="kw">for</span> &lt;duration&gt;</pre></div>
   <span class="kw">database</span> <span class="kw">using</span> &lt;<span class="kw">database</span>&gt;
   <span class="kw">deploy</span> to &lt;platform&gt;</pre></div>
 
-      <h4>Supported Targets (v1)</h4>
+      <h4>Supported Targets</h4>
 
       <p><strong>Frontend:</strong></p>
       <ul>
         <li>React with TypeScript</li>
-        <li>Angular with TypeScript</li>
         <li>Vue with TypeScript</li>
+        <li>Angular with TypeScript</li>
         <li>Svelte with TypeScript</li>
-        <li>HTMX with vanilla JavaScript</li>
       </ul>
 
       <p><strong>Backend:</strong></p>
       <ul>
         <li>Node with Express</li>
-        <li>Node with Fastify</li>
         <li>Python with FastAPI</li>
-        <li>Python with Django</li>
         <li>Go with Gin</li>
-        <li>Go with Fiber</li>
-        <li>Rust with Axum</li>
       </ul>
 
       <p><strong>Database:</strong></p>
       <ul>
         <li>PostgreSQL</li>
-        <li>MySQL</li>
-        <li>MongoDB</li>
-        <li>SQLite</li>
-        <li>Supabase</li>
       </ul>
 
       <p><strong>Deploy:</strong></p>
       <ul>
-        <li>Vercel</li>
-        <li>AWS (Lambda + API Gateway)</li>
-        <li>GCP (Cloud Run)</li>
         <li>Docker (self-hosted)</li>
-        <li>Kubernetes</li>
+        <li>AWS (Terraform)</li>
+        <li>GCP (Terraform)</li>
+      </ul>
+
+      <p><strong>Design Systems:</strong></p>
+      <ul>
+        <li>Material UI</li>
+        <li>shadcn/ui</li>
+        <li>Ant Design</li>
+        <li>Chakra UI</li>
+        <li>Bootstrap</li>
+        <li>Tailwind CSS</li>
+        <li>Untitled UI</li>
       </ul>
 
       <!-- ── 4. Mandatory Quality System ── -->
@@ -1375,26 +1375,21 @@ keep logs <span class="kw">for</span> &lt;duration&gt;</pre></div>
           </tr>
         </thead>
         <tbody>
-          <tr><td><code>human init &lt;name&gt;</code></td><td>Create new project</td></tr>
-          <tr><td><code>human build</code></td><td>Compile .human files to target code</td></tr>
-          <tr><td><code>human build --inspect</code></td><td>Show generated files without deploying</td></tr>
+          <tr><td><code>human init [name]</code></td><td>Create new project with interactive setup</td></tr>
+          <tr><td><code>human build &lt;file&gt;</code></td><td>Compile .human files to target code</td></tr>
+          <tr><td><code>human build --inspect &lt;file&gt;</code></td><td>Parse and print the Intent IR as YAML without generating code</td></tr>
+          <tr><td><code>human build --watch &lt;file&gt;</code></td><td>Rebuild automatically on file changes</td></tr>
+          <tr><td><code>human check &lt;file&gt;</code></td><td>Validate .human files and report findings</td></tr>
           <tr><td><code>human run</code></td><td>Start development server</td></tr>
-          <tr><td><code>human check</code></td><td>Validate .human files</td></tr>
           <tr><td><code>human test</code></td><td>Run all generated tests</td></tr>
-          <tr><td><code>human audit</code></td><td>Run security audit</td></tr>
-          <tr><td><code>human deploy</code></td><td>Deploy to configured environment</td></tr>
-          <tr><td><code>human eject</code></td><td>Export generated code as standalone project</td></tr>
-          <tr><td><code>human edit --with-llm</code></td><td>Start conversational editing session</td></tr>
-          <tr><td><code>human ask "&lt;question&gt;"</code></td><td>Ask LLM about your project</td></tr>
-          <tr><td><code>human suggest</code></td><td>Get improvement suggestions from LLM</td></tr>
-          <tr><td><code>human feature "&lt;name&gt;"</code></td><td>Create feature branch</td></tr>
-          <tr><td><code>human commit "&lt;message&gt;"</code></td><td>Test, lint, commit</td></tr>
-          <tr><td><code>human push</code></td><td>Push and trigger pipeline</td></tr>
-          <tr><td><code>human release "&lt;version&gt;"</code></td><td>Tag and deploy release</td></tr>
-          <tr><td><code>human rollback</code></td><td>Revert to last stable deployment</td></tr>
-          <tr><td><code>human integrate &lt;service&gt;</code></td><td>Add third-party integration</td></tr>
-          <tr><td><code>human plugin add &lt;plugin&gt;</code></td><td>Add compiler target plugin</td></tr>
-          <tr><td><code>human plugin list</code></td><td>List available plugins</td></tr>
+          <tr><td><code>human audit</code></td><td>Run security and quality audit</td></tr>
+          <tr><td><code>human deploy [--dry-run] [--env &lt;name&gt;]</code></td><td>Deploy to configured environment</td></tr>
+          <tr><td><code>human eject [path]</code></td><td>Export generated code as standalone project</td></tr>
+          <tr><td><code>human convert "&lt;description&gt;"</code></td><td>Convert English description to .human code</td></tr>
+          <tr><td><code>human edit &lt;file&gt;</code></td><td>Start interactive AI-assisted editing session</td></tr>
+          <tr><td><code>human ask "&lt;question&gt;"</code></td><td>Generate .human code from a description (LLM-powered)</td></tr>
+          <tr><td><code>human suggest &lt;file&gt;</code></td><td>Get improvement suggestions from LLM</td></tr>
+          <tr><td><code>human version</code></td><td>Print compiler version</td></tr>
         </tbody>
       </table>
 
@@ -1472,6 +1467,11 @@ monolith, microservices, <span class="kw">serverless</span>, <span class="kw">ga
           </tr>
         </thead>
         <tbody>
+          <tr>
+            <td>0.4</td>
+            <td>2025-06-01</td>
+            <td>Updated CLI reference, supported targets, and design systems to match compiler v0.4.x</td>
+          </tr>
           <tr>
             <td>0.1</td>
             <td>2025-02-19</td>
