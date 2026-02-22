@@ -57,8 +57,8 @@ func generateNodeDockerfile(app *ir.Application) string {
 	b.WriteString("# Generate start script\n")
 	b.WriteString("RUN echo '#!/bin/sh' > start.sh && \\\n")
 	b.WriteString("    echo 'set -e' >> start.sh && \\\n")
-	b.WriteString("    echo 'echo \"Running database migrations...\"' >> start.sh && \\\n")
-	b.WriteString("    echo 'npx prisma migrate deploy' >> start.sh && \\\n")
+	b.WriteString("    echo 'echo \"Syncing database schema...\"' >> start.sh && \\\n")
+	b.WriteString("    echo 'npx prisma db push --accept-data-loss' >> start.sh && \\\n")
 	b.WriteString("    echo 'echo \"Starting application...\"' >> start.sh && \\\n")
 	b.WriteString("    echo 'node dist/server.js' >> start.sh && \\\n")
 	b.WriteString("    chmod +x start.sh\n\n")
@@ -92,8 +92,18 @@ func generatePythonDockerfile(app *ir.Application) string {
 	b.WriteString("COPY --from=builder /install /usr/local\n")
 	b.WriteString("COPY . .\n\n")
 
+	// Generate start script that runs migrations before starting the app
+	b.WriteString("# Generate start script\n")
+	b.WriteString("RUN echo '#!/bin/sh' > start.sh && \\\n")
+	b.WriteString("    echo 'set -e' >> start.sh && \\\n")
+	b.WriteString("    echo 'echo \"Running database migrations...\"' >> start.sh && \\\n")
+	b.WriteString("    echo 'python -c \"from database import engine, Base; from models import *; Base.metadata.create_all(bind=engine)\"' >> start.sh && \\\n")
+	b.WriteString("    echo 'echo \"Starting application...\"' >> start.sh && \\\n")
+	b.WriteString("    echo 'exec uvicorn main:app --host 0.0.0.0 --port 8000' >> start.sh && \\\n")
+	b.WriteString("    chmod +x start.sh\n\n")
+
 	b.WriteString("EXPOSE 8000\n\n")
-	b.WriteString("CMD [\"uvicorn\", \"main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]\n")
+	b.WriteString("CMD [\"./start.sh\"]\n")
 
 	_ = app
 	return b.String()
@@ -111,7 +121,7 @@ func generateGoDockerfile(app *ir.Application) string {
 	b.WriteString("WORKDIR /app\n\n")
 
 	b.WriteString("# Download dependencies\n")
-	b.WriteString("COPY go.mod go.sum ./\n")
+	b.WriteString("COPY go.mod go.sum* ./\n")
 	b.WriteString("RUN go mod download\n\n")
 
 	b.WriteString("# Build binary\n")
