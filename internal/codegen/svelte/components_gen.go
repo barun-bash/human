@@ -495,14 +495,18 @@ func writeInputSvelte(b *strings.Builder, text string, indent string, ctx *pageC
 	}
 	if strings.Contains(lower, "dropdown") || strings.Contains(lower, "filter by") || strings.Contains(lower, "select") {
 		label := "All"
+		fieldName := "filter"
 		if strings.Contains(lower, "status") {
 			label = "All Statuses"
+			fieldName = "statusFilter"
 		} else if strings.Contains(lower, "priority") {
 			label = "All Priorities"
+			fieldName = "priorityFilter"
 		} else if strings.Contains(lower, "category") {
 			label = "Select Category"
+			fieldName = "categoryFilter"
 		}
-		fmt.Fprintf(b, "%s<select class=\"filter-select\" onchange={() => {/* TODO: filter */}}>\n", indent)
+		fmt.Fprintf(b, "%s<select class=\"filter-select\" bind:value={%s} onchange={() => {/* TODO: filter */}}>\n", indent, fieldName)
 		fmt.Fprintf(b, "%s  <option value=\"\">%s</option>\n", indent, label)
 		fmt.Fprintf(b, "%s</select>\n", indent)
 		return
@@ -525,7 +529,7 @@ func writeInputSvelte(b *strings.Builder, text string, indent string, ctx *pageC
 		if strings.Contains(lower, "published") {
 			label = "Published"
 		}
-		fmt.Fprintf(b, "%s<label class=\"toggle\"><input type=\"checkbox\" /> <span>%s</span></label>\n", indent, label)
+		fmt.Fprintf(b, "%s<label class=\"toggle\"><input type=\"checkbox\" bind:checked={%s} /> <span>%s</span></label>\n", indent, toCamelCase(label), label)
 		return
 	}
 	if strings.Contains(lower, "file") || strings.Contains(lower, "upload") {
@@ -547,7 +551,7 @@ func writeInputSvelte(b *strings.Builder, text string, indent string, ctx *pageC
 	}
 	if strings.Contains(lower, "rich text") || strings.Contains(lower, "editor") {
 		fmt.Fprintf(b, "%s<div class=\"rich-text-editor\">\n", indent)
-		fmt.Fprintf(b, "%s  <textarea placeholder=\"Write your content...\"></textarea>\n", indent)
+		fmt.Fprintf(b, "%s  <textarea placeholder=\"Write your content...\" bind:value={content}></textarea>\n", indent)
 		fmt.Fprintf(b, "%s</div>\n", indent)
 		return
 	}
@@ -561,11 +565,11 @@ func writeInputSvelte(b *strings.Builder, text string, indent string, ctx *pageC
 		}
 		fmt.Fprintf(b, "%s<div class=\"form-field\">\n", indent)
 		fmt.Fprintf(b, "%s  <label>%s</label>\n", indent, capitalize(fieldName))
-		fmt.Fprintf(b, "%s  <input type=\"text\" placeholder=\"%s\" />\n", indent, fieldName)
+		fmt.Fprintf(b, "%s  <input type=\"text\" placeholder=\"%s\" bind:value={%s} />\n", indent, fieldName, toCamelCase(fieldName))
 		fmt.Fprintf(b, "%s</div>\n", indent)
 		return
 	}
-	fmt.Fprintf(b, "%s<input type=\"text\" placeholder=\"%s\" />\n", indent, text)
+	fmt.Fprintf(b, "%s<input type=\"text\" placeholder=\"%s\" bind:value={%s} />\n", indent, text, toCamelCase(text))
 }
 
 func writeFormSvelte(b *strings.Builder, text string, indent string, ctx *pageContext) {
@@ -594,7 +598,7 @@ func writeFormSvelte(b *strings.Builder, text string, indent string, ctx *pageCo
 		}
 		fmt.Fprintf(b, "%s  <div class=\"form-field\">\n", indent)
 		fmt.Fprintf(b, "%s    <label>%s</label>\n", indent, capitalize(f))
-		fmt.Fprintf(b, "%s    <input type=\"%s\" name=\"%s\" placeholder=\"%s\" />\n", indent, inputType, toCamelCase(f), capitalize(f))
+		fmt.Fprintf(b, "%s    <input type=\"%s\" name=\"%s\" placeholder=\"%s\" bind:value={%s} />\n", indent, inputType, toCamelCase(f), capitalize(f), toCamelCase(f))
 		fmt.Fprintf(b, "%s  </div>\n", indent)
 	}
 	fmt.Fprintf(b, "%s  <button type=\"submit\">Save</button>\n", indent)

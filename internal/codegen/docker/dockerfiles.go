@@ -54,8 +54,17 @@ func generateNodeDockerfile(app *ir.Application) string {
 	b.WriteString("COPY --from=builder /app/dist ./dist\n")
 	b.WriteString("COPY --from=builder /app/prisma ./prisma\n\n")
 
+	b.WriteString("# Generate start script\n")
+	b.WriteString("RUN echo '#!/bin/sh' > start.sh && \\\n")
+	b.WriteString("    echo 'set -e' >> start.sh && \\\n")
+	b.WriteString("    echo 'echo \"Running database migrations...\"' >> start.sh && \\\n")
+	b.WriteString("    echo 'npx prisma migrate deploy' >> start.sh && \\\n")
+	b.WriteString("    echo 'echo \"Starting application...\"' >> start.sh && \\\n")
+	b.WriteString("    echo 'node dist/server.js' >> start.sh && \\\n")
+	b.WriteString("    chmod +x start.sh\n\n")
+
 	b.WriteString("EXPOSE 3000\n\n")
-	b.WriteString("CMD [\"node\", \"dist/server.js\"]\n")
+	b.WriteString("CMD [\"./start.sh\"]\n")
 
 	_ = app // used for future customization
 	return b.String()

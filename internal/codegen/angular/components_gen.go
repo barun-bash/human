@@ -29,6 +29,8 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	needsEffect := false
 	needsAuth := false
 	needsFormState := false
+	needsForm := false
+	var formFields []string
 	needsSuccess := false
 	needsError := false
 
@@ -55,6 +57,12 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		case "input":
 			if strings.Contains(lower, "button") && (strings.Contains(lower, "create") || strings.Contains(lower, "new") || strings.Contains(lower, "add")) {
 				needsFormState = true
+			}
+			if strings.Contains(lower, "form") {
+				needsForm = true
+				if len(formFields) == 0 {
+					formFields = extractFormFields(lower, &pageContext{app: app})
+				}
 			}
 		case "condition":
 			if strings.Contains(lower, "logged in") {
@@ -85,6 +93,9 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	if needsRouter {
 		b.WriteString("import { RouterModule, Router } from '@angular/router';\n")
 	}
+	if needsForm {
+		b.WriteString("import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';\n")
+	}
 	if needsDataState || needsEffect {
 		b.WriteString("import { ApiService } from '../../services/api.service';\n")
 	}
@@ -98,11 +109,14 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	fmt.Fprintf(&b, "\n@Component({\n")
 	fmt.Fprintf(&b, "  selector: '%s',\n", selector)
 	b.WriteString("  standalone: true,\n")
+	importsList := []string{"CommonModule"}
 	if needsRouter {
-		b.WriteString("  imports: [CommonModule, RouterModule],\n")
-	} else {
-		b.WriteString("  imports: [CommonModule],\n")
+		importsList = append(importsList, "RouterModule")
 	}
+	if needsForm {
+		importsList = append(importsList, "ReactiveFormsModule")
+	}
+	fmt.Fprintf(&b, "  imports: [%s],\n", strings.Join(importsList, ", "))
 	b.WriteString("  template: `\n")
 
 	// Template
@@ -146,6 +160,14 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	}
 	if needsDataState || needsEffect {
 		b.WriteString("  private api = inject(ApiService);\n")
+	}
+	if needsForm {
+		b.WriteString("  private fb = inject(FormBuilder);\n")
+		b.WriteString("  form: FormGroup = this.fb.group({\n")
+		for _, f := range formFields {
+			fmt.Fprintf(&b, "    %s: [''],\n", toCamelCase(f))
+		}
+		b.WriteString("  });\n")
 	}
 	b.WriteString("  loading = signal(true);\n")
 	if needsDataState {
@@ -196,8 +218,25 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 func generateComponent(comp *ir.Component, app *ir.Application) string {
 	var b strings.Builder
 
-	b.WriteString("import { Component, Input, Output, EventEmitter } from '@angular/core';\n")
+	b.WriteString("import { Component, Input, Output, EventEmitter, inject } from '@angular/core';\n")
 	b.WriteString("import { CommonModule } from '@angular/common';\n")
+	
+	needsForm := false
+	var formFields []string
+	for _, a := range comp.Content {
+		lower := strings.ToLower(a.Text)
+		if a.Type == "input" || a.Type == "display" {
+			if strings.Contains(lower, "form") {
+				needsForm = true
+				if len(formFields) == 0 {
+					formFields = extractFormFields(lower, &pageContext{app: app})
+				}
+			}
+		}
+	}
+	if needsForm {
+		b.WriteString("import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';\n")
+	}
 
 	hasDataModelImport := false
 	for _, prop := range comp.Props {
@@ -223,7 +262,11 @@ func generateComponent(comp *ir.Component, app *ir.Application) string {
 	fmt.Fprintf(&b, "\n@Component({\n")
 	fmt.Fprintf(&b, "  selector: '%s',\n", selector)
 	b.WriteString("  standalone: true,\n")
-	b.WriteString("  imports: [CommonModule],\n")
+	if needsForm {
+		b.WriteString("  imports: [CommonModule, ReactiveFormsModule],\n")
+	} else {
+		b.WriteString("  imports: [CommonModule],\n")
+	}
 	b.WriteString("  template: `\n")
 
 	hasClick := hasClickHandler(comp)
@@ -251,6 +294,14 @@ func generateComponent(comp *ir.Component, app *ir.Application) string {
 	b.WriteString("    </div>\n  `\n})\n")
 
 	fmt.Fprintf(&b, "export class %s {\n", compName)
+	if needsForm {
+		b.WriteString("  private fb = inject(FormBuilder);\n")
+		b.WriteString("  form: FormGroup = this.fb.group({\n")
+		for _, f := range formFields {
+			fmt.Fprintf(&b, "    %s: [''],\n", toCamelCase(f))
+		}
+		b.WriteString("  });\n")
+	}
 
 	for _, prop := range comp.Props {
 		propType := "unknown"
@@ -577,7 +628,7 @@ func writeFormNG(b *strings.Builder, text string, indent string, ctx *pageContex
 		onSubmit = "success.set('Saved successfully')"
 	}
 
-	fmt.Fprintf(b, "%s<form class=\"form\" (ngSubmit)=\"%s\">\n", indent, onSubmit)
+	fmt.Fprintf(b, "%s<form class=\"form\" [formGroup]=\"form\" (ngSubmit)=\"%s\">\n", indent, onSubmit)
 	for _, f := range fields {
 		inputType := "text"
 		fl := strings.ToLower(f)
@@ -592,7 +643,7 @@ func writeFormNG(b *strings.Builder, text string, indent string, ctx *pageContex
 		}
 		fmt.Fprintf(b, "%s  <div class=\"form-field\">\n", indent)
 		fmt.Fprintf(b, "%s    <label>%s</label>\n", indent, capitalize(f))
-		fmt.Fprintf(b, "%s    <input type=\"%s\" name=\"%s\" placeholder=\"%s\" />\n", indent, inputType, toCamelCase(f), capitalize(f))
+		fmt.Fprintf(b, "%s    <input type=\"%s\" formControlName=\"%s\" placeholder=\"%s\" />\n", indent, inputType, toCamelCase(f), capitalize(f))
 		fmt.Fprintf(b, "%s  </div>\n", indent)
 	}
 	fmt.Fprintf(b, "%s  <button type=\"submit\">Save</button>\n", indent)

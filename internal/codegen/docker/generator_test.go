@@ -324,7 +324,7 @@ func TestGenerateBackendDockerfileNode(t *testing.T) {
 		{"npm build", "RUN npm run build"},
 		{"production stage", "FROM node:20-alpine\n"},
 		{"expose 3000", "EXPOSE 3000"},
-		{"CMD", "CMD [\"node\", \"dist/server.js\"]"},
+		{"CMD", "CMD [\"./start.sh\"]"},
 	}
 
 	for _, c := range checks {
