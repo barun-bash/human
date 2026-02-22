@@ -450,7 +450,7 @@ build with:
 **Frontend frameworks:** React, Vue, Angular, Svelte (+ TypeScript)
 **Backend frameworks:** Node (Express), Python (FastAPI, Django), Go (Gin)
 **Databases:** PostgreSQL, MySQL
-**Deploy targets:** Docker, AWS Lambda, Vercel
+**Deploy targets:** Docker, AWS (Terraform), GCP (Terraform)
 
 ---
 
