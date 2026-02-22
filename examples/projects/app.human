@@ -1,0 +1,375 @@
+app ProjectHub is a web application
+
+# ─────────────────────────────────────────────────────────────
+── theme ──
+# ─────────────────────────────────────────────────────────────
+
+theme:
+  primary color is #4F46E5
+  secondary color is #10B981
+  accent color is #F59E0B
+  danger color is #EF4444
+  font is Inter for body and headings
+  border radius is smooth
+  spacing is comfortable
+  dark mode is supported and toggles from the header
+  design system is shadcn
+
+# ─────────────────────────────────────────────────────────────
+── frontend ──
+# ─────────────────────────────────────────────────────────────
+
+page Home:
+  show a hero section with the app name and tagline
+  show a "Get Started" button
+  clicking the "Get Started" button navigates to Dashboard
+  if user is not logged in, show login and signup buttons
+  show a features section with benefits
+
+page Dashboard:
+  show a greeting with the user's name
+  show a summary card with total projects, active tasks, and team members
+  show a list of projects sorted by updated date
+  each project shows its name, task count, and member count
+  clicking a project navigates to ProjectBoard
+  there is a button to create a new project
+  there is a search bar that filters projects by name
+  if no projects exist, show "Create your first project!"
+  while loading, show a skeleton screen
+
+page ProjectBoard:
+  show the project name as a heading
+  show a list of tasks grouped by status
+  each task shows its title, assignee name, priority, and due date
+  each task shows the priority as a colored badge
+  dragging a task between groups updates the task status
+  clicking a task navigates to TaskDetail
+  there is a button to add a new task
+  there is a search bar that filters tasks by title
+  there is a dropdown to filter by assignee
+  there is a dropdown to filter by priority
+  if no tasks exist, show "Add your first task!"
+
+page TaskDetail:
+  show the task title in large heading
+  show the description as rich text
+  show the assignee name and avatar
+  show the status and priority as badges
+  show the due date in relative format like "due in 3 days"
+  show a list of comments sorted by date
+  each comment shows the author name, content, and relative date
+  there is a form to add a comment
+  there is a dropdown to change status
+  there is a dropdown to change priority
+  there is a dropdown to assign to a team member
+  clicking "Save" updates the task
+  clicking "Delete" deletes the task
+  if task does not exist, show "Task not found"
+  clicking "Back" navigates to ProjectBoard
+
+page TeamView:
+  show a list of team members
+  each member shows their name, email, avatar, and role
+  show each member's active task count
+  there is a button to invite a new member
+  there is a search bar that filters members by name
+
+component TaskRow:
+  accepts task as Task
+  show the task title in bold
+  show the priority as a colored badge
+  show the assignee avatar
+  show the due date in relative format
+  if task is overdue, show the due date in red
+  clicking the row triggers on_click
+
+# ─────────────────────────────────────────────────────────────
+── backend ──
+# ─────────────────────────────────────────────────────────────
+
+data User:
+  has a name which is text
+  has an email which is unique email
+  has a password which is encrypted text
+  has a role which is either "member" or "admin"
+  has an optional avatar which is image
+  has a created datetime
+
+data Team:
+  has a name which is text
+  has an optional description which is text
+  has a created datetime
+  has many User through TeamMember
+  has many Project
+
+data TeamMember:
+  belongs to a Team
+  belongs to a User
+  has a role which is either "member" or "admin" or "viewer"
+  has a created datetime
+
+data Project:
+  belongs to a Team
+  has a name which is text
+  has an optional description which is text
+  has a status which is either "active" or "archived"
+  has a created datetime
+  has many Task
+
+data Task:
+  belongs to a Project
+  has a title which is text
+  has an optional description which is text
+  has a status which is either "todo" or "in_progress" or "in_review" or "done"
+  has a priority which is either "low" or "medium" or "high" or "urgent"
+  has an optional due date
+  has an optional assignee which is number
+  has a created datetime
+  has many Comment
+
+data Comment:
+  belongs to a Task
+  belongs to a User
+  has a content which is text
+  has a created datetime
+
+api SignUp:
+  accepts name, email, and password
+  check that name is not empty
+  check that email is a valid email
+  check that password is at least 8 characters
+  check that email is not already taken
+  create a User with the given fields
+  assign "member" role
+  respond with the created user and auth token
+
+api Login:
+  accepts email and password
+  check that email is not empty
+  check that password is not empty
+  fetch the user by email
+  if user does not exist, respond with "invalid credentials"
+  check that password matches the stored hash
+  respond with the user and auth token
+
+api CreateProject:
+  requires authentication
+  accepts name, description, and team_id
+  check that name is not empty
+  create a Project with the given fields
+  set status to "active"
+  respond with the created project
+
+api GetTasks:
+  requires authentication
+  accepts project_id
+  fetch all tasks for the project
+  sort by priority
+  support filtering by status
+  support filtering by assignee
+  paginate with 50 per page
+  respond with tasks and pagination info
+
+api CreateTask:
+  requires authentication
+  accepts project_id, title, description, priority, due date, and assignee
+  check that title is not empty
+  check that title is less than 200 characters
+  create a Task with the given fields
+  set status to "todo" if not provided
+  set priority to "medium" if not provided
+  respond with the created task
+
+api UpdateTask:
+  requires authentication
+  accepts task_id, title, description, status, priority, due date, and assignee
+  fetch the Task by task_id
+  if task does not exist, respond with "task not found"
+  update the Task with the given fields
+  respond with the updated task
+
+api DeleteTask:
+  requires authentication
+  accepts task_id
+  fetch the Task by task_id
+  if task does not exist, respond with "task not found"
+  delete the Task
+  respond with "task deleted"
+
+api CreateComment:
+  requires authentication
+  accepts task_id and content
+  check that content is not empty
+  check that content is less than 5000 characters
+  fetch the Task by task_id
+  if task does not exist, respond with "task not found"
+  create a Comment with the given fields and current user
+  respond with the created comment
+
+api AssignTask:
+  requires authentication
+  accepts task_id and user_id
+  fetch the Task by task_id
+  if task does not exist, respond with "task not found"
+  update the Task with the assignee
+  send notification to the assigned user
+  respond with the updated task
+
+api InviteMember:
+  requires authentication
+  accepts team_id, email, and role
+  check that email is a valid email
+  send invitation email to the user
+  respond with "invitation sent"
+
+# ─────────────────────────────────────────────────────────────
+── security ──
+# ─────────────────────────────────────────────────────────────
+
+authentication:
+  method JWT tokens that expire in 7 days
+  method Google OAuth with redirect to /auth/google/callback
+  passwords are hashed with bcrypt using 12 rounds
+  all api requests require a valid token except SignUp and Login
+  rate limit all endpoints to 100 requests per minute per user
+  sanitize all text inputs against XSS
+  enable CORS only for our frontend domain
+
+# ─────────────────────────────────────────────────────────────
+── policies ──
+# ─────────────────────────────────────────────────────────────
+
+policy TeamMemberPolicy:
+  can view projects they belong to
+  can create and edit tasks in their projects
+  can comment on any task in their projects
+  cannot delete projects
+  cannot manage team settings
+
+policy TeamAdminPolicy:
+  can view all projects
+  can create and edit tasks
+  can delete tasks
+  can manage team members and settings
+  can archive projects
+
+policy ViewerPolicy:
+  can view projects they belong to
+  can view tasks and comments
+  cannot create or edit tasks
+  cannot comment on tasks
+
+# ─────────────────────────────────────────────────────────────
+── workflows ──
+# ─────────────────────────────────────────────────────────────
+
+when a user signs up:
+  create their account
+  send welcome email with template "welcome"
+
+when a task is assigned:
+  send notification to the assigned user
+  log the assignment for analytics
+
+when a task becomes overdue:
+  send notification to the assignee
+  send notification to the project admin
+  update task priority to "high"
+
+when a task is marked done:
+  notify the project team
+  log the completion for analytics
+
+# ─────────────────────────────────────────────────────────────
+── logic ──
+# ─────────────────────────────────────────────────────────────
+
+if database is unreachable:
+  retry 3 times with 1 second delay
+  if still failing, respond with "service temporarily unavailable"
+  alert the engineering team via Slack
+
+if an api request fails validation:
+  respond with a clear message explaining what is wrong
+  log the attempt for analytics
+
+# ─────────────────────────────────────────────────────────────
+── database ──
+# ─────────────────────────────────────────────────────────────
+
+database:
+  use PostgreSQL
+  index User by email
+  index Task by project and status
+  index Task by project and assignee
+  index Comment by task
+  index TeamMember by team and user
+  backup daily at 3am
+  keep backups for 30 days
+
+# ─────────────────────────────────────────────────────────────
+── integrations ──
+# ─────────────────────────────────────────────────────────────
+
+integrate with SendGrid:
+  api key from environment variable SENDGRID_API_KEY
+  use for sending transactional emails
+
+integrate with Slack:
+  api key from environment variable SLACK_WEBHOOK_URL
+  use for team notifications and alerts
+
+# ─────────────────────────────────────────────────────────────
+── devops ──
+# ─────────────────────────────────────────────────────────────
+
+architecture: monolith
+
+source control using Git on GitHub
+repository: https://github.com/example/projecthub
+
+branches:
+  main is the production branch
+  staging is the pre-release branch
+  feature branches from main with prefix "feat/"
+
+when code is pushed to a feature branch:
+  run all tests
+  check code formatting
+  report results back to the pull request
+
+when code is merged to main:
+  run all tests
+  build the application
+  deploy to production environment
+  run health checks
+  if health checks fail, rollback automatically
+  notify the team on Slack
+
+environment staging:
+  url is staging.projecthub.example.com
+  uses staging database
+  seeds with test data
+
+environment production:
+  url is projecthub.example.com
+  uses production database
+  requires manual approval for deployment
+
+track response times for all api endpoints
+track error rates per endpoint
+track active users daily and monthly
+alert on Slack if error rate exceeds 5 percent
+alert on Slack if response time exceeds 2 seconds
+log all api requests to CloudWatch
+keep logs for 90 days
+
+# ─────────────────────────────────────────────────────────────
+── build ──
+# ─────────────────────────────────────────────────────────────
+
+build with:
+  frontend using React with TypeScript
+  backend using Node with Express
+  database using PostgreSQL
+  deploy to Docker
