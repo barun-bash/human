@@ -4,6 +4,24 @@ All notable changes to the Human compiler are documented in this file.
 
 ---
 
+## v0.4.2 — 2026-02-22
+
+**Documentation and examples release.** Adds a compiler-derived language specification, an LLM system prompt for generating valid `.human` files, and two new example applications.
+
+### New Documentation
+- **`docs/HUMAN_LANG_SPEC.md`**: Complete language specification derived from compiler source — covers all 16 block types, 215 tokens, 12 field types, relationships, validation rules, 17 error codes, and 10 warning codes
+- **`docs/HUMAN_LLM_PROMPT.md`**: LLM system prompt (~3600 tokens) with syntax quick reference, two complete examples, UI pattern mappings, design system and Figma guidance, generation checklist
+
+### New Examples
+- **`examples/recipes/app.human`**: Recipe sharing app — exercises relationships, search, favorites, file uploads, reviews (React + Node)
+- **`examples/projects/app.human`**: Project management app — exercises teams, tasks, comments, policies, Slack integration, CI/CD pipelines (React + Node + shadcn)
+
+### Bug Fixes
+- **ecommerce example**: Added missing Slack integration block (fixes W503 warning — Slack referenced without integration declared)
+- **saas example**: Fixed border radius value from `"rounded on all elements"` to `"rounded"` (fixes W304 warning — validator expects bare keyword)
+
+---
+
 ## v0.4.1 — 2026-02-21
 
 **Runtime correctness and framework-aware Docker generation.**
