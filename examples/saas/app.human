@@ -9,7 +9,7 @@ theme:
   secondary color is #10B981
   accent color is #F59E0B
   font is Inter for body and headings
-  border radius is rounded on all elements
+  border radius is rounded
   dark mode is supported and toggles from the header
   spacing is comfortable
   design system is shadcn
