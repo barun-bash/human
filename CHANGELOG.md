@@ -18,6 +18,7 @@ All notable changes to the Human compiler are documented in this file.
 
 ### Website
 - **`docs/roadmap.html`**: Updated project roadmap to reflect current status — Phases 1–12 complete, Phase 14 in progress, Current Output table expanded to 85+ files across 14 generators, Success Metrics table expanded to 14 rows with accurate statuses
+- Updated website hero status fallback to v0.4.2 (`docs/version.js` and `docs/index.html`)
 
 ### Bug Fixes
 - **ecommerce example**: Added missing Slack integration block (fixes W503 warning — Slack referenced without integration declared)
