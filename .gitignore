@@ -33,3 +33,10 @@ cmd/human-mcp/embedded/
 # Test coverage
 coverage.out
 coverage.html
+
+# Local/scratch files
+.plan.md
+Support/
+examples/test-app/
+human-mcp
+vscode-human/.gitignore
