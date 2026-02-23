@@ -43,7 +43,11 @@ func generateDockerCompose(app *ir.Application) string {
 	b.WriteString("    depends_on:\n")
 	b.WriteString("      - db\n")
 	b.WriteString("    environment:\n")
-	fmt.Fprintf(&b, "      DATABASE_URL: postgresql://postgres:postgres@db:5432/%s?schema=public\n", db)
+	dbSuffix := "?schema=public"
+	if backendDir == "go" || backendDir == "python" {
+		dbSuffix = "?sslmode=disable"
+	}
+	fmt.Fprintf(&b, "      DATABASE_URL: postgresql://postgres:postgres@db:5432/%s%s\n", db, dbSuffix)
 	b.WriteString("      JWT_SECRET: ${JWT_SECRET}\n")
 	fmt.Fprintf(&b, "      PORT: \"%s\"\n", port)
 

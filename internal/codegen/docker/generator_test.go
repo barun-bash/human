@@ -318,7 +318,7 @@ func TestGenerateBackendDockerfileNode(t *testing.T) {
 	}{
 		{"Node 20 alpine base", "FROM node:20-alpine"},
 		{"multi-stage build", "AS builder"},
-		{"npm ci", "RUN npm ci"},
+		{"npm install", "RUN npm install"},
 		{"prisma generate", "RUN npx prisma generate"},
 		{"copy prisma schema", "COPY prisma ./prisma"},
 		{"npm build", "RUN npm run build"},
@@ -373,9 +373,10 @@ func TestGenerateBackendDockerfileGo(t *testing.T) {
 		desc    string
 		pattern string
 	}{
-		{"Go base image", "FROM golang:1.21-alpine"},
+		{"Go base image", "FROM golang:1.23-alpine"},
 		{"multi-stage build", "AS builder"},
-		{"go mod download", "go mod download"},
+		{"git installed", "apk add --no-cache git"},
+		{"go mod tidy", "go mod tidy"},
 		{"go build", "go build"},
 		{"CGO disabled", "CGO_ENABLED=0"},
 		{"alpine production", "FROM alpine:"},
@@ -406,7 +407,7 @@ func TestGenerateFrontendDockerfileVite(t *testing.T) {
 		pattern string
 	}{
 		{"Node 20 alpine build", "FROM node:20-alpine AS builder"},
-		{"npm ci", "RUN npm ci"},
+		{"npm install", "RUN npm install"},
 		{"ARG VITE_API_URL", "ARG VITE_API_URL"},
 		{"ENV VITE_API_URL", "ENV VITE_API_URL=$VITE_API_URL"},
 		{"npm build", "RUN npm run build"},
@@ -607,6 +608,9 @@ func TestGenerateDockerComposeGo(t *testing.T) {
 	}
 	if !strings.Contains(output, `PORT: "8080"`) {
 		t.Error("Go backend should set PORT to 8080")
+	}
+	if !strings.Contains(output, "sslmode=disable") {
+		t.Error("Go backend DATABASE_URL should use sslmode=disable, not schema=public")
 	}
 
 	// Frontend should reference angular directory
@@ -1191,7 +1195,7 @@ func TestFullIntegrationEcommerce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading go/Dockerfile: %v", err)
 	}
-	if !strings.Contains(string(goDF), "golang:1.21-alpine") {
+	if !strings.Contains(string(goDF), "golang:1.23-alpine") {
 		t.Error("go/Dockerfile: should use golang base image")
 	}
 	if !strings.Contains(string(goDF), "go build") {
