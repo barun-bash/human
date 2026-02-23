@@ -23,6 +23,7 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		filepath.Join(outputDir, backendDir, ".dockerignore"): generateBackendDockerignore(app),
 		filepath.Join(outputDir, "docker-compose.yml"):        generateDockerCompose(app),
 		filepath.Join(outputDir, ".env.example"):              generateEnvExample(app),
+		filepath.Join(outputDir, ".env"):                      generateEnvFile(app),
 		filepath.Join(outputDir, "package.json"):              generatePackageJSON(app),
 	}
 
@@ -57,8 +58,12 @@ func writeFile(path, content string) error {
 // Returns a sorted list of EnvVar entries.
 func CollectEnvVars(app *ir.Application) []EnvVar {
 	port := BackendPort(app)
+	dbSuffix := "?schema=public" // Prisma (Node)
+	if dir := BackendDir(app); dir == "go" || dir == "python" {
+		dbSuffix = "?sslmode=disable"
+	}
 	vars := []EnvVar{
-		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@db:5432/" + DbName(app) + "?schema=public", Comment: "PostgreSQL connection string — use @localhost:5432 for local dev, @db:5432 for Docker"},
+		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@db:5432/" + DbName(app) + dbSuffix, Comment: "PostgreSQL connection string — use @localhost:5432 for local dev, @db:5432 for Docker"},
 		{Name: "JWT_SECRET", Example: "change-me-to-a-random-secret", Comment: "Secret for signing JWT tokens"},
 		{Name: "PORT", Example: port, Comment: "Backend server port"},
 	}

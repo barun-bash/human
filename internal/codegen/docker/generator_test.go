@@ -196,6 +196,16 @@ func TestCollectEnvVarsPython(t *testing.T) {
 	if v, ok := byName["VITE_API_URL"]; !ok || v.Example != "http://localhost:8000" {
 		t.Errorf("VITE_API_URL example: got %q, want %q", byName["VITE_API_URL"].Example, "http://localhost:8000")
 	}
+
+	// DATABASE_URL should use sslmode=disable for Python, not schema=public
+	if v, ok := byName["DATABASE_URL"]; ok {
+		if !strings.Contains(v.Example, "sslmode=disable") {
+			t.Errorf("Python DATABASE_URL should use sslmode=disable, got %q", v.Example)
+		}
+		if strings.Contains(v.Example, "schema=public") {
+			t.Errorf("Python DATABASE_URL should not use schema=public, got %q", v.Example)
+		}
+	}
 }
 
 func TestCollectEnvVarsAngular(t *testing.T) {
@@ -225,6 +235,16 @@ func TestCollectEnvVarsAngular(t *testing.T) {
 	}
 	if v, ok := byName["PORT"]; !ok || v.Example != "8080" {
 		t.Errorf("PORT example: got %q, want %q", byName["PORT"].Example, "8080")
+	}
+
+	// DATABASE_URL should use sslmode=disable for Go, not schema=public
+	if v, ok := byName["DATABASE_URL"]; ok {
+		if !strings.Contains(v.Example, "sslmode=disable") {
+			t.Errorf("Go DATABASE_URL should use sslmode=disable, got %q", v.Example)
+		}
+		if strings.Contains(v.Example, "schema=public") {
+			t.Errorf("Go DATABASE_URL should not use schema=public, got %q", v.Example)
+		}
 	}
 }
 
@@ -737,6 +757,33 @@ func TestGenerateEnvExampleAPIOnly(t *testing.T) {
 	}
 }
 
+// ── .env ──
+
+func TestGenerateEnvFile(t *testing.T) {
+	app := &ir.Application{
+		Name:   "TaskFlow",
+		Config: &ir.BuildConfig{Frontend: "React with TypeScript"},
+	}
+
+	output := generateEnvFile(app)
+
+	// Should have local dev defaults comment
+	if !strings.Contains(output, "local development defaults") {
+		t.Error("missing local development header")
+	}
+
+	// Core vars should have values (not empty)
+	if !strings.Contains(output, "DATABASE_URL=postgresql://") {
+		t.Error("missing DATABASE_URL with value")
+	}
+	if !strings.Contains(output, "JWT_SECRET=change-me-to-a-random-secret") {
+		t.Error("missing JWT_SECRET with default value")
+	}
+	if !strings.Contains(output, "PORT=3000") {
+		t.Error("missing PORT with value")
+	}
+}
+
 // ── package.json ──
 
 func TestGeneratePackageJSON(t *testing.T) {
@@ -860,6 +907,7 @@ func TestGenerateWritesFiles(t *testing.T) {
 		"react/.dockerignore",
 		"docker-compose.yml",
 		".env.example",
+		".env",
 		"package.json",
 	}
 
@@ -941,7 +989,7 @@ func TestGenerateWritesFilesAPIOnly(t *testing.T) {
 	}
 
 	// Should have backend files but NOT frontend Dockerfile
-	for _, f := range []string{"node/Dockerfile", "node/.dockerignore", "docker-compose.yml", ".env.example", "package.json"} {
+	for _, f := range []string{"node/Dockerfile", "node/.dockerignore", "docker-compose.yml", ".env.example", ".env", "package.json"} {
 		path := filepath.Join(dir, f)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			t.Errorf("expected file %s to exist", f)
@@ -990,6 +1038,7 @@ func TestFullIntegration(t *testing.T) {
 		"react/.dockerignore",
 		"docker-compose.yml",
 		".env.example",
+		".env",
 		"package.json",
 	}
 	for _, f := range expectedFiles {
@@ -1212,5 +1261,342 @@ func TestFullIntegrationEcommerce(t *testing.T) {
 	}
 	if !strings.Contains(string(angDF), "dist/app/browser") {
 		t.Error("angular/Dockerfile: should copy from dist/app/browser")
+	}
+}
+
+// ── Priority 2 Stack Integration Tests ──
+
+func TestFullIntegrationEvents(t *testing.T) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
+	humanFile := filepath.Join(root, "examples", "events", "app.human")
+
+	source, err := os.ReadFile(humanFile)
+	if err != nil {
+		t.Fatalf("failed to read app.human: %v", err)
+	}
+
+	prog, err := parser.Parse(string(source))
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	app, err := ir.Build(prog)
+	if err != nil {
+		t.Fatalf("IR build error: %v", err)
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Events uses Angular + Node
+	for _, f := range []string{"node/Dockerfile", "angular/Dockerfile", "docker-compose.yml", ".env.example", ".env"} {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected file %s to exist", f)
+		}
+	}
+
+	compose, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
+	if err != nil {
+		t.Fatalf("reading docker-compose.yml: %v", err)
+	}
+	cs := string(compose)
+	if !strings.Contains(cs, "context: ./node") {
+		t.Error("docker-compose.yml: should reference ./node")
+	}
+	if !strings.Contains(cs, "context: ./angular") {
+		t.Error("docker-compose.yml: should reference ./angular")
+	}
+	if !strings.Contains(cs, "3000:3000") {
+		t.Error("docker-compose.yml: should use port 3000 for Node")
+	}
+	if !strings.Contains(cs, "NG_APP_API_URL") {
+		t.Error("docker-compose.yml: should use NG_APP_API_URL for Angular")
+	}
+	// Node backend uses schema=public (Prisma)
+	if !strings.Contains(cs, "schema=public") {
+		t.Error("docker-compose.yml: Node backend should use schema=public")
+	}
+
+	// .env should also use schema=public for Node
+	envContent, err := os.ReadFile(filepath.Join(dir, ".env"))
+	if err != nil {
+		t.Fatalf("reading .env: %v", err)
+	}
+	if !strings.Contains(string(envContent), "schema=public") {
+		t.Error(".env: Node backend should use schema=public")
+	}
+}
+
+func TestFullIntegrationInventory(t *testing.T) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
+	humanFile := filepath.Join(root, "examples", "inventory", "app.human")
+
+	source, err := os.ReadFile(humanFile)
+	if err != nil {
+		t.Fatalf("failed to read app.human: %v", err)
+	}
+
+	prog, err := parser.Parse(string(source))
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	app, err := ir.Build(prog)
+	if err != nil {
+		t.Fatalf("IR build error: %v", err)
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Inventory uses React + Go
+	for _, f := range []string{"go/Dockerfile", "react/Dockerfile", "docker-compose.yml", ".env.example", ".env"} {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected file %s to exist", f)
+		}
+	}
+
+	compose, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
+	if err != nil {
+		t.Fatalf("reading docker-compose.yml: %v", err)
+	}
+	cs := string(compose)
+	if !strings.Contains(cs, "context: ./go") {
+		t.Error("docker-compose.yml: should reference ./go")
+	}
+	if !strings.Contains(cs, "context: ./react") {
+		t.Error("docker-compose.yml: should reference ./react")
+	}
+	if !strings.Contains(cs, "8080:8080") {
+		t.Error("docker-compose.yml: should use port 8080 for Go")
+	}
+	if !strings.Contains(cs, "VITE_API_URL") {
+		t.Error("docker-compose.yml: should use VITE_API_URL for React")
+	}
+	// Go backend uses sslmode=disable
+	if !strings.Contains(cs, "sslmode=disable") {
+		t.Error("docker-compose.yml: Go backend should use sslmode=disable")
+	}
+
+	// Verify Go Dockerfile has git installed
+	goDF, err := os.ReadFile(filepath.Join(dir, "go", "Dockerfile"))
+	if err != nil {
+		t.Fatalf("reading go/Dockerfile: %v", err)
+	}
+	if !strings.Contains(string(goDF), "apk add --no-cache git") {
+		t.Error("go/Dockerfile: should install git")
+	}
+
+	// .env should also use sslmode=disable for Go
+	envContent, err := os.ReadFile(filepath.Join(dir, ".env"))
+	if err != nil {
+		t.Fatalf("reading .env: %v", err)
+	}
+	if !strings.Contains(string(envContent), "sslmode=disable") {
+		t.Error(".env: Go backend should use sslmode=disable")
+	}
+}
+
+func TestFullIntegrationFigmaDemo(t *testing.T) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
+	humanFile := filepath.Join(root, "examples", "figma-demo", "app.human")
+
+	source, err := os.ReadFile(humanFile)
+	if err != nil {
+		t.Fatalf("failed to read app.human: %v", err)
+	}
+
+	prog, err := parser.Parse(string(source))
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	app, err := ir.Build(prog)
+	if err != nil {
+		t.Fatalf("IR build error: %v", err)
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Figma-demo uses React + Python
+	for _, f := range []string{"python/Dockerfile", "react/Dockerfile", "docker-compose.yml", ".env.example", ".env"} {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected file %s to exist", f)
+		}
+	}
+
+	compose, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
+	if err != nil {
+		t.Fatalf("reading docker-compose.yml: %v", err)
+	}
+	cs := string(compose)
+	if !strings.Contains(cs, "context: ./python") {
+		t.Error("docker-compose.yml: should reference ./python")
+	}
+	if !strings.Contains(cs, "context: ./react") {
+		t.Error("docker-compose.yml: should reference ./react")
+	}
+	if !strings.Contains(cs, "8000:8000") {
+		t.Error("docker-compose.yml: should use port 8000 for Python")
+	}
+	if !strings.Contains(cs, "VITE_API_URL: http://localhost:8000") {
+		t.Error("docker-compose.yml: VITE_API_URL should reference port 8000")
+	}
+	// Python backend uses sslmode=disable
+	if !strings.Contains(cs, "sslmode=disable") {
+		t.Error("docker-compose.yml: Python backend should use sslmode=disable")
+	}
+
+	// .env should also use sslmode=disable for Python
+	envContent, err := os.ReadFile(filepath.Join(dir, ".env"))
+	if err != nil {
+		t.Fatalf("reading .env: %v", err)
+	}
+	if !strings.Contains(string(envContent), "sslmode=disable") {
+		t.Error(".env: Python backend should use sslmode=disable")
+	}
+}
+
+func TestFullIntegrationAPIOnly(t *testing.T) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
+	humanFile := filepath.Join(root, "examples", "api-only", "app.human")
+
+	source, err := os.ReadFile(humanFile)
+	if err != nil {
+		t.Fatalf("failed to read app.human: %v", err)
+	}
+
+	prog, err := parser.Parse(string(source))
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	app, err := ir.Build(prog)
+	if err != nil {
+		t.Fatalf("IR build error: %v", err)
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// API-only uses Node with no frontend
+	for _, f := range []string{"node/Dockerfile", "docker-compose.yml", ".env.example", ".env", "package.json"} {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected file %s to exist", f)
+		}
+	}
+
+	// Should NOT have any frontend directory
+	for _, feDir := range []string{"react", "vue", "angular", "svelte"} {
+		path := filepath.Join(dir, feDir, "Dockerfile")
+		if _, err := os.Stat(path); err == nil {
+			t.Errorf("API-only app should not have %s/Dockerfile", feDir)
+		}
+	}
+
+	compose, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
+	if err != nil {
+		t.Fatalf("reading docker-compose.yml: %v", err)
+	}
+	cs := string(compose)
+	if strings.Contains(cs, "frontend:") {
+		t.Error("docker-compose.yml: API-only should not have frontend service")
+	}
+	if strings.Contains(cs, "VITE_API_URL") || strings.Contains(cs, "NG_APP_API_URL") {
+		t.Error("docker-compose.yml: API-only should not have frontend env vars")
+	}
+	if !strings.Contains(cs, "context: ./node") {
+		t.Error("docker-compose.yml: should reference ./node")
+	}
+
+	// .env should NOT have VITE_API_URL
+	envContent, err := os.ReadFile(filepath.Join(dir, ".env"))
+	if err != nil {
+		t.Fatalf("reading .env: %v", err)
+	}
+	if strings.Contains(string(envContent), "VITE_API_URL") {
+		t.Error(".env: API-only should not have VITE_API_URL")
+	}
+}
+
+func TestFullIntegrationSaas(t *testing.T) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
+	humanFile := filepath.Join(root, "examples", "saas", "app.human")
+
+	source, err := os.ReadFile(humanFile)
+	if err != nil {
+		t.Fatalf("failed to read app.human: %v", err)
+	}
+
+	prog, err := parser.Parse(string(source))
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	app, err := ir.Build(prog)
+	if err != nil {
+		t.Fatalf("IR build error: %v", err)
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// SaaS uses Svelte + Node
+	for _, f := range []string{"node/Dockerfile", "svelte/Dockerfile", "docker-compose.yml", ".env.example", ".env"} {
+		path := filepath.Join(dir, f)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			t.Errorf("expected file %s to exist", f)
+		}
+	}
+
+	compose, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
+	if err != nil {
+		t.Fatalf("reading docker-compose.yml: %v", err)
+	}
+	cs := string(compose)
+	if !strings.Contains(cs, "context: ./node") {
+		t.Error("docker-compose.yml: should reference ./node")
+	}
+	if !strings.Contains(cs, "context: ./svelte") {
+		t.Error("docker-compose.yml: should reference ./svelte")
+	}
+	if !strings.Contains(cs, "VITE_API_URL") {
+		t.Error("docker-compose.yml: Svelte should use VITE_API_URL")
+	}
+
+	// Verify Svelte Dockerfile uses Vite (not Angular)
+	svelteDF, err := os.ReadFile(filepath.Join(dir, "svelte", "Dockerfile"))
+	if err != nil {
+		t.Fatalf("reading svelte/Dockerfile: %v", err)
+	}
+	if !strings.Contains(string(svelteDF), "VITE_API_URL") {
+		t.Error("svelte/Dockerfile: should use VITE_API_URL")
+	}
+	if strings.Contains(string(svelteDF), "NG_APP") {
+		t.Error("svelte/Dockerfile: should not use NG_APP_API_URL")
+	}
+	// Svelte Vite build outputs to dist/, not dist/app/browser
+	if !strings.Contains(string(svelteDF), "COPY --from=builder /app/dist") {
+		t.Error("svelte/Dockerfile: should copy from /app/dist")
 	}
 }

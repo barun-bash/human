@@ -698,8 +698,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 func generateDatabase(app *ir.Application) string {
 	return `from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 import os
 
 SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://user:password@localhost/dbname")
