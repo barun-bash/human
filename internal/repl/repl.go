@@ -12,6 +12,7 @@ import (
 	"github.com/barun-bash/human/internal/config"
 	"github.com/barun-bash/human/internal/llm/prompts"
 	"github.com/barun-bash/human/internal/mcp"
+	"github.com/barun-bash/human/internal/readline"
 )
 
 // REPL is the interactive Human compiler shell.
@@ -22,7 +23,8 @@ type REPL struct {
 	in          io.Reader
 	out         io.Writer
 	errOut      io.Writer
-	scanner     *bufio.Scanner // shared scanner — all input reading goes through this
+	scanner     *bufio.Scanner          // used for scanLine() sub-prompts
+	rl          *readline.Instance      // nil when stdin is not a terminal
 	history     *History
 	commands    map[string]*Command
 	aliases     map[string]string
@@ -65,6 +67,12 @@ func New(version string, opts ...Option) *REPL {
 	for _, opt := range opts {
 		opt(r)
 	}
+
+	// Try to create a readline instance if stdin is a real file (terminal).
+	if f, ok := r.in.(*os.File); ok {
+		r.rl = readline.New(f, r.out)
+	}
+
 	r.scanner = bufio.NewScanner(r.in)
 	r.history = NewHistory()
 	r.registerCommands()
@@ -79,6 +87,44 @@ func (r *REPL) Run() {
 	r.printBanner()
 	r.running = true
 
+	if r.rl != nil && r.rl.IsTTY() {
+		r.runReadline()
+	} else {
+		r.runScanner()
+	}
+
+	r.closeMCPClients()
+	r.history.Save()
+}
+
+// runReadline runs the main loop using the readline instance (interactive terminal).
+func (r *REPL) runReadline() {
+	r.rl.SetCompleter(r.buildCompleter())
+
+	for r.running {
+		// Update readline state each iteration (prompt may change after /open).
+		r.rl.SetPrompt(r.promptString())
+		r.rl.SetHistory(r.history.Entries())
+
+		line, err := r.rl.ReadLine()
+		if err != nil {
+			// EOF (Ctrl+D) or read error.
+			fmt.Fprintln(r.out, "Goodbye.")
+			break
+		}
+
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		r.history.Add(line)
+		r.execute(line)
+	}
+}
+
+// runScanner runs the main loop using bufio.Scanner (non-TTY / test mode).
+func (r *REPL) runScanner() {
 	for r.running {
 		r.printPrompt()
 		if !r.scanner.Scan() {
@@ -96,9 +142,6 @@ func (r *REPL) Run() {
 		r.history.Add(line)
 		r.execute(line)
 	}
-
-	r.closeMCPClients()
-	r.history.Save()
 }
 
 // scanLine reads one line from the shared scanner. Returns the trimmed line
@@ -109,6 +152,19 @@ func (r *REPL) scanLine() (string, bool) {
 		return "", false
 	}
 	return strings.TrimSpace(r.scanner.Text()), true
+}
+
+// promptString returns the prompt string (with or without ANSI colors).
+func (r *REPL) promptString() string {
+	name := "human"
+	if r.projectName != "" {
+		name = r.projectName
+	}
+
+	if cli.ColorEnabled {
+		return cli.Accent(name+"_>") + " "
+	}
+	return name + "_> "
 }
 
 // loadSettings loads global settings and applies them (theme, etc.).
@@ -221,19 +277,9 @@ func (r *REPL) printBanner() {
 	}
 }
 
-// printPrompt displays the branded prompt with underscore: human_> or project_>
+// printPrompt displays the branded prompt (used in non-TTY/scanner mode).
 func (r *REPL) printPrompt() {
-	name := "human"
-	if r.projectName != "" {
-		name = r.projectName
-	}
-
-	if cli.ColorEnabled {
-		accent := cli.Accent(name + "_>")
-		fmt.Fprintf(r.out, "%s ", accent)
-	} else {
-		fmt.Fprintf(r.out, "%s_> ", name)
-	}
+	fmt.Fprint(r.out, r.promptString())
 }
 
 // execute dispatches a line of input to the appropriate command handler.

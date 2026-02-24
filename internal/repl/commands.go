@@ -18,6 +18,7 @@ type Command struct {
 	Description string
 	Usage       string
 	Handler     func(r *REPL, args []string)
+	Complete    func(r *REPL, args []string, partial string) []string // optional tab completer
 }
 
 // registerCommands sets up all built-in REPL commands.
@@ -28,6 +29,7 @@ func (r *REPL) registerCommands() {
 			Description: "Load a .human file",
 			Usage:       "/open <file.human>",
 			Handler:     cmdOpen,
+			Complete:    completeOpen,
 		},
 		{
 			Name:        "/new",
@@ -59,6 +61,7 @@ func (r *REPL) registerCommands() {
 			Description: "AI improvement suggestions for the loaded project",
 			Usage:       "/suggest [apply <number|all>]",
 			Handler:     cmdSuggest,
+			Complete:    completeSuggest,
 		},
 		{
 			Name:        "/build",
@@ -66,6 +69,7 @@ func (r *REPL) registerCommands() {
 			Description: "Compile the loaded project",
 			Usage:       "/build",
 			Handler:     cmdBuild,
+			Complete:    completeBuild,
 		},
 		{
 			Name:        "/check",
@@ -78,6 +82,7 @@ func (r *REPL) registerCommands() {
 			Description: "Deploy the application",
 			Usage:       "/deploy [--dry-run]",
 			Handler:     cmdDeploy,
+			Complete:    completeDeploy,
 		},
 		{
 			Name:        "/stop",
@@ -127,30 +132,35 @@ func (r *REPL) registerCommands() {
 			Description: "View or manage project instructions (HUMAN.md)",
 			Usage:       "/instructions [edit|init]",
 			Handler:     cmdInstructions,
+			Complete:    completeInstructions,
 		},
 		{
 			Name:        "/connect",
 			Description: "Set up LLM provider",
 			Usage:       "/connect [provider|status]",
 			Handler:     cmdConnect,
+			Complete:    completeConnect,
 		},
 		{
 			Name:        "/mcp",
 			Description: "Manage MCP server connections",
 			Usage:       "/mcp [list|add|remove|status]",
 			Handler:     cmdMCP,
+			Complete:    completeMCP,
 		},
 		{
 			Name:        "/theme",
 			Description: "Show or change the color theme",
 			Usage:       "/theme [name|list]",
 			Handler:     cmdTheme,
+			Complete:    completeTheme,
 		},
 		{
 			Name:        "/config",
 			Description: "View or change settings",
 			Usage:       "/config [set <key> <value>]",
 			Handler:     cmdConfig,
+			Complete:    completeConfig,
 		},
 		{
 			Name:        "/help",

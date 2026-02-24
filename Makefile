@@ -2,7 +2,7 @@ BINARY_NAME = human
 BUILD_DIR = build
 INSTALL_DIR = /usr/local/bin
 
-.PHONY: build test install clean lint mcp mcp-embed
+.PHONY: build test install uninstall clean lint mcp mcp-embed
 
 build:
 	@mkdir -p $(BUILD_DIR)
@@ -25,6 +25,9 @@ test:
 
 install: build
 	cp $(BUILD_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
+
+uninstall:
+	rm -f $(INSTALL_DIR)/$(BINARY_NAME)
 
 clean:
 	rm -rf $(BUILD_DIR)
