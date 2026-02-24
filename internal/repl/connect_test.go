@@ -62,14 +62,14 @@ func TestConnect_Status_WithProvider(t *testing.T) {
 func TestConnect_UnknownProvider(t *testing.T) {
 	cli.ColorEnabled = false
 
-	r, _, errOut := newTestREPL("/connect gemini\n/quit\n")
+	r, _, errOut := newTestREPL("/connect foobar\n/quit\n")
 	r.Run()
 	output := errOut.String()
 
 	if !strings.Contains(output, "Unknown provider") {
 		t.Errorf("expected 'Unknown provider' error, got: %s", output)
 	}
-	if !strings.Contains(output, "anthropic, openai, ollama") {
+	if !strings.Contains(output, "anthropic") || !strings.Contains(output, "groq") {
 		t.Errorf("expected supported provider list, got: %s", output)
 	}
 }
@@ -193,6 +193,134 @@ func TestConnect_HelpOrder(t *testing.T) {
 	themeIdx := strings.Index(helpSection, "/theme")
 	if connectIdx > themeIdx {
 		t.Error("expected /connect to appear before /theme in help")
+	}
+}
+
+func TestDisconnect_NoProvider(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	cli.ColorEnabled = false
+
+	r, out, _ := newTestREPL("/disconnect\n/quit\n")
+	r.Run()
+
+	if !strings.Contains(out.String(), "No LLM provider is configured") {
+		t.Errorf("expected no-provider message, got: %s", out.String())
+	}
+}
+
+func TestDisconnect_Confirmed(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+	cli.ColorEnabled = false
+
+	// Pre-populate config.
+	gc := &config.GlobalConfig{
+		LLM: &config.GlobalLLMConfig{
+			Provider: "anthropic",
+			Model:    "claude-sonnet-4-20250514",
+			APIKey:   "sk-ant-test1234",
+		},
+	}
+	if err := config.SaveGlobalConfig(gc); err != nil {
+		t.Fatal(err)
+	}
+
+	// Confirm disconnect.
+	r, out, _ := newTestREPL("/disconnect\ny\n/quit\n")
+	r.Run()
+	output := out.String()
+
+	if !strings.Contains(output, "Disconnect from anthropic") {
+		t.Errorf("expected confirmation prompt, got: %s", output)
+	}
+	if !strings.Contains(output, "Disconnected from anthropic") {
+		t.Errorf("expected success message, got: %s", output)
+	}
+
+	// Verify config was cleared.
+	loaded, err := config.LoadGlobalConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.LLM != nil {
+		t.Error("expected LLM config to be nil after disconnect")
+	}
+}
+
+func TestDisconnect_Cancelled(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+	cli.ColorEnabled = false
+
+	gc := &config.GlobalConfig{
+		LLM: &config.GlobalLLMConfig{
+			Provider: "openai",
+			APIKey:   "sk-openai-xyz-9999",
+		},
+	}
+	if err := config.SaveGlobalConfig(gc); err != nil {
+		t.Fatal(err)
+	}
+
+	// Decline disconnect.
+	r, out, _ := newTestREPL("/disconnect\nn\n/quit\n")
+	r.Run()
+
+	if !strings.Contains(out.String(), "Cancelled") {
+		t.Errorf("expected 'Cancelled' message, got: %s", out.String())
+	}
+
+	// Config should still be there.
+	loaded, err := config.LoadGlobalConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.LLM == nil {
+		t.Error("expected LLM config to still exist after cancelled disconnect")
+	}
+}
+
+func TestDisconnect_HelpOrder(t *testing.T) {
+	cli.ColorEnabled = false
+	r, out, _ := newTestREPL("/help\n/quit\n")
+	r.Run()
+	output := out.String()
+
+	helpStart := strings.Index(output, "Available Commands")
+	if helpStart < 0 {
+		t.Fatal("expected 'Available Commands' heading")
+	}
+	helpSection := output[helpStart:]
+
+	connectIdx := strings.Index(helpSection, "/connect")
+	disconnectIdx := strings.Index(helpSection, "/disconnect")
+	mcpIdx := strings.Index(helpSection, "/mcp")
+
+	if disconnectIdx < connectIdx {
+		t.Error("expected /disconnect after /connect")
+	}
+	if disconnectIdx > mcpIdx {
+		t.Error("expected /disconnect before /mcp")
+	}
+}
+
+func TestKnownModels(t *testing.T) {
+	tests := []struct {
+		provider string
+		wantLen  int
+	}{
+		{"anthropic", 3},
+		{"openai", 4},
+		{"groq", 3},
+		{"openrouter", 3},
+		{"ollama", 0},
+		{"unknown", 0},
+	}
+	for _, tt := range tests {
+		models := knownModels(tt.provider)
+		if len(models) != tt.wantLen {
+			t.Errorf("knownModels(%q) = %d models, want %d", tt.provider, len(models), tt.wantLen)
+		}
 	}
 }
 

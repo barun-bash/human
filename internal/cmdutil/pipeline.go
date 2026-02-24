@@ -78,6 +78,11 @@ func PrintDiagnostic(e *cerr.CompilerError) {
 // run code generators, and the quality engine. Returns the application IR,
 // generator results, and quality result.
 func FullBuild(file string) (*ir.Application, []build.Result, *quality.Result, error) {
+	return FullBuildWithProgress(file, nil)
+}
+
+// FullBuildWithProgress is like FullBuild but reports progress via a callback.
+func FullBuildWithProgress(file string, progress build.ProgressFunc) (*ir.Application, []build.Result, *quality.Result, error) {
 	result, err := ParseAndAnalyze(file)
 	if err != nil {
 		return nil, nil, nil, err
@@ -115,7 +120,7 @@ func FullBuild(file string) (*ir.Application, []build.Result, *quality.Result, e
 
 	// Run all code generators
 	outputDir := filepath.Join(".human", "output")
-	results, qResult, genErr := build.RunGenerators(result.App, outputDir)
+	results, qResult, genErr := build.RunGeneratorsWithProgress(result.App, outputDir, progress)
 	if genErr != nil {
 		return nil, nil, nil, fmt.Errorf("build failed: %w", genErr)
 	}

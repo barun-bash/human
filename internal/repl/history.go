@@ -104,6 +104,19 @@ func (h *History) load() {
 	}
 }
 
+// Clear removes all history entries and deletes the history file.
+func (h *History) Clear() {
+	h.entries = nil
+	if h.path != "" {
+		os.Remove(h.path)
+	}
+}
+
+// Len returns the number of history entries.
+func (h *History) Len() int {
+	return len(h.entries)
+}
+
 // historyPath returns the default history file path (~/.human/history).
 func historyPath() string {
 	home, err := os.UserHomeDir()

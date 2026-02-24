@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/barun-bash/human/internal/cli"
+	"github.com/barun-bash/human/internal/llm"
 )
 
 // buildCompleter returns a readline CompleteFunc that dispatches tab
@@ -156,7 +157,8 @@ func completeInstructions(_ *REPL, args []string, partial string) []string {
 }
 
 func completeConnect(_ *REPL, args []string, partial string) []string {
-	return completeFromList([]string{"anthropic", "openai", "ollama", "status"}, partial)
+	choices := append([]string{"status"}, llm.SupportedProviders...)
+	return completeFromList(choices, partial)
 }
 
 func completeMCP(_ *REPL, args []string, partial string) []string {
@@ -182,11 +184,11 @@ func completeConfig(_ *REPL, args []string, partial string) []string {
 	}
 	if strings.ToLower(args[0]) == "set" {
 		if len(args) == 1 {
-			return completeFromList([]string{"animate", "plan_mode", "theme"}, partial)
+			return completeFromList([]string{"animate", "auto_accept", "plan_mode", "theme"}, partial)
 		}
 		key := strings.ToLower(args[1])
 		switch key {
-		case "animate":
+		case "animate", "auto_accept":
 			return completeFromList([]string{"on", "off"}, partial)
 		case "plan_mode":
 			return completeFromList([]string{"always", "auto", "off"}, partial)
@@ -217,4 +219,8 @@ func completeDeploy(_ *REPL, args []string, partial string) []string {
 
 func completeBuild(_ *REPL, args []string, partial string) []string {
 	return completeFromList([]string{"--dry-run"}, partial)
+}
+
+func completeHistory(_ *REPL, args []string, partial string) []string {
+	return completeFromList([]string{"clear"}, partial)
 }

@@ -78,28 +78,42 @@ func Save(projectDir string, cfg *Config) error {
 // Resolution order: environment variable → global config (~/.human/config.json) → error.
 // Returns ("", nil) for providers that don't need keys (ollama).
 func ResolveAPIKey(provider string) (string, error) {
+	// Map provider names to their environment variable.
+	envVars := map[string]string{
+		"anthropic":  "ANTHROPIC_API_KEY",
+		"openai":     "OPENAI_API_KEY",
+		"groq":       "GROQ_API_KEY",
+		"openrouter": "OPENROUTER_API_KEY",
+		"gemini":     "GEMINI_API_KEY",
+	}
+
+	// Providers that don't require API keys.
 	switch provider {
-	case "anthropic":
-		if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
-			return key, nil
-		}
-		if key := resolveAPIKeyFromGlobal(provider); key != "" {
-			return key, nil
-		}
-		return "", fmt.Errorf("no API key found for Anthropic. Set ANTHROPIC_API_KEY or run /connect anthropic")
-	case "openai":
-		if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-			return key, nil
-		}
-		if key := resolveAPIKeyFromGlobal(provider); key != "" {
-			return key, nil
-		}
-		return "", fmt.Errorf("no API key found for OpenAI. Set OPENAI_API_KEY or run /connect openai")
 	case "ollama":
 		return "", nil
-	default:
-		return "", fmt.Errorf("unknown provider %q. Supported: anthropic, openai, ollama", provider)
+	case "custom":
+		// Custom may or may not need a key; check env/global without error.
+		if key := os.Getenv("CUSTOM_API_KEY"); key != "" {
+			return key, nil
+		}
+		if key := resolveAPIKeyFromGlobal(provider); key != "" {
+			return key, nil
+		}
+		return "", nil
 	}
+
+	envVar, ok := envVars[provider]
+	if !ok {
+		return "", fmt.Errorf("unknown provider %q", provider)
+	}
+
+	if key := os.Getenv(envVar); key != "" {
+		return key, nil
+	}
+	if key := resolveAPIKeyFromGlobal(provider); key != "" {
+		return key, nil
+	}
+	return "", fmt.Errorf("no API key found for %s. Set %s or run /connect %s", provider, envVar, provider)
 }
 
 // resolveAPIKeyFromGlobal reads the global config and returns the API key
@@ -131,6 +145,14 @@ func DefaultLLMConfig(provider string) *LLMConfig {
 	case "ollama":
 		cfg.Model = "llama3"
 		cfg.BaseURL = "http://localhost:11434"
+	case "groq":
+		cfg.Model = "llama-3.3-70b-versatile"
+	case "openrouter":
+		cfg.Model = "anthropic/claude-sonnet-4-20250514"
+	case "gemini":
+		cfg.Model = "gemini-2.0-flash"
+	case "custom":
+		cfg.Model = "default"
 	}
 
 	return cfg
@@ -220,9 +242,10 @@ func SaveGlobalConfig(cfg *GlobalConfig) error {
 
 // GlobalSettings holds user-wide preferences that persist across projects.
 type GlobalSettings struct {
-	Theme        string `json:"theme,omitempty"`      // "default", "dark", "light", etc.
-	Animate      *bool  `json:"animate,omitempty"`    // nil = true (default)
-	PlanMode     string `json:"plan_mode,omitempty"`  // "always" (default), "auto", "off"
+	Theme        string `json:"theme,omitempty"`       // "default", "dark", "light", etc.
+	Animate      *bool  `json:"animate,omitempty"`     // nil = true (default)
+	PlanMode     string `json:"plan_mode,omitempty"`   // "always" (default), "auto", "off"
+	AutoAccept   *bool  `json:"auto_accept,omitempty"` // nil = false (default)
 	FirstRunDone bool   `json:"first_run_done"`
 }
 
@@ -292,6 +315,20 @@ func (s *GlobalSettings) AnimateEnabled() bool {
 // SetAnimate sets the animation preference.
 func (s *GlobalSettings) SetAnimate(enabled bool) {
 	s.Animate = &enabled
+}
+
+// AutoAcceptEnabled returns whether auto-accept mode is enabled.
+// Defaults to false when the AutoAccept field is nil.
+func (s *GlobalSettings) AutoAcceptEnabled() bool {
+	if s.AutoAccept == nil {
+		return false
+	}
+	return *s.AutoAccept
+}
+
+// SetAutoAccept sets the auto-accept preference.
+func (s *GlobalSettings) SetAutoAccept(enabled bool) {
+	s.AutoAccept = &enabled
 }
 
 // EffectivePlanMode returns the plan mode, defaulting to "always".

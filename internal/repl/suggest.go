@@ -54,12 +54,16 @@ func suggestAnalyze(r *REPL) {
 
 	fmt.Fprintf(r.out, "%s  Analyzing %s with %s (%s)...\n",
 		cli.Info(""), r.projectFile, llmCfg.Provider, llmCfg.Model)
-	fmt.Fprintln(r.out)
+
+	spinner := cli.NewSpinner(r.out, "Analyzing...")
+	spinner.Start()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	result, err := connector.Suggest(ctx, string(source))
+	spinner.Stop()
+	fmt.Fprintln(r.out)
 	if err != nil {
 		fmt.Fprintln(r.errOut, cli.Error(fmt.Sprintf("Analysis failed: %v", err)))
 		return

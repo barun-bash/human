@@ -60,11 +60,25 @@ func CountFiles(dir string) int {
 	return count
 }
 
+// ProgressFunc is called before each build stage with the stage name.
+type ProgressFunc func(stage string)
+
 // RunGenerators dispatches all code generators based on the app's build config,
 // then runs the quality engine and scaffolder. Returns build results for each
 // generator and the quality result.
 func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Result, error) {
+	return RunGeneratorsWithProgress(app, outputDir, nil)
+}
+
+// RunGeneratorsWithProgress is like RunGenerators but calls progress before each stage.
+func RunGeneratorsWithProgress(app *ir.Application, outputDir string, progress ProgressFunc) ([]Result, *quality.Result, error) {
 	var results []Result
+
+	report := func(stage string) {
+		if progress != nil {
+			progress(stage)
+		}
+	}
 
 	frontendLower := ""
 	backendLower := ""
@@ -79,6 +93,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 
 	// Frontend generators
 	if strings.Contains(frontendLower, "react") {
+		report("Generating React frontend")
 		dir := filepath.Join(outputDir, "react")
 		g := react.Generator{}
 		if err := g.Generate(app, dir); err != nil {
@@ -87,6 +102,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 		results = append(results, Result{"react", dir, CountFiles(dir)})
 	}
 	if strings.Contains(frontendLower, "vue") {
+		report("Generating Vue frontend")
 		dir := filepath.Join(outputDir, "vue")
 		g := vue.Generator{}
 		if err := g.Generate(app, dir); err != nil {
@@ -95,6 +111,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 		results = append(results, Result{"vue", dir, CountFiles(dir)})
 	}
 	if strings.Contains(frontendLower, "angular") {
+		report("Generating Angular frontend")
 		dir := filepath.Join(outputDir, "angular")
 		g := angular.Generator{}
 		if err := g.Generate(app, dir); err != nil {
@@ -103,6 +120,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 		results = append(results, Result{"angular", dir, CountFiles(dir)})
 	}
 	if strings.Contains(frontendLower, "svelte") {
+		report("Generating Svelte frontend")
 		dir := filepath.Join(outputDir, "svelte")
 		g := svelte.Generator{}
 		if err := g.Generate(app, dir); err != nil {
@@ -113,6 +131,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 
 	// Storybook — generates into the frontend directory that was just created
 	if frontendLower != "" {
+		report("Generating Storybook stories")
 		fw := storybook.GetFramework(app)
 		// Determine the frontend output directory
 		frontendDir := ""
@@ -138,6 +157,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 
 	// Backend generators
 	if strings.Contains(backendLower, "node") {
+		report("Generating Node.js backend")
 		dir := filepath.Join(outputDir, "node")
 		g := node.Generator{}
 		if err := g.Generate(app, dir); err != nil {
@@ -146,6 +166,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 		results = append(results, Result{"node", dir, CountFiles(dir)})
 	}
 	if strings.Contains(backendLower, "python") {
+		report("Generating Python backend")
 		dir := filepath.Join(outputDir, "python")
 		g := python.Generator{}
 		if err := g.Generate(app, dir); err != nil {
@@ -154,6 +175,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 		results = append(results, Result{"python", dir, CountFiles(dir)})
 	}
 	if MatchesGoBackend(backendLower) {
+		report("Generating Go backend")
 		dir := filepath.Join(outputDir, "go")
 		g := gobackend.Generator{}
 		if err := g.Generate(app, dir); err != nil {
@@ -164,6 +186,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 
 	// Database generator
 	if strings.Contains(databaseLower, "postgres") {
+		report("Generating PostgreSQL schema")
 		dir := filepath.Join(outputDir, "postgres")
 		g := postgres.Generator{}
 		if err := g.Generate(app, dir); err != nil {
@@ -174,6 +197,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 
 	// Docker — conditional on deploy config
 	if strings.Contains(deployLower, "docker") {
+		report("Generating Docker configuration")
 		before := CountFiles(outputDir)
 		g := docker.Generator{}
 		if err := g.Generate(app, outputDir); err != nil {
@@ -184,6 +208,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 	}
 
 	// CI/CD — always runs
+	report("Generating CI/CD pipelines")
 	{
 		cicdDir := filepath.Join(outputDir, ".github")
 		g := cicd.Generator{}
@@ -195,6 +220,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 
 	// Terraform — conditional on deploy config (aws, gcp, or terraform keyword)
 	if strings.Contains(deployLower, "aws") || strings.Contains(deployLower, "gcp") || strings.Contains(deployLower, "terraform") {
+		report("Generating Terraform infrastructure")
 		dir := filepath.Join(outputDir, "terraform")
 		g := terraform.Generator{}
 		if err := g.Generate(app, dir); err != nil {
@@ -205,6 +231,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 
 	// Architecture — conditional on architecture style
 	if app.Architecture != nil && app.Architecture.Style != "" {
+		report("Generating architecture layout")
 		g := architecture.Generator{}
 		if err := g.Generate(app, outputDir); err != nil {
 			return nil, nil, fmt.Errorf("Architecture codegen: %w", err)
@@ -219,6 +246,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 
 	// Monitoring — conditional on monitoring rules
 	if len(app.Monitoring) > 0 {
+		report("Generating monitoring configuration")
 		dir := filepath.Join(outputDir, "monitoring")
 		g := monitoring.Generator{}
 		if err := g.Generate(app, dir); err != nil {
@@ -228,6 +256,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 	}
 
 	// Quality engine — always runs after code generators
+	report("Running quality checks")
 	qResult, err := quality.Run(app, outputDir)
 	if err != nil {
 		return nil, nil, fmt.Errorf("quality engine: %w", err)
@@ -236,6 +265,7 @@ func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Re
 	results = append(results, Result{"quality", outputDir, qualityFiles})
 
 	// Scaffolder — always runs last
+	report("Scaffolding project files")
 	{
 		sg := scaffold.Generator{}
 		if err := sg.Generate(app, outputDir); err != nil {

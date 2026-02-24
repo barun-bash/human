@@ -59,12 +59,22 @@ func cmdAsk(r *REPL, args []string) {
 		return
 	}
 
+	// Show a spinner until the first token arrives.
+	spinner := cli.NewSpinner(r.out, "Thinking...")
+	spinner.Start()
+	firstChunk := true
+
 	var fullText strings.Builder
 	var totalIn, totalOut int
 	for chunk := range ch {
 		if chunk.Err != nil {
+			spinner.Stop()
 			fmt.Fprintln(r.errOut, cli.Error(fmt.Sprintf("Stream error: %v", chunk.Err)))
 			return
+		}
+		if firstChunk && chunk.Delta != "" {
+			spinner.Stop()
+			firstChunk = false
 		}
 		fmt.Fprint(r.out, chunk.Delta)
 		fullText.WriteString(chunk.Delta)
@@ -72,6 +82,9 @@ func cmdAsk(r *REPL, args []string) {
 			totalIn = chunk.Usage.InputTokens
 			totalOut = chunk.Usage.OutputTokens
 		}
+	}
+	if firstChunk {
+		spinner.Stop() // no text chunks received
 	}
 	fmt.Fprintln(r.out)
 
@@ -119,15 +132,19 @@ func cmdAsk(r *REPL, args []string) {
 	r.setProject(filename)
 	r.clearSuggestions()
 
-	// Prompt to build.
-	fmt.Fprintf(r.out, "Build now? (y/n): ")
-	answer, ok := r.scanLine()
-	if !ok || !isYes(answer) {
-		fmt.Fprintln(r.out, cli.Muted("  Run /build when you're ready."))
-		return
+	// Prompt to build (auto-accept skips the prompt).
+	if r.settings.AutoAcceptEnabled() {
+		fmt.Fprintln(r.out, cli.Muted("  Auto-building..."))
+	} else {
+		fmt.Fprintf(r.out, "Build now? (y/n): ")
+		answer, ok := r.scanLine()
+		if !ok || !isYes(answer) {
+			fmt.Fprintln(r.out, cli.Muted("  Run /build when you're ready."))
+			return
+		}
 	}
 
-	// Build directly, skipping plan mode (user already confirmed).
+	// Build directly, skipping plan mode (user already confirmed or auto-accepted).
 	if _, _, _, err := cmdutil.FullBuild(r.projectFile); err != nil {
 		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
 	}

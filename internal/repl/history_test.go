@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/barun-bash/human/internal/cli"
 )
 
 func TestHistory_AddAndDedup(t *testing.T) {
@@ -77,6 +79,42 @@ func TestHistory_LoadMissingFile(t *testing.T) {
 	}
 }
 
+func TestHistory_Clear(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "history")
+
+	h := NewHistoryWithPath(path)
+	h.Add("/build")
+	h.Add("/check")
+	h.Save()
+
+	// Verify file exists.
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		t.Fatal("history file should exist")
+	}
+
+	h.Clear()
+	if h.Len() != 0 {
+		t.Errorf("expected 0 entries after clear, got %d", h.Len())
+	}
+	// File should be deleted.
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Error("history file should be deleted after clear")
+	}
+}
+
+func TestHistory_Len(t *testing.T) {
+	h := &History{}
+	if h.Len() != 0 {
+		t.Errorf("expected 0, got %d", h.Len())
+	}
+	h.Add("/build")
+	h.Add("/check")
+	if h.Len() != 2 {
+		t.Errorf("expected 2, got %d", h.Len())
+	}
+}
+
 func TestHistory_SaveCreatesDir(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "subdir", "history")
@@ -87,5 +125,86 @@ func TestHistory_SaveCreatesDir(t *testing.T) {
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		t.Fatal("Save should have created the parent directory and file")
+	}
+}
+
+// ── /history command tests ──
+
+func TestHistoryCommand_ShowRecent(t *testing.T) {
+	cli.ColorEnabled = false
+	r, out, _ := newTestREPL("/build\n/check\n/history\n/quit\n")
+	r.Run()
+	output := out.String()
+
+	// Should show the commands we typed (minus /quit and /history itself which are after).
+	if !strings.Contains(output, "/build") {
+		t.Errorf("expected /build in history output, got: %s", output)
+	}
+	if !strings.Contains(output, "/check") {
+		t.Errorf("expected /check in history output, got: %s", output)
+	}
+}
+
+func TestHistoryCommand_ShowN(t *testing.T) {
+	cli.ColorEnabled = false
+	r, out, _ := newTestREPL("")
+	// Add history entries manually and call handler directly.
+	r.history.Add("/version")
+	r.history.Add("/status")
+	r.history.Add("/pwd")
+
+	cmdHistory(r, []string{"1"})
+	output := out.String()
+
+	// Should show only the last entry.
+	if !strings.Contains(output, "/pwd") {
+		t.Errorf("expected /pwd in output, got: %s", output)
+	}
+	// Should not contain /version (it's older than last 1).
+	if strings.Contains(output, "/version") {
+		t.Errorf("should not contain /version when showing only last 1, got: %s", output)
+	}
+}
+
+func TestHistoryCommand_Clear(t *testing.T) {
+	cli.ColorEnabled = false
+	r, out, _ := newTestREPL("/build\n/history clear\n/history\n/quit\n")
+	r.Run()
+	output := out.String()
+
+	if !strings.Contains(output, "History cleared") {
+		t.Errorf("expected 'History cleared' message, got: %s", output)
+	}
+	// After clearing, /history should show only /history clear and /history.
+	// Actually the clear happens after /build and /history clear are in history.
+	// Clear removes everything, then /history is added after. So it shows just /history.
+}
+
+func TestHistoryCommand_Empty(t *testing.T) {
+	cli.ColorEnabled = false
+	r, out, _ := newTestREPL("")
+	// Replace history with a fresh empty one (the REPL constructor may load from disk).
+	r.history = &History{}
+	cmdHistory(r, nil)
+	if !strings.Contains(out.String(), "No history") {
+		t.Errorf("expected 'No history' message, got: %s", out.String())
+	}
+}
+
+func TestHistoryCommand_HelpOrder(t *testing.T) {
+	cli.ColorEnabled = false
+	r, out, _ := newTestREPL("/help\n/quit\n")
+	r.Run()
+	output := out.String()
+
+	helpStart := strings.Index(output, "Available Commands")
+	if helpStart < 0 {
+		t.Fatal("expected 'Available Commands' heading")
+	}
+	helpSection := output[helpStart:]
+
+	historyIdx := strings.Index(helpSection, "/history")
+	if historyIdx < 0 {
+		t.Error("expected /history in help listing")
 	}
 }

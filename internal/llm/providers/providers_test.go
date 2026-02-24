@@ -484,7 +484,7 @@ func TestRegistryCreatesProviders(t *testing.T) {
 
 func TestRegistryUnknownProvider(t *testing.T) {
 	cfg := &config.LLMConfig{
-		Provider: "gemini",
+		Provider: "nonexistent-provider",
 		APIKey:   "test-key",
 	}
 	_, err := llm.NewProvider(cfg)

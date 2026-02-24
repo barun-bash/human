@@ -17,11 +17,13 @@ import (
 const openaiDefaultURL = "https://api.openai.com/v1/chat/completions"
 
 // OpenAI implements the llm.Provider interface for the OpenAI Chat Completions API.
+// It also serves as the base for OpenAI-compatible providers (Groq, OpenRouter, Custom).
 type OpenAI struct {
 	apiKey  string
 	model   string
 	baseURL string
 	client  *http.Client
+	name    string // provider name, defaults to "openai"
 }
 
 func init() {
@@ -42,11 +44,22 @@ func newOpenAI(cfg *config.LLMConfig) (llm.Provider, error) {
 		apiKey:  cfg.APIKey,
 		model:   cfg.Model,
 		baseURL: baseURL,
-		client:  &http.Client{},
+		client:  defaultHTTPClient(),
+		name:    "openai",
 	}, nil
 }
 
-func (o *OpenAI) Name() string { return "openai" }
+// defaultHTTPClient returns a shared HTTP client for OpenAI-compatible providers.
+func defaultHTTPClient() *http.Client {
+	return &http.Client{}
+}
+
+func (o *OpenAI) Name() string {
+	if o.name != "" {
+		return o.name
+	}
+	return "openai"
+}
 
 // openaiRequest is the OpenAI Chat Completions request format.
 type openaiRequest struct {

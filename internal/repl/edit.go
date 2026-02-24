@@ -65,10 +65,14 @@ func editOnce(r *REPL, connector *llm.Connector, llmCfg *config.LLMConfig, instr
 	fmt.Fprintf(r.out, "%s  Editing with %s (%s)...\n",
 		cli.Info(""), llmCfg.Provider, llmCfg.Model)
 
+	spinner := cli.NewSpinner(r.out, "Thinking...")
+	spinner.Start()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	result, err := connector.Edit(ctx, currentSource, instruction, history)
+	spinner.Stop()
 	if err != nil {
 		fmt.Fprintln(r.errOut, cli.Error(fmt.Sprintf("Edit failed: %v", err)))
 		return currentSource, false, history

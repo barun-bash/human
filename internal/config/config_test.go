@@ -109,6 +109,8 @@ func TestEnvVarOverride(t *testing.T) {
 
 func TestEnvVarMissing(t *testing.T) {
 	t.Setenv("ANTHROPIC_API_KEY", "")
+	// Redirect HOME so resolveAPIKeyFromGlobal won't find real ~/.human/config.json
+	t.Setenv("HOME", t.TempDir())
 
 	_, err := ResolveAPIKey("anthropic")
 	if err == nil {

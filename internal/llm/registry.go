@@ -2,12 +2,13 @@ package llm
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/barun-bash/human/internal/config"
 )
 
 // SupportedProviders lists all available LLM provider names.
-var SupportedProviders = []string{"anthropic", "openai", "ollama"}
+var SupportedProviders = []string{"anthropic", "openai", "ollama", "groq", "openrouter", "gemini", "custom"}
 
 // ProviderFactory is a function that creates a Provider from config.
 // Registered by each provider package via RegisterProvider.
@@ -51,7 +52,7 @@ func NewProvider(cfg *config.LLMConfig) (Provider, error) {
 
 	factory, ok := registry[cfg.Provider]
 	if !ok {
-		return nil, fmt.Errorf("unknown LLM provider %q. Supported: anthropic, openai, ollama", cfg.Provider)
+		return nil, fmt.Errorf("unknown LLM provider %q. Supported: %s", cfg.Provider, strings.Join(SupportedProviders, ", "))
 	}
 
 	return factory(cfg)

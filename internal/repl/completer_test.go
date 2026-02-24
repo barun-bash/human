@@ -27,12 +27,12 @@ func TestCompleteCommandName_MultipleMatches(t *testing.T) {
 	matches := r.completeCommandName("/c")
 	sort.Strings(matches)
 
-	// Should match /check, /clear, /config, /connect
+	// Should match /cd, /check, /clear, /config, /connect
 	found := map[string]bool{}
 	for _, m := range matches {
 		found[m] = true
 	}
-	for _, expected := range []string{"/check", "/clear", "/config", "/connect"} {
+	for _, expected := range []string{"/cd", "/check", "/clear", "/config", "/connect"} {
 		if !found[expected] {
 			t.Errorf("expected %s in matches, got %v", expected, matches)
 		}
@@ -101,14 +101,12 @@ func TestBuildCompleter_ConnectProviders(t *testing.T) {
 	line := "/connect "
 	results := completer(line, len(line))
 	sort.Strings(results)
-	if len(results) != 4 {
-		t.Errorf("expected 4 connect options, got %v", results)
-	}
+	// Should include status + all supported providers.
 	found := map[string]bool{}
 	for _, r := range results {
 		found[r] = true
 	}
-	for _, expected := range []string{"anthropic", "openai", "ollama", "status"} {
+	for _, expected := range []string{"anthropic", "openai", "ollama", "groq", "openrouter", "gemini", "custom", "status"} {
 		if !found[expected] {
 			t.Errorf("expected %s in results, got %v", expected, results)
 		}
@@ -190,9 +188,9 @@ func TestBuildCompleter_ConfigSet(t *testing.T) {
 	line = "/config set "
 	results = completer(line, len(line))
 	sort.Strings(results)
-	expected := []string{"animate", "plan_mode", "theme"}
-	if len(results) != 3 {
-		t.Errorf("expected 3 config keys, got %v", results)
+	expected := []string{"animate", "auto_accept", "plan_mode", "theme"}
+	if len(results) != 4 {
+		t.Errorf("expected 4 config keys, got %v", results)
 	}
 	for i, e := range expected {
 		if i < len(results) && results[i] != e {

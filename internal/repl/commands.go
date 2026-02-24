@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/barun-bash/human/internal/cli"
@@ -142,6 +143,19 @@ func (r *REPL) registerCommands() {
 			Complete:    completeConnect,
 		},
 		{
+			Name:        "/disconnect",
+			Description: "Remove saved LLM provider",
+			Usage:       "/disconnect",
+			Handler:     cmdDisconnect,
+		},
+		{
+			Name:        "/model",
+			Description: "Show or switch the LLM model",
+			Usage:       "/model [name|list]",
+			Handler:     cmdModel,
+			Complete:    completeModel,
+		},
+		{
 			Name:        "/mcp",
 			Description: "Manage MCP server connections",
 			Usage:       "/mcp [list|add|remove|status]",
@@ -161,6 +175,26 @@ func (r *REPL) registerCommands() {
 			Usage:       "/config [set <key> <value>]",
 			Handler:     cmdConfig,
 			Complete:    completeConfig,
+		},
+		{
+			Name:        "/history",
+			Description: "Show or clear command history",
+			Usage:       "/history [clear|<n>]",
+			Handler:     cmdHistory,
+			Complete:    completeHistory,
+		},
+		{
+			Name:        "/cd",
+			Description: "Change working directory",
+			Usage:       "/cd [path]",
+			Handler:     cmdCd,
+			Complete:    completeCd,
+		},
+		{
+			Name:        "/pwd",
+			Description: "Print working directory",
+			Usage:       "/pwd",
+			Handler:     cmdPwd,
 		},
 		{
 			Name:        "/help",
@@ -235,9 +269,9 @@ func cmdBuild(r *REPL, args []string) {
 		return
 	}
 
-	// Show build plan if plan_mode is "always" or "auto".
+	// Show build plan if plan_mode is "always" or "auto" (skipped in auto-accept mode).
 	mode := r.settings.EffectivePlanMode()
-	if mode == "always" || mode == "auto" {
+	if (mode == "always" || mode == "auto") && !r.settings.AutoAcceptEnabled() {
 		result, err := cmdutil.ParseAndAnalyze(r.projectFile)
 		if err != nil {
 			fmt.Fprintln(r.errOut, cli.Error(err.Error()))
@@ -297,7 +331,10 @@ func cmdBuild(r *REPL, args []string) {
 		}
 	}
 
-	if _, _, _, err := cmdutil.FullBuild(r.projectFile); err != nil {
+	progress := func(stage string) {
+		fmt.Fprintf(r.out, "  %s %s...\n", cli.Accent("\u25b6"), stage)
+	}
+	if _, _, _, err := cmdutil.FullBuildWithProgress(r.projectFile, progress); err != nil {
 		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
 	}
 }
@@ -546,8 +583,9 @@ func cmdConfig(r *REPL, args []string) {
 		fmt.Fprintln(r.out, cli.Heading("Settings"))
 		fmt.Fprintln(r.out, strings.Repeat("\u2500", 30))
 		fmt.Fprintf(r.out, "  theme:     %s\n", cli.CurrentThemeName())
-		fmt.Fprintf(r.out, "  animate:   %v\n", r.settings.AnimateEnabled())
-		fmt.Fprintf(r.out, "  plan_mode: %s\n", r.settings.EffectivePlanMode())
+		fmt.Fprintf(r.out, "  animate:     %v\n", r.settings.AnimateEnabled())
+		fmt.Fprintf(r.out, "  plan_mode:   %s\n", r.settings.EffectivePlanMode())
+		fmt.Fprintf(r.out, "  auto_accept: %v\n", r.settings.AutoAcceptEnabled())
 		fmt.Fprintln(r.out)
 		fmt.Fprintln(r.out, cli.Muted("  Use /config set <key> <value> to change."))
 		fmt.Fprintln(r.out)
@@ -556,7 +594,7 @@ func cmdConfig(r *REPL, args []string) {
 
 	if strings.ToLower(args[0]) != "set" || len(args) < 3 {
 		fmt.Fprintln(r.errOut, "Usage: /config set <key> <value>")
-		fmt.Fprintln(r.errOut, "  Keys: animate (on/off), plan_mode (always/auto/off), theme (<name>)")
+		fmt.Fprintln(r.errOut, "  Keys: animate (on/off), auto_accept (on/off), plan_mode (always/auto/off), theme (<name>)")
 		return
 	}
 
@@ -572,6 +610,16 @@ func cmdConfig(r *REPL, args []string) {
 			r.settings.SetAnimate(false)
 		default:
 			fmt.Fprintln(r.errOut, cli.Error("animate must be on or off"))
+			return
+		}
+	case "auto_accept":
+		switch value {
+		case "on", "true", "yes":
+			r.settings.SetAutoAccept(true)
+		case "off", "false", "no":
+			r.settings.SetAutoAccept(false)
+		default:
+			fmt.Fprintln(r.errOut, cli.Error("auto_accept must be on or off"))
 			return
 		}
 	case "plan_mode":
@@ -590,7 +638,7 @@ func cmdConfig(r *REPL, args []string) {
 		r.settings.Theme = value
 	default:
 		fmt.Fprintln(r.errOut, cli.Error(fmt.Sprintf("Unknown setting: %s", key)))
-		fmt.Fprintln(r.errOut, "  Available: animate, plan_mode, theme")
+		fmt.Fprintln(r.errOut, "  Available: animate, auto_accept, plan_mode, theme")
 		return
 	}
 
@@ -598,6 +646,44 @@ func cmdConfig(r *REPL, args []string) {
 		fmt.Fprintln(r.errOut, cli.Warn(fmt.Sprintf("Setting applied but could not save: %v", err)))
 	} else {
 		fmt.Fprintf(r.out, "%s\n", cli.Success(fmt.Sprintf("Set %s = %s", key, value)))
+	}
+}
+
+// ── History Command ──
+
+func cmdHistory(r *REPL, args []string) {
+	if len(args) > 0 {
+		sub := strings.ToLower(args[0])
+		if sub == "clear" {
+			r.history.Clear()
+			fmt.Fprintln(r.out, cli.Success("History cleared."))
+			return
+		}
+		// Try to parse as a number.
+		if n, err := strconv.Atoi(sub); err == nil && n > 0 {
+			showHistory(r, n)
+			return
+		}
+		fmt.Fprintln(r.errOut, "Usage: /history [clear|<n>]")
+		return
+	}
+	showHistory(r, 20)
+}
+
+func showHistory(r *REPL, n int) {
+	entries := r.history.Entries()
+	if len(entries) == 0 {
+		fmt.Fprintln(r.out, cli.Muted("No history."))
+		return
+	}
+
+	start := 0
+	if len(entries) > n {
+		start = len(entries) - n
+	}
+
+	for i := start; i < len(entries); i++ {
+		fmt.Fprintf(r.out, "  %3d  %s\n", i+1, entries[i])
 	}
 }
 
@@ -612,8 +698,8 @@ func cmdHelp(r *REPL, args []string) {
 	order := []string{
 		"/open", "/new", "/ask", "/edit", "/undo", "/suggest", "/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
-		"/instructions", "/connect", "/mcp", "/theme", "/config",
-		"/clear", "/version", "/help", "/quit",
+		"/instructions", "/connect", "/disconnect", "/model", "/mcp", "/theme", "/config",
+		"/history", "/cd", "/pwd", "/clear", "/version", "/help", "/quit",
 	}
 
 	for _, name := range order {
