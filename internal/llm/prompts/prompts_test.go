@@ -8,7 +8,7 @@ import (
 // ── Prompt Structure Tests ──
 
 func TestAskPrompt(t *testing.T) {
-	msgs := AskPrompt("describe a blog application")
+	msgs := AskPrompt("describe a blog application", "")
 
 	if len(msgs) != 2 {
 		t.Fatalf("expected 2 messages, got %d", len(msgs))
@@ -24,9 +24,23 @@ func TestAskPrompt(t *testing.T) {
 	}
 }
 
+func TestAskPromptWithInstructions(t *testing.T) {
+	msgs := AskPrompt("build a todo app", "Always use React and TypeScript")
+
+	if len(msgs) != 2 {
+		t.Fatalf("expected 2 messages, got %d", len(msgs))
+	}
+	if !strings.Contains(msgs[0].Content, "PROJECT INSTRUCTIONS") {
+		t.Error("system prompt should contain instructions header")
+	}
+	if !strings.Contains(msgs[0].Content, "Always use React and TypeScript") {
+		t.Error("system prompt should contain the instructions text")
+	}
+}
+
 func TestSuggestPrompt(t *testing.T) {
 	source := "app Test is a web application\n\ndata User:\n  name is text"
-	msgs := SuggestPrompt(source)
+	msgs := SuggestPrompt(source, "")
 
 	if len(msgs) != 2 {
 		t.Fatalf("expected 2 messages, got %d", len(msgs))
@@ -39,11 +53,19 @@ func TestSuggestPrompt(t *testing.T) {
 	}
 }
 
+func TestSuggestPromptWithInstructions(t *testing.T) {
+	msgs := SuggestPrompt("app Test is a web application", "Focus on security")
+
+	if !strings.Contains(msgs[0].Content, "Focus on security") {
+		t.Error("suggest system prompt should contain instructions")
+	}
+}
+
 func TestEditPrompt(t *testing.T) {
 	source := "app Test is a web application"
 	instruction := "add a User model"
 
-	msgs := EditPrompt(source, instruction, nil)
+	msgs := EditPrompt(source, instruction, nil, "")
 
 	// System + user = 2 messages.
 	if len(msgs) != 2 {
@@ -57,13 +79,24 @@ func TestEditPrompt(t *testing.T) {
 	}
 }
 
+func TestEditPromptWithInstructions(t *testing.T) {
+	msgs := EditPrompt("source", "instruction", nil, "Use Shadcn components")
+
+	if !strings.Contains(msgs[0].Content, "Use Shadcn components") {
+		t.Error("edit system prompt should contain instructions")
+	}
+	if !strings.Contains(msgs[0].Content, "You are editing") {
+		t.Error("edit system prompt should still contain editing context")
+	}
+}
+
 func TestEditPromptWithHistory(t *testing.T) {
 	history := []Message{
 		{Role: RoleUser, Content: "add a User model"},
 		{Role: RoleAssistant, Content: "```human\ndata User:\n  name is text\n```"},
 	}
 
-	msgs := EditPrompt("data User:\n  name is text", "add email field", history)
+	msgs := EditPrompt("data User:\n  name is text", "add email field", history, "")
 
 	// System + 2 history + user = 4 messages.
 	if len(msgs) != 4 {
@@ -78,11 +111,31 @@ func TestEditPromptHistoryCap(t *testing.T) {
 		history = append(history, Message{Role: RoleUser, Content: "edit"})
 	}
 
-	msgs := EditPrompt("source", "instruction", history)
+	msgs := EditPrompt("source", "instruction", history, "")
 
 	// System + 10 (capped history) + user = 12.
 	if len(msgs) != 12 {
 		t.Fatalf("expected 12 messages (10 capped history), got %d", len(msgs))
+	}
+}
+
+func TestBuildSystemPrompt_Empty(t *testing.T) {
+	result := buildSystemPrompt("base prompt", "")
+	if result != "base prompt" {
+		t.Errorf("expected unchanged base prompt, got: %q", result)
+	}
+}
+
+func TestBuildSystemPrompt_WithInstructions(t *testing.T) {
+	result := buildSystemPrompt("base prompt", "my instructions")
+	if !strings.Contains(result, "base prompt") {
+		t.Error("should contain base prompt")
+	}
+	if !strings.Contains(result, "PROJECT INSTRUCTIONS") {
+		t.Error("should contain instructions header")
+	}
+	if !strings.Contains(result, "my instructions") {
+		t.Error("should contain instructions content")
 	}
 }
 

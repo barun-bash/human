@@ -86,9 +86,16 @@ func TestEdit_HelpOrder(t *testing.T) {
 	r.Run()
 	output := out.String()
 
-	editIdx := strings.Index(output, "/edit")
-	undoIdx := strings.Index(output, "/undo")
-	buildIdx := strings.Index(output, "/build")
+	// Search within the help listing section only to avoid matching banner tips.
+	helpStart := strings.Index(output, "Available Commands")
+	if helpStart < 0 {
+		t.Fatal("expected 'Available Commands' heading in output")
+	}
+	helpSection := output[helpStart:]
+
+	editIdx := strings.Index(helpSection, "/edit")
+	undoIdx := strings.Index(helpSection, "/undo")
+	buildIdx := strings.Index(helpSection, "/build")
 
 	if editIdx < 0 || undoIdx < 0 || buildIdx < 0 {
 		t.Fatal("expected /edit, /undo, and /build in help output")

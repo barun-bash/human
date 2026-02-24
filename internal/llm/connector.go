@@ -13,8 +13,9 @@ import (
 // Connector orchestrates LLM operations: ask, suggest, and edit.
 // It wraps a Provider and adds validation via the parser.
 type Connector struct {
-	provider Provider
-	config   *config.LLMConfig
+	provider     Provider
+	config       *config.LLMConfig
+	Instructions string // optional project instructions from HUMAN.md
 }
 
 // NewConnector creates a Connector with the given provider and config.
@@ -46,7 +47,7 @@ type AskResult struct {
 // Ask sends a freeform query to the LLM and returns generated .human code.
 // The response is validated against the parser.
 func (c *Connector) Ask(ctx context.Context, query string) (*AskResult, error) {
-	pMsgs := prompts.AskPrompt(query)
+	pMsgs := prompts.AskPrompt(query, c.Instructions)
 
 	resp, err := c.provider.Complete(ctx, &Request{
 		Messages:    convertMessages(pMsgs),
@@ -74,7 +75,7 @@ func (c *Connector) Ask(ctx context.Context, query string) (*AskResult, error) {
 // StreamChunks for real-time output. The caller should collect the full text
 // and call ValidateCode() separately after the stream completes.
 func (c *Connector) AskStream(ctx context.Context, query string) (<-chan StreamChunk, error) {
-	pMsgs := prompts.AskPrompt(query)
+	pMsgs := prompts.AskPrompt(query, c.Instructions)
 
 	return c.provider.Stream(ctx, &Request{
 		Messages:    convertMessages(pMsgs),
@@ -101,7 +102,7 @@ func (c *Connector) Suggest(ctx context.Context, source string) (*SuggestResult,
 		return nil, fmt.Errorf("source file is too large (%d estimated tokens) for the model's context window (%d tokens). Consider splitting into smaller files", tokens, window)
 	}
 
-	pMsgs := prompts.SuggestPrompt(source)
+	pMsgs := prompts.SuggestPrompt(source, c.Instructions)
 
 	resp, err := c.provider.Complete(ctx, &Request{
 		Messages:    convertMessages(pMsgs),
@@ -143,7 +144,7 @@ func (c *Connector) Edit(ctx context.Context, source, instruction string, histor
 		}
 	}
 
-	pMsgs := prompts.EditPrompt(source, instruction, pHistory)
+	pMsgs := prompts.EditPrompt(source, instruction, pHistory, c.Instructions)
 
 	resp, err := c.provider.Complete(ctx, &Request{
 		Messages:    convertMessages(pMsgs),

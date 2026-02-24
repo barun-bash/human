@@ -118,20 +118,31 @@ RULES:
 
 OUTPUT FORMAT: When generating .human code, output ONLY valid .human code wrapped in a ` + "```human" + ` code fence. Do not include explanations outside the code fence unless specifically asked.`
 
+// buildSystemPrompt returns the system prompt, optionally appending project
+// instructions from HUMAN.md when they are provided.
+func buildSystemPrompt(base, instructions string) string {
+	if instructions == "" {
+		return base
+	}
+	return base + "\n\n── PROJECT INSTRUCTIONS (from HUMAN.md) ──\n" + instructions
+}
+
 // AskPrompt builds a message sequence for the "ask" command.
 // The user provides a freeform English description, and the LLM generates .human code.
-func AskPrompt(query string) []Message {
+// instructions is optional project context from HUMAN.md (pass "" to omit).
+func AskPrompt(query, instructions string) []Message {
 	return []Message{
-		{Role: RoleSystem, Content: SystemPrompt},
+		{Role: RoleSystem, Content: buildSystemPrompt(SystemPrompt, instructions)},
 		{Role: RoleUser, Content: query},
 	}
 }
 
 // SuggestPrompt builds a message sequence for the "suggest" command.
 // The LLM analyzes existing .human source and returns improvement suggestions.
-func SuggestPrompt(source string) []Message {
+// instructions is optional project context from HUMAN.md (pass "" to omit).
+func SuggestPrompt(source, instructions string) []Message {
 	return []Message{
-		{Role: RoleSystem, Content: SystemPrompt},
+		{Role: RoleSystem, Content: buildSystemPrompt(SystemPrompt, instructions)},
 		{Role: RoleUser, Content: "Analyze the following .human source code and suggest improvements. " +
 			"Categorize suggestions as: [performance], [security], [usability], [structure], or [feature]. " +
 			"Format each suggestion as a single line starting with the category tag.\n\n" +
@@ -141,11 +152,14 @@ func SuggestPrompt(source string) []Message {
 
 // EditPrompt builds a message sequence for the "edit" command.
 // Supports conversational editing by including message history.
-func EditPrompt(source, instruction string, history []Message) []Message {
+// instructions is optional project context from HUMAN.md (pass "" to omit).
+func EditPrompt(source, instruction string, history []Message, instructions string) []Message {
+	base := SystemPrompt + "\n\nYou are editing an existing .human file. " +
+		"Apply the user's requested changes and return the complete updated file. " +
+		"Preserve all existing code that isn't being changed."
+
 	msgs := []Message{
-		{Role: RoleSystem, Content: SystemPrompt + "\n\nYou are editing an existing .human file. " +
-			"Apply the user's requested changes and return the complete updated file. " +
-			"Preserve all existing code that isn't being changed."},
+		{Role: RoleSystem, Content: buildSystemPrompt(base, instructions)},
 	}
 
 	// Include conversation history (capped).

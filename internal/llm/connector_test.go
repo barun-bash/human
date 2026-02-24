@@ -312,3 +312,125 @@ func TestExtractHumanCode(t *testing.T) {
 		t.Errorf("ExtractHumanCode = %q, want %q", code, "app Test is a web application")
 	}
 }
+
+// captureProvider records the request sent to it, for inspecting prompt content.
+type captureProvider struct {
+	lastRequest *Request
+}
+
+func (c *captureProvider) Name() string { return "capture" }
+func (c *captureProvider) Complete(ctx context.Context, req *Request) (*Response, error) {
+	c.lastRequest = req
+	return &Response{Content: "```human\napp Test is a web application\n```"}, nil
+}
+func (c *captureProvider) Stream(ctx context.Context, req *Request) (<-chan StreamChunk, error) {
+	c.lastRequest = req
+	ch := make(chan StreamChunk, 1)
+	ch <- StreamChunk{Delta: "app Test", Done: true}
+	close(ch)
+	return ch, nil
+}
+
+func TestConnectorInstructionsPassedToAsk(t *testing.T) {
+	capture := &captureProvider{}
+	cfg := &config.LLMConfig{Provider: "capture", Model: "test", MaxTokens: 4096}
+	connector := NewConnector(capture, cfg)
+	connector.Instructions = "Always use Go backend"
+
+	connector.Ask(context.Background(), "build an app")
+
+	if capture.lastRequest == nil {
+		t.Fatal("expected a request")
+	}
+	systemMsg := ""
+	for _, m := range capture.lastRequest.Messages {
+		if m.Role == RoleSystem {
+			systemMsg = m.Content
+		}
+	}
+	if !strings.Contains(systemMsg, "Always use Go backend") {
+		t.Error("system prompt should contain instructions")
+	}
+}
+
+func TestConnectorInstructionsPassedToEdit(t *testing.T) {
+	capture := &captureProvider{}
+	cfg := &config.LLMConfig{Provider: "capture", Model: "test", MaxTokens: 4096}
+	connector := NewConnector(capture, cfg)
+	connector.Instructions = "Use Tailwind CSS"
+
+	connector.Edit(context.Background(), "app Test is a web application", "add styles", nil)
+
+	systemMsg := ""
+	for _, m := range capture.lastRequest.Messages {
+		if m.Role == RoleSystem {
+			systemMsg = m.Content
+		}
+	}
+	if !strings.Contains(systemMsg, "Use Tailwind CSS") {
+		t.Error("edit system prompt should contain instructions")
+	}
+}
+
+func TestConnectorInstructionsPassedToSuggest(t *testing.T) {
+	capture := &captureProvider{}
+	cfg := &config.LLMConfig{Provider: "capture", Model: "test", MaxTokens: 4096}
+	connector := NewConnector(capture, cfg)
+	connector.Instructions = "Focus on performance"
+
+	connector.Suggest(context.Background(), "app Test is a web application")
+
+	systemMsg := ""
+	for _, m := range capture.lastRequest.Messages {
+		if m.Role == RoleSystem {
+			systemMsg = m.Content
+		}
+	}
+	if !strings.Contains(systemMsg, "Focus on performance") {
+		t.Error("suggest system prompt should contain instructions")
+	}
+}
+
+func TestConnectorInstructionsPassedToAskStream(t *testing.T) {
+	capture := &captureProvider{}
+	cfg := &config.LLMConfig{Provider: "capture", Model: "test", MaxTokens: 4096}
+	connector := NewConnector(capture, cfg)
+	connector.Instructions = "Use React"
+
+	ch, err := connector.AskStream(context.Background(), "build an app")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Drain the channel.
+	for range ch {
+	}
+
+	systemMsg := ""
+	for _, m := range capture.lastRequest.Messages {
+		if m.Role == RoleSystem {
+			systemMsg = m.Content
+		}
+	}
+	if !strings.Contains(systemMsg, "Use React") {
+		t.Error("stream system prompt should contain instructions")
+	}
+}
+
+func TestConnectorNoInstructionsDefault(t *testing.T) {
+	capture := &captureProvider{}
+	cfg := &config.LLMConfig{Provider: "capture", Model: "test", MaxTokens: 4096}
+	connector := NewConnector(capture, cfg)
+	// Instructions not set (zero value "")
+
+	connector.Ask(context.Background(), "build an app")
+
+	systemMsg := ""
+	for _, m := range capture.lastRequest.Messages {
+		if m.Role == RoleSystem {
+			systemMsg = m.Content
+		}
+	}
+	if strings.Contains(systemMsg, "PROJECT INSTRUCTIONS") {
+		t.Error("system prompt should NOT contain instructions header when empty")
+	}
+}

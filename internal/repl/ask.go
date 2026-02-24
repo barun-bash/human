@@ -46,6 +46,9 @@ func cmdAsk(r *REPL, args []string) {
 		cli.Info(""), llmCfg.Provider, llmCfg.Model)
 	fmt.Fprintln(r.out)
 
+	// Pass project instructions to the connector.
+	connector.Instructions = r.instructions
+
 	// Use streaming for real-time output.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()

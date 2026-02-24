@@ -28,8 +28,9 @@ type REPL struct {
 	aliases     map[string]string
 	running         bool
 	settings        *config.GlobalSettings
-	lastSuggestions []prompts.Suggestion // cached from last /suggest, cleared on source change
+	lastSuggestions []prompts.Suggestion   // cached from last /suggest, cleared on source change
 	mcpClients      map[string]*mcp.Client // live MCP server connections
+	instructions    string                 // project instructions from HUMAN.md
 }
 
 // Option configures the REPL.
@@ -143,10 +144,46 @@ func (r *REPL) autoDetectProject() {
 }
 
 // setProject sets the loaded project file and derives the project name.
+// Also loads HUMAN.md from the project directory if it exists.
 func (r *REPL) setProject(file string) {
 	r.projectFile = file
 	base := filepath.Base(file)
 	r.projectName = strings.TrimSuffix(base, filepath.Ext(base))
+	r.loadInstructions()
+}
+
+// loadInstructions reads HUMAN.md from the project directory (same directory
+// as the .human file). If found, the content is cached in r.instructions and
+// passed as context to all LLM operations.
+func (r *REPL) loadInstructions() {
+	r.instructions = ""
+	if r.projectFile == "" {
+		return
+	}
+
+	dir := filepath.Dir(r.projectFile)
+	path := filepath.Join(dir, "HUMAN.md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return // file doesn't exist or unreadable — not an error
+	}
+
+	content := strings.TrimSpace(string(data))
+	if content == "" {
+		return
+	}
+
+	r.instructions = content
+	fmt.Fprintln(r.out, cli.Muted("  Loaded project instructions from HUMAN.md"))
+}
+
+// instructionsPath returns the path to HUMAN.md for the current project.
+// Returns "" if no project is loaded.
+func (r *REPL) instructionsPath() string {
+	if r.projectFile == "" {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(r.projectFile), "HUMAN.md")
 }
 
 // printBanner displays the branded HUMAN_ startup banner.

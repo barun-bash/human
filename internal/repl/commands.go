@@ -123,6 +123,12 @@ func (r *REPL) registerCommands() {
 			Handler:     cmdExamples,
 		},
 		{
+			Name:        "/instructions",
+			Description: "View or manage project instructions (HUMAN.md)",
+			Usage:       "/instructions [edit|init]",
+			Handler:     cmdInstructions,
+		},
+		{
 			Name:        "/connect",
 			Description: "Set up LLM provider",
 			Usage:       "/connect [provider|status]",
@@ -596,7 +602,7 @@ func cmdHelp(r *REPL, args []string) {
 	order := []string{
 		"/open", "/new", "/ask", "/edit", "/undo", "/suggest", "/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
-		"/connect", "/mcp", "/theme", "/config",
+		"/instructions", "/connect", "/mcp", "/theme", "/config",
 		"/clear", "/version", "/help", "/quit",
 	}
 

@@ -45,6 +45,7 @@ func suggestAnalyze(r *REPL) {
 		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
 		return
 	}
+	connector.Instructions = r.instructions
 
 	// Cost notice.
 	if llmCfg.Provider != "ollama" {
@@ -134,6 +135,7 @@ func suggestApplyOne(r *REPL, idx int) {
 		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
 		return
 	}
+	connector.Instructions = r.instructions
 
 	source, err := os.ReadFile(r.projectFile)
 	if err != nil {
@@ -156,6 +158,7 @@ func suggestApplyAll(r *REPL) {
 		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
 		return
 	}
+	connector.Instructions = r.instructions
 
 	total := len(r.lastSuggestions)
 	applied := 0

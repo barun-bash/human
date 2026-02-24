@@ -37,6 +37,9 @@ func cmdEdit(r *REPL, args []string) {
 		return
 	}
 
+	// Pass project instructions to the connector.
+	connector.Instructions = r.instructions
+
 	// Cost notice for non-local providers.
 	if llmCfg.Provider != "ollama" {
 		fmt.Fprintln(r.out, cli.Muted("  Note: This uses your API key and may incur costs."))
