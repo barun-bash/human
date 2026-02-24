@@ -442,6 +442,96 @@ func TestResolveAPIKeyGlobalWrongProvider(t *testing.T) {
 	}
 }
 
+func TestGlobalConfigMCPRoundTrip(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	gc := &GlobalConfig{
+		LLM: &GlobalLLMConfig{
+			Provider: "anthropic",
+			Model:    "claude-sonnet-4-20250514",
+			APIKey:   "sk-test",
+		},
+		MCP: []*MCPServerConfig{
+			{
+				Name:    "figma",
+				Command: "npx",
+				Args:    []string{"-y", "@anthropic/mcp-server-figma"},
+				Env:     map[string]string{"FIGMA_ACCESS_TOKEN": "tok-123"},
+			},
+			{
+				Name:    "github",
+				Command: "npx",
+				Args:    []string{"-y", "@anthropic/mcp-server-github"},
+				Env:     map[string]string{"GITHUB_TOKEN": "ghp-456"},
+			},
+		},
+	}
+
+	if err := SaveGlobalConfig(gc); err != nil {
+		t.Fatal(err)
+	}
+
+	loaded, err := LoadGlobalConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if loaded.LLM == nil || loaded.LLM.Provider != "anthropic" {
+		t.Error("LLM config lost during MCP round-trip")
+	}
+	if len(loaded.MCP) != 2 {
+		t.Fatalf("expected 2 MCP servers, got %d", len(loaded.MCP))
+	}
+	if loaded.MCP[0].Name != "figma" {
+		t.Errorf("MCP[0].Name = %q, want figma", loaded.MCP[0].Name)
+	}
+	if loaded.MCP[0].Command != "npx" {
+		t.Errorf("MCP[0].Command = %q, want npx", loaded.MCP[0].Command)
+	}
+	if loaded.MCP[0].Env["FIGMA_ACCESS_TOKEN"] != "tok-123" {
+		t.Errorf("MCP[0] env token not persisted")
+	}
+	if loaded.MCP[1].Name != "github" {
+		t.Errorf("MCP[1].Name = %q, want github", loaded.MCP[1].Name)
+	}
+}
+
+func TestGlobalConfigMCPPreservesLLM(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	// Save LLM config first.
+	gc1 := &GlobalConfig{
+		LLM: &GlobalLLMConfig{
+			Provider: "openai",
+			Model:    "gpt-4o",
+			APIKey:   "sk-openai-key",
+		},
+	}
+	if err := SaveGlobalConfig(gc1); err != nil {
+		t.Fatal(err)
+	}
+
+	// Load, add MCP, save again.
+	loaded, _ := LoadGlobalConfig()
+	loaded.MCP = []*MCPServerConfig{
+		{Name: "figma", Command: "npx", Args: []string{"-y", "@anthropic/mcp-server-figma"}},
+	}
+	if err := SaveGlobalConfig(loaded); err != nil {
+		t.Fatal(err)
+	}
+
+	// Reload and verify LLM wasn't clobbered.
+	final, _ := LoadGlobalConfig()
+	if final.LLM == nil || final.LLM.APIKey != "sk-openai-key" {
+		t.Error("LLM config was clobbered when saving MCP config")
+	}
+	if len(final.MCP) != 1 || final.MCP[0].Name != "figma" {
+		t.Error("MCP config not saved correctly")
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchSubstr(s, substr)
 }

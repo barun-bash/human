@@ -141,7 +141,16 @@ func DefaultLLMConfig(provider string) *LLMConfig {
 // GlobalConfig holds user-wide configuration stored at ~/.human/config.json.
 // Unlike project config, this persists API keys locally.
 type GlobalConfig struct {
-	LLM *GlobalLLMConfig `json:"llm,omitempty"`
+	LLM *GlobalLLMConfig  `json:"llm,omitempty"`
+	MCP []*MCPServerConfig `json:"mcp,omitempty"`
+}
+
+// MCPServerConfig stores configuration for an external MCP server.
+type MCPServerConfig struct {
+	Name    string            `json:"name"`              // display name (e.g. "figma")
+	Command string            `json:"command"`           // executable (e.g. "npx")
+	Args    []string          `json:"args,omitempty"`    // command arguments
+	Env     map[string]string `json:"env,omitempty"`     // env vars (e.g. FIGMA_ACCESS_TOKEN)
 }
 
 // GlobalLLMConfig stores LLM credentials globally.

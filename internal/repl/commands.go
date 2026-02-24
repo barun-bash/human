@@ -129,6 +129,12 @@ func (r *REPL) registerCommands() {
 			Handler:     cmdConnect,
 		},
 		{
+			Name:        "/mcp",
+			Description: "Manage MCP server connections",
+			Usage:       "/mcp [list|add|remove|status]",
+			Handler:     cmdMCP,
+		},
+		{
 			Name:        "/theme",
 			Description: "Show or change the color theme",
 			Usage:       "/theme [name|list]",
@@ -590,7 +596,7 @@ func cmdHelp(r *REPL, args []string) {
 	order := []string{
 		"/open", "/new", "/ask", "/edit", "/undo", "/suggest", "/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
-		"/connect", "/theme", "/config",
+		"/connect", "/mcp", "/theme", "/config",
 		"/clear", "/version", "/help", "/quit",
 	}
 
@@ -617,6 +623,7 @@ func cmdVersion(r *REPL, args []string) {
 }
 
 func cmdQuit(r *REPL, args []string) {
+	r.closeMCPClients()
 	fmt.Fprintln(r.out, "Goodbye.")
 	r.running = false
 }

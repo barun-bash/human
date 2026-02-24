@@ -59,9 +59,17 @@ func TestSuggest_HelpOrder(t *testing.T) {
 	r.Run()
 	output := out.String()
 
-	suggestIdx := strings.Index(output, "/suggest")
-	buildIdx := strings.Index(output, "/build")
-	editIdx := strings.Index(output, "/edit")
+	// Search within the help listing section only (after "Available Commands")
+	// to avoid false matches in the banner/tips area.
+	helpStart := strings.Index(output, "Available Commands")
+	if helpStart < 0 {
+		t.Fatal("expected 'Available Commands' heading in output")
+	}
+	helpSection := output[helpStart:]
+
+	suggestIdx := strings.Index(helpSection, "/suggest")
+	buildIdx := strings.Index(helpSection, "/build")
+	editIdx := strings.Index(helpSection, "/edit")
 
 	if suggestIdx < 0 || buildIdx < 0 || editIdx < 0 {
 		t.Fatal("expected /suggest, /edit, and /build in help output")

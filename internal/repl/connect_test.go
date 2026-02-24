@@ -180,9 +180,17 @@ func TestConnect_HelpOrder(t *testing.T) {
 		t.Error("expected /help output to list /connect")
 	}
 
+	// Search within the help listing section only (after "Available Commands")
+	// to avoid false matches in the banner/tips area.
+	helpStart := strings.Index(output, "Available Commands")
+	if helpStart < 0 {
+		t.Fatal("expected 'Available Commands' heading in output")
+	}
+	helpSection := output[helpStart:]
+
 	// /connect should appear before /theme in the help listing.
-	connectIdx := strings.Index(output, "/connect")
-	themeIdx := strings.Index(output, "/theme")
+	connectIdx := strings.Index(helpSection, "/connect")
+	themeIdx := strings.Index(helpSection, "/theme")
 	if connectIdx > themeIdx {
 		t.Error("expected /connect to appear before /theme in help")
 	}

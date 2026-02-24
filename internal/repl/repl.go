@@ -11,6 +11,7 @@ import (
 	"github.com/barun-bash/human/internal/cli"
 	"github.com/barun-bash/human/internal/config"
 	"github.com/barun-bash/human/internal/llm/prompts"
+	"github.com/barun-bash/human/internal/mcp"
 )
 
 // REPL is the interactive Human compiler shell.
@@ -28,6 +29,7 @@ type REPL struct {
 	running         bool
 	settings        *config.GlobalSettings
 	lastSuggestions []prompts.Suggestion // cached from last /suggest, cleared on source change
+	mcpClients      map[string]*mcp.Client // live MCP server connections
 }
 
 // Option configures the REPL.
@@ -51,12 +53,13 @@ func WithErrOutput(w io.Writer) Option {
 // New creates a REPL with the given version and options.
 func New(version string, opts ...Option) *REPL {
 	r := &REPL{
-		version:  version,
-		in:       os.Stdin,
-		out:      os.Stdout,
-		errOut:   os.Stderr,
-		commands: make(map[string]*Command),
-		aliases:  make(map[string]string),
+		version:    version,
+		in:         os.Stdin,
+		out:        os.Stdout,
+		errOut:     os.Stderr,
+		commands:   make(map[string]*Command),
+		aliases:    make(map[string]string),
+		mcpClients: make(map[string]*mcp.Client),
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -71,6 +74,7 @@ func New(version string, opts ...Option) *REPL {
 // Run starts the REPL loop: banner, prompt, read, dispatch, repeat.
 func (r *REPL) Run() {
 	r.autoDetectProject()
+	r.autoConnectMCP()
 	r.printBanner()
 	r.running = true
 
@@ -92,6 +96,7 @@ func (r *REPL) Run() {
 		r.execute(line)
 	}
 
+	r.closeMCPClients()
 	r.history.Save()
 }
 
@@ -167,6 +172,8 @@ func (r *REPL) printBanner() {
 			info.LLMStatus = fmt.Sprintf("%s (%s)", gc.LLM.Provider, gc.LLM.Model)
 		}
 	}
+
+	info.MCPStatus = r.mcpBannerStatus()
 
 	cli.PrintBanner(r.out, r.version, animate, info)
 

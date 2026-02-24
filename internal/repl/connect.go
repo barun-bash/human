@@ -88,12 +88,12 @@ func connectAPIKey(r *REPL, provider, displayName string) {
 	// Determine default model.
 	defaults := config.DefaultLLMConfig(provider)
 
-	gc := &config.GlobalConfig{
-		LLM: &config.GlobalLLMConfig{
-			Provider: provider,
-			Model:    defaults.Model,
-			APIKey:   key,
-		},
+	// Load existing config to preserve MCP settings.
+	gc, _ := config.LoadGlobalConfig()
+	gc.LLM = &config.GlobalLLMConfig{
+		Provider: provider,
+		Model:    defaults.Model,
+		APIKey:   key,
 	}
 
 	if err := config.SaveGlobalConfig(gc); err != nil {
@@ -125,12 +125,12 @@ func connectOllama(r *REPL) {
 
 	defaults := config.DefaultLLMConfig("ollama")
 
-	gc := &config.GlobalConfig{
-		LLM: &config.GlobalLLMConfig{
-			Provider: "ollama",
-			Model:    defaults.Model,
-			BaseURL:  baseURL,
-		},
+	// Load existing config to preserve MCP settings.
+	gc, _ := config.LoadGlobalConfig()
+	gc.LLM = &config.GlobalLLMConfig{
+		Provider: "ollama",
+		Model:    defaults.Model,
+		BaseURL:  baseURL,
 	}
 
 	if err := config.SaveGlobalConfig(gc); err != nil {
