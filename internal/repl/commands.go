@@ -42,6 +42,19 @@ func (r *REPL) registerCommands() {
 			Handler:     cmdAsk,
 		},
 		{
+			Name:        "/edit",
+			Aliases:     []string{"/e"},
+			Description: "AI-assisted editing of the loaded project",
+			Usage:       "/edit [instruction]",
+			Handler:     cmdEdit,
+		},
+		{
+			Name:        "/undo",
+			Description: "Revert the last /edit change",
+			Usage:       "/undo",
+			Handler:     cmdUndo,
+		},
+		{
 			Name:        "/build",
 			Aliases:     []string{"/b"},
 			Description: "Compile the loaded project",
@@ -568,7 +581,7 @@ func cmdHelp(r *REPL, args []string) {
 
 	// Ordered list of command names for display
 	order := []string{
-		"/open", "/new", "/ask", "/check", "/build", "/deploy", "/stop",
+		"/open", "/new", "/ask", "/edit", "/undo", "/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
 		"/connect", "/theme", "/config",
 		"/clear", "/version", "/help", "/quit",
