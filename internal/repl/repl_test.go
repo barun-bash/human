@@ -137,13 +137,13 @@ func TestREPL_DidYouMean(t *testing.T) {
 	}
 }
 
-func TestREPL_BannerContainsUnderscore(t *testing.T) {
+func TestREPL_BannerContainsBlockUnderscore(t *testing.T) {
 	r, out, _ := newTestREPL("/quit\n")
 	r.Run()
 	output := out.String()
-	// Banner should contain the HUMAN_ logo underscore
-	if !strings.Contains(output, "_") {
-		t.Error("banner should contain underscore character")
+	// Banner should contain the full-width block underscore
+	if !strings.Contains(output, "████████╗") {
+		t.Error("banner should contain block underscore bar")
 	}
 }
 

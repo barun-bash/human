@@ -9,8 +9,9 @@ import (
 	"time"
 )
 
-// logoLetters stores each letter of HUMAN as 6-row ASCII block art.
-var logoLetters = [5][6]string{
+// logoLetters stores each letter of HUMAN_ as 6-row ASCII block art.
+// The underscore is a full-width block character — part of the brand identity.
+var logoLetters = [6][6]string{
 	// H
 	{
 		"██╗  ██╗",
@@ -55,6 +56,15 @@ var logoLetters = [5][6]string{
 		"██║╚██╗██║",
 		"██║ ╚████║",
 		"╚═╝  ╚═══╝",
+	},
+	// _ (full-width block underscore — the brand cursor)
+	{
+		"         ",
+		"         ",
+		"         ",
+		"         ",
+		"████████╗",
+		"╚═══════╝",
 	},
 }
 
@@ -119,7 +129,7 @@ func printAnimatedLogo(w io.Writer) {
 	// Clear screen, cursor to top-left.
 	fmt.Fprint(w, "\033[2J\033[H")
 
-	// Reveal each letter one at a time (5 stages x 80ms = 400ms).
+	// Reveal letters H-U-M-A-N one at a time (5 stages x 80ms = 400ms).
 	for stage := 1; stage <= 5; stage++ {
 		fmt.Fprint(w, "\033[H") // cursor home — overwrite in place
 		lines := buildLogoLines(stage)
@@ -129,31 +139,34 @@ func printAnimatedLogo(w io.Writer) {
 		time.Sleep(80 * time.Millisecond)
 	}
 
-	// Blink the underscore 2 times (2 x 500ms = 1000ms). Total ~1.4s.
-	fullLines := buildLogoLines(5)
-	lastRow := fullLines[logoRows-1]
+	// Blink the full-block underscore 2 times (2 x 500ms = 1000ms). Total ~1.4s.
 	for i := 0; i < 2; i++ {
-		// Show underscore
-		fmt.Fprintf(w, "\033[1A\r  %s%s_%s\033[K\n", accent, lastRow, rst)
+		// Show underscore (all 6 letters)
+		printLogoFrame(w, 6, accent, rst)
 		time.Sleep(250 * time.Millisecond)
-		// Hide underscore
-		fmt.Fprintf(w, "\033[1A\r  %s%s %s\033[K\n", accent, lastRow, rst)
+		// Hide underscore (just 5 letters)
+		printLogoFrame(w, 5, accent, rst)
 		time.Sleep(250 * time.Millisecond)
 	}
 
 	// Final: underscore stays solid.
-	fmt.Fprintf(w, "\033[1A\r  %s%s_%s\033[K\n", accent, lastRow, rst)
+	printLogoFrame(w, 6, accent, rst)
+}
+
+// printLogoFrame reprints all logo rows from cursor home for n letters.
+func printLogoFrame(w io.Writer, n int, accent, rst string) {
+	fmt.Fprint(w, "\033[H")
+	lines := buildLogoLines(n)
+	for _, line := range lines {
+		fmt.Fprintf(w, "  %s%s%s\033[K\n", accent, line, rst)
+	}
 }
 
 func printStaticLogo(w io.Writer) {
 	accent, rst := accentCodes()
-	lines := buildLogoLines(5)
-	for i, line := range lines {
-		if i == logoRows-1 {
-			fmt.Fprintf(w, "  %s%s_%s\n", accent, line, rst)
-		} else {
-			fmt.Fprintf(w, "  %s%s%s\n", accent, line, rst)
-		}
+	lines := buildLogoLines(6) // all 6 letters including block underscore
+	for _, line := range lines {
+		fmt.Fprintf(w, "  %s%s%s\n", accent, line, rst)
 	}
 }
 

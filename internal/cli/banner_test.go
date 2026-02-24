@@ -31,8 +31,12 @@ func TestPrintStaticLogo(t *testing.T) {
 	printStaticLogo(&buf)
 
 	output := buf.String()
-	if !strings.Contains(output, "_") {
-		t.Error("static logo should contain underscore")
+	// The block underscore uses ████████╗ as its solid bar.
+	if !strings.Contains(output, "████████╗") {
+		t.Error("static logo should contain block underscore bar")
+	}
+	if !strings.Contains(output, "╚═══════╝") {
+		t.Error("static logo should contain block underscore base")
 	}
 
 	// Should have 6 lines (the block art).
@@ -151,7 +155,7 @@ func TestAnimateSkippedForNonTTY(t *testing.T) {
 	if strings.Contains(output, "\033[2J") {
 		t.Error("non-TTY output should not contain screen clear escape")
 	}
-	if !strings.Contains(output, "_") {
-		t.Error("non-TTY output should still contain underscore")
+	if !strings.Contains(output, "████████╗") {
+		t.Error("non-TTY output should still contain block underscore")
 	}
 }
