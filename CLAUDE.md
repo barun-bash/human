@@ -187,6 +187,42 @@ go vet ./...
 - Do not skip quality checks in the compiler. If we enforce quality on users, we enforce it on ourselves.
 - Do not make error messages technical. They should read like advice from a helpful colleague.
 
+## Figma Design Conversion Workflow
+
+When converting a Figma design to a `.human` file, follow this workflow:
+
+### Pre-flight Check (mandatory)
+
+Before starting any design conversion, verify that the Figma MCP is working:
+
+1. **Test Figma MCP connectivity** — Call `get_metadata` or `get_screenshot` on a known node. If it fails, stop and inform the user that Figma MCP is not available.
+2. **Ask the user to confirm** — Before fetching designs, confirm with the user which screens to convert and how many (keep it small — 1-3 screens max to avoid context overflow).
+3. **Verify the Figma file URL** — Extract the `fileKey` and `nodeId` from the URL. If the URL is malformed, ask the user for a valid one.
+
+### Conversion Steps
+
+1. **Fetch design metadata** — Use `get_metadata` to find the correct screen node IDs
+2. **Get screenshot + design context** — Use `get_screenshot` and `get_design_context` to extract visual layout and design tokens (colors, fonts, spacing, border radius, etc.)
+3. **Read the Human language spec** — Use `human_spec` MCP tool to get the grammar reference
+4. **Write the `.human` file** — Translate the Figma design into Human language, matching the visual layout
+5. **Validate** — Use `human_validate` to check for errors before building
+6. **Build** — Use `human_build` to compile to full-stack code
+7. **Copy output** — Use `human_read_file` to retrieve generated files and save them to the project
+
+### Port Configuration
+
+The compiler supports custom port configuration for Docker services. When building multiple projects, always use different ports to avoid conflicts. Default convention:
+
+- Frontend: `73xx` range (e.g., 7320, 7321, 7322)
+- Backend: `74xx` range (e.g., 7420, 7421, 7422)
+- Database: `74xx` range (e.g., 7433, 7434, 7435)
+
+The CLI will prompt for ports during `human build` if the build target includes Docker.
+
+### Context Size Warning
+
+Figma files can be very large (100+ screens). Always scope conversions to 1-3 screens at a time. Previous attempts with 19+ screens exceeded context limits and failed.
+
 ## Immediate Next Task
 
 Build the lexer and token system in `internal/lexer/`:

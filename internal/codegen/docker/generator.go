@@ -58,12 +58,13 @@ func writeFile(path, content string) error {
 // Returns a sorted list of EnvVar entries.
 func CollectEnvVars(app *ir.Application) []EnvVar {
 	port := BackendPort(app)
+	dbPort := DatabasePort(app)
 	dbSuffix := "?schema=public" // Prisma (Node)
 	if dir := BackendDir(app); dir == "go" || dir == "python" {
 		dbSuffix = "?sslmode=disable"
 	}
 	vars := []EnvVar{
-		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@db:5432/" + DbName(app) + dbSuffix, Comment: "PostgreSQL connection string — use @localhost:5432 for local dev, @db:5432 for Docker"},
+		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@db:" + dbPort + "/" + DbName(app) + dbSuffix, Comment: "PostgreSQL connection string — use @localhost:" + dbPort + " for local dev, @db:" + dbPort + " for Docker"},
 		{Name: "JWT_SECRET", Example: "change-me-to-a-random-secret", Comment: "Secret for signing JWT tokens"},
 		{Name: "PORT", Example: port, Comment: "Backend server port"},
 	}
@@ -71,7 +72,7 @@ func CollectEnvVars(app *ir.Application) []EnvVar {
 	// Only include frontend API URL env var when a frontend framework is configured.
 	if hasFrontend(app) {
 		feEnvName := FrontendAPIEnvName(app)
-		vars = append(vars, EnvVar{Name: feEnvName, Example: "http://localhost:" + port, Comment: "API URL for the frontend"})
+		vars = append(vars, EnvVar{Name: feEnvName, Example: "http://localhost:" + port, Comment: "API URL for the frontend (backend port)"})
 	}
 
 	// Integration credentials and config-derived env vars
@@ -177,10 +178,16 @@ func BackendDir(app *ir.Application) string {
 	}
 }
 
-// BackendPort returns the default port for the backend runtime.
+// BackendPort returns the backend port from config, or a default based on backend type.
 func BackendPort(app *ir.Application) string {
+	// If port is explicitly configured and non-zero, use it
+	if app.Config != nil && app.Config.Ports.Backend > 0 {
+		return fmt.Sprintf("%d", app.Config.Ports.Backend)
+	}
+
+	// Otherwise, use default based on backend framework
 	if app.Config == nil {
-		return "3000"
+		return "3001"
 	}
 	lower := strings.ToLower(app.Config.Backend)
 	switch {
@@ -189,8 +196,25 @@ func BackendPort(app *ir.Application) string {
 	case lower == "go" || strings.HasPrefix(lower, "go ") || strings.Contains(lower, "gin") || strings.Contains(lower, "fiber") || strings.Contains(lower, "golang"):
 		return "8080"
 	default:
-		return "3000"
+		return "3001"
 	}
+}
+
+// FrontendPort returns the frontend host port from config or default (80).
+// The container always serves on port 80 (Nginx); this controls the host mapping.
+func FrontendPort(app *ir.Application) string {
+	if app.Config != nil && app.Config.Ports.Frontend > 0 {
+		return fmt.Sprintf("%d", app.Config.Ports.Frontend)
+	}
+	return "80"
+}
+
+// DatabasePort returns the database port from config or default (5432).
+func DatabasePort(app *ir.Application) string {
+	if app.Config != nil && app.Config.Ports.Database > 0 {
+		return fmt.Sprintf("%d", app.Config.Ports.Database)
+	}
+	return "5432"
 }
 
 // FrontendDir returns the output subdirectory name for the frontend

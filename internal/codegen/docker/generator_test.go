@@ -72,18 +72,25 @@ func TestBackendDir(t *testing.T) {
 func TestBackendPort(t *testing.T) {
 	tests := []struct {
 		backend string
+		port    int
 		want    string
 	}{
-		{"Node with Express", "3000"},
-		{"Python with FastAPI", "8000"},
-		{"Go with Gin", "8080"},
-		{"", "3000"},
+		{"Node with Express", 0, "3001"},      // default for Node
+		{"Node with Express", 3000, "3000"},   // configured port
+		{"Python with FastAPI", 0, "8000"},    // default for Python
+		{"Go with Gin", 0, "8080"},            // default for Go
+		{"", 0, "3001"},                       // default when no backend specified
+		{"", 4000, "4000"},                    // configured port overrides default
 	}
 	for _, tt := range tests {
-		app := &ir.Application{Config: &ir.BuildConfig{Backend: tt.backend}}
+		config := &ir.BuildConfig{Backend: tt.backend}
+		if tt.port > 0 {
+			config.Ports = ir.PortConfig{Backend: tt.port}
+		}
+		app := &ir.Application{Config: config}
 		got := BackendPort(app)
 		if got != tt.want {
-			t.Errorf("BackendPort(%q): got %q, want %q", tt.backend, got, tt.want)
+			t.Errorf("BackendPort(%q, port=%d): got %q, want %q", tt.backend, tt.port, got, tt.want)
 		}
 	}
 }
@@ -538,7 +545,7 @@ func TestGenerateDockerCompose(t *testing.T) {
 	if !strings.Contains(output, "context: ./node") {
 		t.Error("missing backend build context")
 	}
-	if !strings.Contains(output, "3000:3000") {
+	if !strings.Contains(output, "3001:3001") {
 		t.Error("missing backend port mapping")
 	}
 	if !strings.Contains(output, "DATABASE_URL: postgresql://postgres:postgres@db:5432/taskflow?schema=public") {
@@ -565,7 +572,7 @@ func TestGenerateDockerCompose(t *testing.T) {
 	if !strings.Contains(output, "80:80") {
 		t.Error("missing frontend port mapping")
 	}
-	if !strings.Contains(output, "VITE_API_URL: http://localhost:3000") {
+	if !strings.Contains(output, "VITE_API_URL: http://localhost:3001") {
 		t.Error("missing VITE_API_URL build arg")
 	}
 
@@ -704,7 +711,7 @@ func TestGenerateEnvExample(t *testing.T) {
 	if !strings.Contains(output, "JWT_SECRET=") {
 		t.Error("missing JWT_SECRET")
 	}
-	if !strings.Contains(output, "PORT=3000") {
+	if !strings.Contains(output, "PORT=3001") {
 		t.Error("missing PORT")
 	}
 	if !strings.Contains(output, "VITE_API_URL=") {
@@ -779,7 +786,7 @@ func TestGenerateEnvFile(t *testing.T) {
 	if !strings.Contains(output, "JWT_SECRET=change-me-to-a-random-secret") {
 		t.Error("missing JWT_SECRET with default value")
 	}
-	if !strings.Contains(output, "PORT=3000") {
+	if !strings.Contains(output, "PORT=3001") {
 		t.Error("missing PORT with value")
 	}
 }
@@ -1310,8 +1317,8 @@ func TestFullIntegrationEvents(t *testing.T) {
 	if !strings.Contains(cs, "context: ./angular") {
 		t.Error("docker-compose.yml: should reference ./angular")
 	}
-	if !strings.Contains(cs, "3000:3000") {
-		t.Error("docker-compose.yml: should use port 3000 for Node")
+	if !strings.Contains(cs, "3001:3001") {
+		t.Error("docker-compose.yml: should use port 3001 for Node")
 	}
 	if !strings.Contains(cs, "NG_APP_API_URL") {
 		t.Error("docker-compose.yml: should use NG_APP_API_URL for Angular")
@@ -1598,5 +1605,51 @@ func TestFullIntegrationSaas(t *testing.T) {
 	// Svelte Vite build outputs to dist/, not dist/app/browser
 	if !strings.Contains(string(svelteDF), "COPY --from=builder /app/dist") {
 		t.Error("svelte/Dockerfile: should copy from /app/dist")
+	}
+}
+
+// ── Port Configuration Tests ──
+
+func TestFrontendPort(t *testing.T) {
+	tests := []struct {
+		port int
+		want string
+	}{
+		{0, "80"},       // default (Nginx container port)
+		{3000, "3000"},  // configured
+		{8080, "8080"},  // custom
+	}
+	for _, tt := range tests {
+		config := &ir.BuildConfig{}
+		if tt.port > 0 {
+			config.Ports = ir.PortConfig{Frontend: tt.port}
+		}
+		app := &ir.Application{Config: config}
+		got := FrontendPort(app)
+		if got != tt.want {
+			t.Errorf("FrontendPort(%d): got %q, want %q", tt.port, got, tt.want)
+		}
+	}
+}
+
+func TestDatabasePort(t *testing.T) {
+	tests := []struct {
+		port int
+		want string
+	}{
+		{0, "5432"},     // default
+		{5432, "5432"},  // configured
+		{3306, "3306"},  // custom
+	}
+	for _, tt := range tests {
+		config := &ir.BuildConfig{}
+		if tt.port > 0 {
+			config.Ports = ir.PortConfig{Database: tt.port}
+		}
+		app := &ir.Application{Config: config}
+		got := DatabasePort(app)
+		if got != tt.want {
+			t.Errorf("DatabasePort(%d): got %q, want %q", tt.port, got, tt.want)
+		}
 	}
 }

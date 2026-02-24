@@ -28,12 +28,20 @@ type Application struct {
 
 // ── Build Configuration ──
 
+// PortConfig holds the port numbers for different services.
+type PortConfig struct {
+	Frontend int `json:"frontend" yaml:"frontend"` // default: 3000
+	Backend  int `json:"backend" yaml:"backend"`   // default: 3001
+	Database int `json:"database" yaml:"database"` // default: 5432
+}
+
 // BuildConfig holds the target framework and deployment choices.
 type BuildConfig struct {
-	Frontend string `json:"frontend,omitempty"` // e.g. "React with TypeScript"
-	Backend  string `json:"backend,omitempty"`  // e.g. "Node with Express"
-	Database string `json:"database,omitempty"` // e.g. "PostgreSQL"
-	Deploy   string `json:"deploy,omitempty"`   // e.g. "Docker"
+	Frontend string     `json:"frontend,omitempty"` // e.g. "React with TypeScript"
+	Backend  string     `json:"backend,omitempty"`  // e.g. "Node with Express"
+	Database string     `json:"database,omitempty"` // e.g. "PostgreSQL"
+	Deploy   string     `json:"deploy,omitempty"`   // e.g. "Docker"
+	Ports    PortConfig `json:"ports,omitempty"`    // port configuration for services
 }
 
 // ── Data Layer ──

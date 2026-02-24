@@ -6,7 +6,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+
+	"github.com/barun-bash/human/internal/ir"
 )
 
 // InitProject scaffolds a new Human project. It prompts for platform, frontend,
@@ -88,4 +91,53 @@ func GenerateTemplate(name, platform, frontend, backend, database string) string
 	b.WriteString("  deploy to Docker\n")
 
 	return b.String()
+}
+
+// PromptForPorts interactively prompts the user to configure service ports.
+// Returns a PortConfig with user-provided or default values.
+// If running non-interactively (piped stdin), returns defaults without prompting.
+func PromptForPorts(in io.Reader, out io.Writer) ir.PortConfig {
+	// Check if stdin is a terminal (interactive)
+	file, ok := in.(*os.File)
+	if !ok || file.Fd() != 0 {
+		// Not a terminal or not stdin, use defaults
+		return ir.PortConfig{
+			Frontend: 3000,
+			Backend:  3001,
+			Database: 5432,
+		}
+	}
+
+	scanner := bufio.NewScanner(in)
+
+	fmt.Fprintf(out, "\nConfigure service ports:\n")
+
+	frontendPort := PromptForPort(scanner, out, "Frontend", 3000)
+	backendPort := PromptForPort(scanner, out, "Backend", 3001)
+	databasePort := PromptForPort(scanner, out, "Database", 5432)
+
+	return ir.PortConfig{
+		Frontend: frontendPort,
+		Backend:  backendPort,
+		Database: databasePort,
+	}
+}
+
+// PromptForPort asks the user for a port number with a default value.
+func PromptForPort(scanner *bufio.Scanner, out io.Writer, label string, defaultPort int) int {
+	for {
+		fmt.Fprintf(out, "  %s port [%d]: ", label, defaultPort)
+		if scanner.Scan() {
+			input := strings.TrimSpace(scanner.Text())
+			if input == "" {
+				return defaultPort
+			}
+			if port, err := strconv.Atoi(input); err == nil && port > 0 && port <= 65535 {
+				return port
+			}
+			fmt.Fprintf(out, "    Invalid port. Please enter a number between 1 and 65535.\n")
+			continue
+		}
+		return defaultPort
+	}
 }

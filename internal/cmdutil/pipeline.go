@@ -87,6 +87,12 @@ func FullBuild(file string) (*ir.Application, []build.Result, *quality.Result, e
 		return nil, nil, nil, fmt.Errorf("%d error(s) found", len(result.Errs.Errors()))
 	}
 
+	// Prompt for port configuration if interactive
+	if result.App.Config == nil {
+		result.App.Config = &ir.BuildConfig{}
+	}
+	result.App.Config.Ports = PromptForPorts(os.Stdin, os.Stdout)
+
 	yaml, err := ir.ToYAML(result.App)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("serialization error: %w", err)
