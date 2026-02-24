@@ -74,28 +74,45 @@ func Save(projectDir string, cfg *Config) error {
 	return nil
 }
 
-// ResolveAPIKey looks up the API key for a provider from environment variables.
+// ResolveAPIKey looks up the API key for a provider.
+// Resolution order: environment variable → global config (~/.human/config.json) → error.
 // Returns ("", nil) for providers that don't need keys (ollama).
-// Returns ("", error) when a required key is missing.
 func ResolveAPIKey(provider string) (string, error) {
 	switch provider {
 	case "anthropic":
-		key := os.Getenv("ANTHROPIC_API_KEY")
-		if key == "" {
-			return "", fmt.Errorf("no API key found for Anthropic. Set the ANTHROPIC_API_KEY environment variable")
+		if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
+			return key, nil
 		}
-		return key, nil
+		if key := resolveAPIKeyFromGlobal(provider); key != "" {
+			return key, nil
+		}
+		return "", fmt.Errorf("no API key found for Anthropic. Set ANTHROPIC_API_KEY or run /connect anthropic")
 	case "openai":
-		key := os.Getenv("OPENAI_API_KEY")
-		if key == "" {
-			return "", fmt.Errorf("no API key found for OpenAI. Set the OPENAI_API_KEY environment variable")
+		if key := os.Getenv("OPENAI_API_KEY"); key != "" {
+			return key, nil
 		}
-		return key, nil
+		if key := resolveAPIKeyFromGlobal(provider); key != "" {
+			return key, nil
+		}
+		return "", fmt.Errorf("no API key found for OpenAI. Set OPENAI_API_KEY or run /connect openai")
 	case "ollama":
 		return "", nil
 	default:
 		return "", fmt.Errorf("unknown provider %q. Supported: anthropic, openai, ollama", provider)
 	}
+}
+
+// resolveAPIKeyFromGlobal reads the global config and returns the API key
+// if the provider matches. Returns "" on any error or mismatch.
+func resolveAPIKeyFromGlobal(provider string) string {
+	gc, err := LoadGlobalConfig()
+	if err != nil || gc.LLM == nil {
+		return ""
+	}
+	if gc.LLM.Provider == provider {
+		return gc.LLM.APIKey
+	}
+	return ""
 }
 
 // DefaultLLMConfig returns a sensible starting config for the given provider.
@@ -117,6 +134,77 @@ func DefaultLLMConfig(provider string) *LLMConfig {
 	}
 
 	return cfg
+}
+
+// ── Global Config (user-wide LLM credentials, stored in ~/.human/config.json) ──
+
+// GlobalConfig holds user-wide configuration stored at ~/.human/config.json.
+// Unlike project config, this persists API keys locally.
+type GlobalConfig struct {
+	LLM *GlobalLLMConfig `json:"llm,omitempty"`
+}
+
+// GlobalLLMConfig stores LLM credentials globally.
+// This is a separate type from LLMConfig because LLMConfig.APIKey has json:"-".
+type GlobalLLMConfig struct {
+	Provider string `json:"provider"`
+	Model    string `json:"model,omitempty"`
+	APIKey   string `json:"api_key,omitempty"`
+	BaseURL  string `json:"base_url,omitempty"`
+}
+
+const globalConfigFile = ".human/config.json"
+
+// LoadGlobalConfig reads user-wide LLM config from ~/.human/config.json.
+// Returns a zero GlobalConfig if the file doesn't exist.
+func LoadGlobalConfig() (*GlobalConfig, error) {
+	cfg := &GlobalConfig{}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return cfg, nil
+	}
+
+	path := filepath.Join(home, globalConfigFile)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return cfg, nil
+		}
+		return nil, fmt.Errorf("reading global config: %w", err)
+	}
+
+	if err := json.Unmarshal(data, cfg); err != nil {
+		return nil, fmt.Errorf("parsing %s: %w", globalConfigFile, err)
+	}
+
+	return cfg, nil
+}
+
+// SaveGlobalConfig writes user-wide LLM config to ~/.human/config.json.
+// The file is written with 0600 permissions since it may contain API keys.
+func SaveGlobalConfig(cfg *GlobalConfig) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("could not find home directory: %w", err)
+	}
+
+	dir := filepath.Join(home, ".human")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("creating ~/.human directory: %w", err)
+	}
+
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshaling global config: %w", err)
+	}
+
+	path := filepath.Join(home, globalConfigFile)
+	if err := os.WriteFile(path, append(data, '\n'), 0600); err != nil {
+		return fmt.Errorf("writing %s: %w", globalConfigFile, err)
+	}
+
+	return nil
 }
 
 // ── Global Settings (user-wide, stored in ~/.human/settings.json) ──

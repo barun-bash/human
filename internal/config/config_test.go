@@ -274,6 +274,174 @@ func TestLoadGlobalMissing(t *testing.T) {
 	}
 }
 
+// ── GlobalConfig Tests ──
+
+func TestGlobalConfigRoundTrip(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	original := &GlobalConfig{
+		LLM: &GlobalLLMConfig{
+			Provider: "anthropic",
+			Model:    "claude-sonnet-4-20250514",
+			APIKey:   "sk-ant-test-key-12345",
+		},
+	}
+
+	if err := SaveGlobalConfig(original); err != nil {
+		t.Fatalf("SaveGlobalConfig error: %v", err)
+	}
+
+	loaded, err := LoadGlobalConfig()
+	if err != nil {
+		t.Fatalf("LoadGlobalConfig error: %v", err)
+	}
+
+	if loaded.LLM == nil {
+		t.Fatal("expected LLM config after load")
+	}
+	if loaded.LLM.Provider != "anthropic" {
+		t.Errorf("provider = %q, want %q", loaded.LLM.Provider, "anthropic")
+	}
+	if loaded.LLM.Model != "claude-sonnet-4-20250514" {
+		t.Errorf("model = %q, want %q", loaded.LLM.Model, "claude-sonnet-4-20250514")
+	}
+	if loaded.LLM.APIKey != "sk-ant-test-key-12345" {
+		t.Errorf("api_key = %q, want %q", loaded.LLM.APIKey, "sk-ant-test-key-12345")
+	}
+}
+
+func TestGlobalConfigMissing(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+
+	cfg, err := LoadGlobalConfig()
+	if err != nil {
+		t.Fatalf("expected no error for missing global config, got: %v", err)
+	}
+	if cfg.LLM != nil {
+		t.Errorf("expected nil LLM config, got: %+v", cfg.LLM)
+	}
+}
+
+func TestGlobalConfigAPIKeyPersisted(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	cfg := &GlobalConfig{
+		LLM: &GlobalLLMConfig{
+			Provider: "openai",
+			APIKey:   "sk-openai-secret-999",
+		},
+	}
+
+	if err := SaveGlobalConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	// Read raw file to verify API key IS in the JSON (unlike project LLMConfig).
+	path := filepath.Join(tmpHome, ".human", "config.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jsonStr := string(data)
+	if !contains(jsonStr, "sk-openai-secret-999") {
+		t.Error("API key should be persisted in global config JSON")
+	}
+	if !contains(jsonStr, "api_key") {
+		t.Error("api_key field should be present in global config JSON")
+	}
+}
+
+func TestGlobalConfigFilePermissions(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	cfg := &GlobalConfig{
+		LLM: &GlobalLLMConfig{
+			Provider: "anthropic",
+			APIKey:   "sk-secret",
+		},
+	}
+
+	if err := SaveGlobalConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	path := filepath.Join(tmpHome, ".human", "config.json")
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	perm := info.Mode().Perm()
+	if perm != 0600 {
+		t.Errorf("file permissions = %o, want 0600", perm)
+	}
+}
+
+func TestResolveAPIKeyFromGlobal(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	// Clear env vars so they don't interfere.
+	t.Setenv("ANTHROPIC_API_KEY", "")
+	t.Setenv("OPENAI_API_KEY", "")
+
+	// Save a global config with an Anthropic key.
+	cfg := &GlobalConfig{
+		LLM: &GlobalLLMConfig{
+			Provider: "anthropic",
+			APIKey:   "sk-global-key-abc",
+		},
+	}
+	if err := SaveGlobalConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	// ResolveAPIKey should find the global key.
+	key, err := ResolveAPIKey("anthropic")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if key != "sk-global-key-abc" {
+		t.Errorf("key = %q, want %q", key, "sk-global-key-abc")
+	}
+
+	// Env var should take priority.
+	t.Setenv("ANTHROPIC_API_KEY", "sk-env-key-xyz")
+	key, err = ResolveAPIKey("anthropic")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if key != "sk-env-key-xyz" {
+		t.Errorf("key = %q, want %q (env var should take priority)", key, "sk-env-key-xyz")
+	}
+}
+
+func TestResolveAPIKeyGlobalWrongProvider(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+	t.Setenv("OPENAI_API_KEY", "")
+
+	// Save global config with Anthropic key.
+	cfg := &GlobalConfig{
+		LLM: &GlobalLLMConfig{
+			Provider: "anthropic",
+			APIKey:   "sk-ant-key",
+		},
+	}
+	if err := SaveGlobalConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	// OpenAI should NOT find the Anthropic key.
+	_, err := ResolveAPIKey("openai")
+	if err == nil {
+		t.Error("expected error when global config has different provider")
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchSubstr(s, substr)
 }

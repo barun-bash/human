@@ -98,6 +98,12 @@ func (r *REPL) registerCommands() {
 			Handler:     cmdExamples,
 		},
 		{
+			Name:        "/connect",
+			Description: "Set up LLM provider",
+			Usage:       "/connect [provider|status]",
+			Handler:     cmdConnect,
+		},
+		{
 			Name:        "/theme",
 			Description: "Show or change the color theme",
 			Usage:       "/theme [name|list]",
@@ -558,7 +564,7 @@ func cmdHelp(r *REPL, args []string) {
 	order := []string{
 		"/open", "/new", "/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
-		"/theme", "/config",
+		"/connect", "/theme", "/config",
 		"/clear", "/version", "/help", "/quit",
 	}
 

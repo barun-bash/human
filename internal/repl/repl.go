@@ -142,11 +142,16 @@ func (r *REPL) printBanner() {
 		FirstRun:    firstRun,
 	}
 
-	// Try to determine LLM status from project config.
+	// Try to determine LLM status from project config, then global config.
 	cwd, err := os.Getwd()
 	if err == nil {
 		if cfg, err := config.Load(cwd); err == nil && cfg.LLM != nil {
 			info.LLMStatus = fmt.Sprintf("%s (%s)", cfg.LLM.Provider, cfg.LLM.Model)
+		}
+	}
+	if info.LLMStatus == "" {
+		if gc, err := config.LoadGlobalConfig(); err == nil && gc.LLM != nil {
+			info.LLMStatus = fmt.Sprintf("%s (%s)", gc.LLM.Provider, gc.LLM.Model)
 		}
 	}
 
