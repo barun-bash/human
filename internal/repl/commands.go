@@ -8,6 +8,7 @@ import (
 
 	"github.com/barun-bash/human/internal/cli"
 	"github.com/barun-bash/human/internal/cmdutil"
+	"github.com/barun-bash/human/internal/config"
 )
 
 // Command is a REPL command with metadata and a handler function.
@@ -97,6 +98,18 @@ func (r *REPL) registerCommands() {
 			Handler:     cmdExamples,
 		},
 		{
+			Name:        "/theme",
+			Description: "Show or change the color theme",
+			Usage:       "/theme [name|list]",
+			Handler:     cmdTheme,
+		},
+		{
+			Name:        "/config",
+			Description: "View or change settings",
+			Usage:       "/config [set <key> <value>]",
+			Handler:     cmdConfig,
+		},
+		{
 			Name:        "/help",
 			Aliases:     []string{"/?"},
 			Description: "Show this help message",
@@ -167,6 +180,69 @@ func cmdBuild(r *REPL, args []string) {
 	if !r.requireProject() {
 		return
 	}
+
+	// Show build plan if plan_mode is "always" or "auto".
+	mode := r.settings.EffectivePlanMode()
+	if mode == "always" || mode == "auto" {
+		result, err := cmdutil.ParseAndAnalyze(r.projectFile)
+		if err != nil {
+			fmt.Fprintln(r.errOut, cli.Error(err.Error()))
+			return
+		}
+
+		// Build a summary plan.
+		plan := &Plan{
+			Title:    "Build Plan",
+			Editable: false,
+		}
+
+		plan.Steps = append(plan.Steps, fmt.Sprintf("Source: %s", r.projectFile))
+
+		if result.Prog != nil {
+			if len(result.Prog.Pages) > 0 {
+				names := make([]string, 0, 3)
+				for i, p := range result.Prog.Pages {
+					if i >= 3 {
+						break
+					}
+					names = append(names, p.Name)
+				}
+				suffix := ""
+				if len(result.Prog.Pages) > 3 {
+					suffix = ", ..."
+				}
+				plan.Steps = append(plan.Steps, fmt.Sprintf("Pages: %d (%s%s)", len(result.Prog.Pages), strings.Join(names, ", "), suffix))
+			}
+			if len(result.Prog.APIs) > 0 {
+				plan.Steps = append(plan.Steps, fmt.Sprintf("APIs: %d endpoints", len(result.Prog.APIs)))
+			}
+		}
+
+		stackParts := []string{}
+		if result.App != nil && result.App.Config != nil {
+			if result.App.Config.Frontend != "" {
+				stackParts = append(stackParts, result.App.Config.Frontend)
+			}
+			if result.App.Config.Backend != "" {
+				stackParts = append(stackParts, result.App.Config.Backend)
+			}
+			if result.App.Config.Database != "" {
+				stackParts = append(stackParts, result.App.Config.Database)
+			}
+		}
+		if len(stackParts) > 0 {
+			plan.Steps = append(plan.Steps, fmt.Sprintf("Stack: %s", strings.Join(stackParts, " \u2192 ")))
+		}
+
+		plan.Steps = append(plan.Steps, "Output: .human/output/")
+
+		action := ShowPlan(r.out, r.in, plan)
+		if action == PlanCancel {
+			fmt.Fprintln(r.out, cli.Info("Build cancelled."))
+			return
+		}
+	}
+
 	if _, _, _, err := cmdutil.FullBuild(r.projectFile); err != nil {
 		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
 	}
@@ -234,7 +310,7 @@ func cmdStop(r *REPL, args []string) {
 
 func cmdStatus(r *REPL, args []string) {
 	fmt.Fprintln(r.out, cli.Info("Project Status"))
-	fmt.Fprintln(r.out, strings.Repeat("─", 30))
+	fmt.Fprintln(r.out, strings.Repeat("\u2500", 30))
 	if r.projectFile != "" {
 		fmt.Fprintf(r.out, "  Project:  %s\n", r.projectName)
 		fmt.Fprintf(r.out, "  File:     %s\n", r.projectFile)
@@ -254,7 +330,7 @@ func cmdStatus(r *REPL, args []string) {
 	composePath := filepath.Join(outputDir, "docker-compose.yml")
 	if _, err := os.Stat(composePath); err == nil {
 		fmt.Fprintln(r.out, cli.Info("Docker Status"))
-		fmt.Fprintln(r.out, strings.Repeat("─", 30))
+		fmt.Fprintln(r.out, strings.Repeat("\u2500", 30))
 		if err := cmdutil.DockerStatus(outputDir); err != nil {
 			fmt.Fprintln(r.out, "  Docker not running or not available.")
 		}
@@ -350,7 +426,7 @@ func cmdExamples(r *REPL, args []string) {
 	}
 
 	fmt.Fprintln(r.out, cli.Info("Available Examples"))
-	fmt.Fprintln(r.out, strings.Repeat("─", 30))
+	fmt.Fprintln(r.out, strings.Repeat("\u2500", 30))
 	found := false
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -358,7 +434,7 @@ func cmdExamples(r *REPL, args []string) {
 		}
 		humanFile := filepath.Join(exDir, entry.Name(), "app.human")
 		if _, err := os.Stat(humanFile); err == nil {
-			fmt.Fprintf(r.out, "  %s  →  /open %s\n", entry.Name(), humanFile)
+			fmt.Fprintf(r.out, "  %s  \u2192  /open %s\n", entry.Name(), humanFile)
 			found = true
 		}
 	}
@@ -367,15 +443,122 @@ func cmdExamples(r *REPL, args []string) {
 	}
 }
 
+// ── Theme Command ──
+
+func cmdTheme(r *REPL, args []string) {
+	if len(args) == 0 {
+		// Show current theme.
+		fmt.Fprintf(r.out, "Current theme: %s\n", cli.Accent(cli.CurrentThemeName()))
+		return
+	}
+
+	if strings.ToLower(args[0]) == "list" {
+		fmt.Fprintln(r.out)
+		fmt.Fprintln(r.out, cli.Heading("Available Themes"))
+		fmt.Fprintln(r.out, strings.Repeat("\u2500", 40))
+		for _, name := range cli.ThemeNames() {
+			marker := "  "
+			if name == cli.CurrentThemeName() {
+				marker = cli.Accent("\u2713 ")
+			}
+			preview := cli.ThemePreview(name)
+			fmt.Fprintf(r.out, "  %s%-10s%s\n", marker, name, preview)
+		}
+		fmt.Fprintln(r.out)
+		return
+	}
+
+	name := strings.ToLower(args[0])
+	if err := cli.SetTheme(name); err != nil {
+		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
+		return
+	}
+
+	// Persist the choice.
+	r.settings.Theme = name
+	if err := config.SaveGlobal(r.settings); err != nil {
+		fmt.Fprintln(r.errOut, cli.Warn(fmt.Sprintf("Theme set but could not save: %v", err)))
+	} else {
+		fmt.Fprintf(r.out, "%s\n", cli.Success(fmt.Sprintf("Theme set to %s", name)))
+	}
+}
+
+// ── Config Command ──
+
+func cmdConfig(r *REPL, args []string) {
+	if len(args) == 0 {
+		// Show current settings.
+		fmt.Fprintln(r.out)
+		fmt.Fprintln(r.out, cli.Heading("Settings"))
+		fmt.Fprintln(r.out, strings.Repeat("\u2500", 30))
+		fmt.Fprintf(r.out, "  theme:     %s\n", cli.CurrentThemeName())
+		fmt.Fprintf(r.out, "  animate:   %v\n", r.settings.AnimateEnabled())
+		fmt.Fprintf(r.out, "  plan_mode: %s\n", r.settings.EffectivePlanMode())
+		fmt.Fprintln(r.out)
+		fmt.Fprintln(r.out, cli.Muted("  Use /config set <key> <value> to change."))
+		fmt.Fprintln(r.out)
+		return
+	}
+
+	if strings.ToLower(args[0]) != "set" || len(args) < 3 {
+		fmt.Fprintln(r.errOut, "Usage: /config set <key> <value>")
+		fmt.Fprintln(r.errOut, "  Keys: animate (on/off), plan_mode (always/auto/off), theme (<name>)")
+		return
+	}
+
+	key := strings.ToLower(args[1])
+	value := strings.ToLower(args[2])
+
+	switch key {
+	case "animate":
+		switch value {
+		case "on", "true", "yes":
+			r.settings.SetAnimate(true)
+		case "off", "false", "no":
+			r.settings.SetAnimate(false)
+		default:
+			fmt.Fprintln(r.errOut, cli.Error("animate must be on or off"))
+			return
+		}
+	case "plan_mode":
+		switch value {
+		case "always", "auto", "off":
+			r.settings.PlanMode = value
+		default:
+			fmt.Fprintln(r.errOut, cli.Error("plan_mode must be always, auto, or off"))
+			return
+		}
+	case "theme":
+		if err := cli.SetTheme(value); err != nil {
+			fmt.Fprintln(r.errOut, cli.Error(err.Error()))
+			return
+		}
+		r.settings.Theme = value
+	default:
+		fmt.Fprintln(r.errOut, cli.Error(fmt.Sprintf("Unknown setting: %s", key)))
+		fmt.Fprintln(r.errOut, "  Available: animate, plan_mode, theme")
+		return
+	}
+
+	if err := config.SaveGlobal(r.settings); err != nil {
+		fmt.Fprintln(r.errOut, cli.Warn(fmt.Sprintf("Setting applied but could not save: %v", err)))
+	} else {
+		fmt.Fprintf(r.out, "%s\n", cli.Success(fmt.Sprintf("Set %s = %s", key, value)))
+	}
+}
+
+// ── Standard Commands ──
+
 func cmdHelp(r *REPL, args []string) {
 	fmt.Fprintln(r.out)
-	fmt.Fprintln(r.out, "\033[1mAvailable Commands\033[0m")
-	fmt.Fprintln(r.out, strings.Repeat("─", 50))
+	fmt.Fprintln(r.out, cli.Heading("Available Commands"))
+	fmt.Fprintln(r.out, strings.Repeat("\u2500", 50))
 
 	// Ordered list of command names for display
 	order := []string{
 		"/open", "/new", "/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
+		"/theme", "/config",
 		"/clear", "/version", "/help", "/quit",
 	}
 
@@ -388,7 +571,7 @@ func cmdHelp(r *REPL, args []string) {
 		if len(cmd.Aliases) > 0 {
 			aliases = " (" + strings.Join(cmd.Aliases, ", ") + ")"
 		}
-		fmt.Fprintf(r.out, "  %-18s %s%s\n", cmd.Usage, cmd.Description, aliases)
+		fmt.Fprintf(r.out, "  %-24s %s%s\n", cmd.Usage, cmd.Description, aliases)
 	}
 	fmt.Fprintln(r.out)
 }
@@ -405,4 +588,3 @@ func cmdQuit(r *REPL, args []string) {
 	fmt.Fprintln(r.out, "Goodbye.")
 	r.running = false
 }
-

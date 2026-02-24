@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/barun-bash/human/internal/cli"
 )
 
 func newTestREPL(input string) (*REPL, *bytes.Buffer, *bytes.Buffer) {
+	cli.ColorEnabled = false
 	out := &bytes.Buffer{}
 	errOut := &bytes.Buffer{}
 	r := New("0.4.0-test",
@@ -29,6 +32,12 @@ func TestREPL_HelpCommand(t *testing.T) {
 	}
 	if !strings.Contains(output, "/check") {
 		t.Error("expected /help output to list /check")
+	}
+	if !strings.Contains(output, "/theme") {
+		t.Error("expected /help output to list /theme")
+	}
+	if !strings.Contains(output, "/config") {
+		t.Error("expected /help output to list /config")
 	}
 }
 
@@ -125,5 +134,90 @@ func TestREPL_DidYouMean(t *testing.T) {
 	output := errOut.String()
 	if !strings.Contains(output, "Did you mean") {
 		t.Errorf("expected 'Did you mean' suggestion, got: %s", output)
+	}
+}
+
+func TestREPL_BannerContainsUnderscore(t *testing.T) {
+	r, out, _ := newTestREPL("/quit\n")
+	r.Run()
+	output := out.String()
+	// Banner should contain the HUMAN_ logo underscore
+	if !strings.Contains(output, "_") {
+		t.Error("banner should contain underscore character")
+	}
+}
+
+func TestREPL_BannerContainsVersion(t *testing.T) {
+	r, out, _ := newTestREPL("/quit\n")
+	r.Run()
+	output := out.String()
+	if !strings.Contains(output, "0.4.0-test") {
+		t.Error("banner should contain version")
+	}
+}
+
+func TestREPL_BannerContainsTip(t *testing.T) {
+	r, out, _ := newTestREPL("/quit\n")
+	r.Run()
+	output := out.String()
+	if !strings.Contains(output, "Tip:") {
+		t.Error("banner should contain a tip")
+	}
+}
+
+func TestREPL_PromptContainsUnderscore(t *testing.T) {
+	r, out, _ := newTestREPL("/quit\n")
+	r.Run()
+	output := out.String()
+	// The prompt should contain the underscore brand: human_> or project_>
+	if !strings.Contains(output, "_>") {
+		t.Error("prompt should contain branded underscore: _>")
+	}
+}
+
+func TestREPL_ThemeCommand(t *testing.T) {
+	r, out, _ := newTestREPL("/theme\n/quit\n")
+	r.Run()
+	output := out.String()
+	if !strings.Contains(output, "default") {
+		t.Error("expected /theme to show current theme name")
+	}
+}
+
+func TestREPL_ThemeListCommand(t *testing.T) {
+	r, out, _ := newTestREPL("/theme list\n/quit\n")
+	r.Run()
+	output := out.String()
+	for _, name := range cli.ThemeNames() {
+		if !strings.Contains(output, name) {
+			t.Errorf("expected /theme list to include %q", name)
+		}
+	}
+}
+
+func TestREPL_ConfigCommand(t *testing.T) {
+	r, out, _ := newTestREPL("/config\n/quit\n")
+	r.Run()
+	output := out.String()
+	if !strings.Contains(output, "Settings") {
+		t.Error("expected /config to show Settings heading")
+	}
+	if !strings.Contains(output, "theme:") {
+		t.Error("expected /config to show theme setting")
+	}
+	if !strings.Contains(output, "animate:") {
+		t.Error("expected /config to show animate setting")
+	}
+	if !strings.Contains(output, "plan_mode:") {
+		t.Error("expected /config to show plan_mode setting")
+	}
+}
+
+func TestREPL_ConfigSetInvalid(t *testing.T) {
+	r, _, errOut := newTestREPL("/config set unknown_key value\n/quit\n")
+	r.Run()
+	output := errOut.String()
+	if !strings.Contains(output, "Unknown setting") {
+		t.Errorf("expected 'Unknown setting' error, got: %s", output)
 	}
 }

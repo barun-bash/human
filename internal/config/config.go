@@ -118,3 +118,89 @@ func DefaultLLMConfig(provider string) *LLMConfig {
 
 	return cfg
 }
+
+// ── Global Settings (user-wide, stored in ~/.human/settings.json) ──
+
+// GlobalSettings holds user-wide preferences that persist across projects.
+type GlobalSettings struct {
+	Theme        string `json:"theme,omitempty"`      // "default", "dark", "light", etc.
+	Animate      *bool  `json:"animate,omitempty"`    // nil = true (default)
+	PlanMode     string `json:"plan_mode,omitempty"`  // "always" (default), "auto", "off"
+	FirstRunDone bool   `json:"first_run_done"`
+}
+
+// globalSettingsFile is the path relative to the user's home directory.
+const globalSettingsFile = ".human/settings.json"
+
+// LoadGlobal reads user-wide settings from ~/.human/settings.json.
+// Returns default settings if the file doesn't exist.
+func LoadGlobal() (*GlobalSettings, error) {
+	s := &GlobalSettings{}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return s, nil
+	}
+
+	path := filepath.Join(home, globalSettingsFile)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return s, nil
+		}
+		return nil, fmt.Errorf("reading global settings: %w", err)
+	}
+
+	if err := json.Unmarshal(data, s); err != nil {
+		return nil, fmt.Errorf("parsing %s: %w", globalSettingsFile, err)
+	}
+
+	return s, nil
+}
+
+// SaveGlobal writes user-wide settings to ~/.human/settings.json.
+func SaveGlobal(s *GlobalSettings) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("could not find home directory: %w", err)
+	}
+
+	dir := filepath.Join(home, ".human")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("creating ~/.human directory: %w", err)
+	}
+
+	data, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshaling settings: %w", err)
+	}
+
+	path := filepath.Join(home, globalSettingsFile)
+	if err := os.WriteFile(path, append(data, '\n'), 0644); err != nil {
+		return fmt.Errorf("writing %s: %w", globalSettingsFile, err)
+	}
+
+	return nil
+}
+
+// AnimateEnabled returns whether startup animation is enabled.
+// Defaults to true when the Animate field is nil.
+func (s *GlobalSettings) AnimateEnabled() bool {
+	if s.Animate == nil {
+		return true
+	}
+	return *s.Animate
+}
+
+// SetAnimate sets the animation preference.
+func (s *GlobalSettings) SetAnimate(enabled bool) {
+	s.Animate = &enabled
+}
+
+// EffectivePlanMode returns the plan mode, defaulting to "always".
+func (s *GlobalSettings) EffectivePlanMode() string {
+	if s.PlanMode == "" {
+		return "always"
+	}
+	return s.PlanMode
+}

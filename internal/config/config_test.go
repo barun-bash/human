@@ -191,6 +191,89 @@ func TestDefaultLLMConfig(t *testing.T) {
 	}
 }
 
+// ── GlobalSettings Tests ──
+
+func TestGlobalSettingsDefaults(t *testing.T) {
+	s := &GlobalSettings{}
+	if !s.AnimateEnabled() {
+		t.Error("default animate should be true")
+	}
+	if s.EffectivePlanMode() != "always" {
+		t.Errorf("default plan_mode = %q, want %q", s.EffectivePlanMode(), "always")
+	}
+}
+
+func TestGlobalSettingsSetAnimate(t *testing.T) {
+	s := &GlobalSettings{}
+	s.SetAnimate(false)
+	if s.AnimateEnabled() {
+		t.Error("expected animate to be false after SetAnimate(false)")
+	}
+	s.SetAnimate(true)
+	if !s.AnimateEnabled() {
+		t.Error("expected animate to be true after SetAnimate(true)")
+	}
+}
+
+func TestGlobalSettingsPlanMode(t *testing.T) {
+	s := &GlobalSettings{PlanMode: "off"}
+	if s.EffectivePlanMode() != "off" {
+		t.Errorf("plan_mode = %q, want %q", s.EffectivePlanMode(), "off")
+	}
+	s.PlanMode = "auto"
+	if s.EffectivePlanMode() != "auto" {
+		t.Errorf("plan_mode = %q, want %q", s.EffectivePlanMode(), "auto")
+	}
+}
+
+func TestGlobalSettingsRoundTrip(t *testing.T) {
+	// Override HOME to a temp directory so we don't write to the real home.
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	original := &GlobalSettings{
+		Theme:        "ocean",
+		PlanMode:     "auto",
+		FirstRunDone: true,
+	}
+	original.SetAnimate(false)
+
+	if err := SaveGlobal(original); err != nil {
+		t.Fatalf("SaveGlobal error: %v", err)
+	}
+
+	loaded, err := LoadGlobal()
+	if err != nil {
+		t.Fatalf("LoadGlobal error: %v", err)
+	}
+
+	if loaded.Theme != "ocean" {
+		t.Errorf("theme = %q, want %q", loaded.Theme, "ocean")
+	}
+	if loaded.PlanMode != "auto" {
+		t.Errorf("plan_mode = %q, want %q", loaded.PlanMode, "auto")
+	}
+	if !loaded.FirstRunDone {
+		t.Error("first_run_done should be true")
+	}
+	if loaded.AnimateEnabled() {
+		t.Error("animate should be false")
+	}
+}
+
+func TestLoadGlobalMissing(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+
+	s, err := LoadGlobal()
+	if err != nil {
+		t.Fatalf("expected no error for missing file, got: %v", err)
+	}
+	// Should return defaults.
+	if !s.AnimateEnabled() {
+		t.Error("default animate should be true")
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchSubstr(s, substr)
 }

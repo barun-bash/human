@@ -7,6 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/barun-bash/human/internal/cli"
+	"github.com/barun-bash/human/internal/config"
 )
 
 // REPL is the interactive Human compiler shell.
@@ -21,6 +24,7 @@ type REPL struct {
 	commands    map[string]*Command
 	aliases     map[string]string
 	running     bool
+	settings    *config.GlobalSettings
 }
 
 // Option configures the REPL.
@@ -56,6 +60,7 @@ func New(version string, opts ...Option) *REPL {
 	}
 	r.history = NewHistory()
 	r.registerCommands()
+	r.loadSettings()
 	return r
 }
 
@@ -87,6 +92,21 @@ func (r *REPL) Run() {
 	r.history.Save()
 }
 
+// loadSettings loads global settings and applies them (theme, etc.).
+func (r *REPL) loadSettings() {
+	s, err := config.LoadGlobal()
+	if err != nil {
+		// Non-fatal: use defaults.
+		s = &config.GlobalSettings{}
+	}
+	r.settings = s
+
+	// Apply theme from settings.
+	if s.Theme != "" {
+		_ = cli.SetTheme(s.Theme) // ignore error, keep default
+	}
+}
+
 // autoDetectProject checks if there's a single .human file in the current
 // directory and loads it automatically.
 func (r *REPL) autoDetectProject() {
@@ -111,22 +131,46 @@ func (r *REPL) setProject(file string) {
 	r.projectName = strings.TrimSuffix(base, filepath.Ext(base))
 }
 
-// printBanner displays the startup banner.
+// printBanner displays the branded HUMAN_ startup banner.
 func (r *REPL) printBanner() {
-	fmt.Fprintln(r.out, "\033[1mHuman\033[0m — Interactive Compiler Shell")
-	fmt.Fprintf(r.out, "v%s — Type /help for commands, /quit to exit.\n", r.version)
-	if r.projectFile != "" {
-		fmt.Fprintf(r.out, "Project: %s (%s)\n", r.projectName, r.projectFile)
+	animate := r.settings.AnimateEnabled()
+	firstRun := !r.settings.FirstRunDone
+
+	info := &cli.BannerInfo{
+		ProjectFile: r.projectFile,
+		ProjectName: r.projectName,
+		FirstRun:    firstRun,
 	}
-	fmt.Fprintln(r.out)
+
+	// Try to determine LLM status from project config.
+	cwd, err := os.Getwd()
+	if err == nil {
+		if cfg, err := config.Load(cwd); err == nil && cfg.LLM != nil {
+			info.LLMStatus = fmt.Sprintf("%s (%s)", cfg.LLM.Provider, cfg.LLM.Model)
+		}
+	}
+
+	cli.PrintBanner(r.out, r.version, animate, info)
+
+	// Mark first run as done.
+	if firstRun {
+		r.settings.FirstRunDone = true
+		_ = config.SaveGlobal(r.settings)
+	}
 }
 
-// printPrompt displays the prompt.
+// printPrompt displays the branded prompt with underscore: human_> or project_>
 func (r *REPL) printPrompt() {
+	name := "human"
 	if r.projectName != "" {
-		fmt.Fprintf(r.out, "\033[1m%s>\033[0m ", r.projectName)
+		name = r.projectName
+	}
+
+	if cli.ColorEnabled {
+		accent := cli.Accent(name + "_>")
+		fmt.Fprintf(r.out, "%s ", accent)
 	} else {
-		fmt.Fprint(r.out, "\033[1mhuman>\033[0m ")
+		fmt.Fprintf(r.out, "%s_> ", name)
 	}
 }
 

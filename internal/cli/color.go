@@ -5,13 +5,15 @@ import (
 	"os"
 )
 
-// ANSI color codes
+// ANSI reset code, shared across the package.
+const reset = "\033[0m"
+
+// Fallback ANSI color codes used when a theme color is empty.
 const (
-	reset  = "\033[0m"
-	red    = "\033[31m"
-	green  = "\033[32m"
-	yellow = "\033[33m"
-	cyan   = "\033[36m"
+	fallbackRed    = "\033[31m"
+	fallbackGreen  = "\033[32m"
+	fallbackYellow = "\033[33m"
+	fallbackCyan   = "\033[36m"
 )
 
 // ColorEnabled controls whether ANSI color codes are emitted.
@@ -29,34 +31,44 @@ func initColorEnabled() bool {
 	return (stat.Mode() & os.ModeCharDevice) != 0
 }
 
-// Success formats a message with a green ✓ prefix.
+// themeColor returns the current theme's color for the role, falling back
+// to the provided default if the theme has no color set.
+func themeColor(role ColorRole, fallback string) string {
+	c := currentTheme.Colors[role]
+	if c != "" {
+		return c
+	}
+	return fallback
+}
+
+// Success formats a message with a green check prefix.
 func Success(msg string) string {
 	if ColorEnabled {
-		return fmt.Sprintf("%s✓ %s%s", green, msg, reset)
+		return fmt.Sprintf("%s\u2713 %s%s", themeColor(RoleSuccess, fallbackGreen), msg, reset)
 	}
-	return "✓ " + msg
+	return "\u2713 " + msg
 }
 
-// Error formats a message with a red ✗ prefix.
+// Error formats a message with a red cross prefix.
 func Error(msg string) string {
 	if ColorEnabled {
-		return fmt.Sprintf("%s✗ %s%s", red, msg, reset)
+		return fmt.Sprintf("%s\u2717 %s%s", themeColor(RoleError, fallbackRed), msg, reset)
 	}
-	return "✗ " + msg
+	return "\u2717 " + msg
 }
 
-// Warn formats a message with a yellow ⚠ prefix.
+// Warn formats a message with a yellow warning prefix.
 func Warn(msg string) string {
 	if ColorEnabled {
-		return fmt.Sprintf("%s⚠ %s%s", yellow, msg, reset)
+		return fmt.Sprintf("%s\u26a0 %s%s", themeColor(RoleWarn, fallbackYellow), msg, reset)
 	}
-	return "⚠ " + msg
+	return "\u26a0 " + msg
 }
 
-// Info formats a message with cyan color (no prefix).
+// Info formats a message with the theme's info color (no prefix).
 func Info(msg string) string {
 	if ColorEnabled {
-		return fmt.Sprintf("%s%s%s", cyan, msg, reset)
+		return fmt.Sprintf("%s%s%s", themeColor(RoleInfo, fallbackCyan), msg, reset)
 	}
 	return msg
 }
