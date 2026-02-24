@@ -10,6 +10,7 @@ import (
 
 	"github.com/barun-bash/human/internal/cli"
 	"github.com/barun-bash/human/internal/config"
+	"github.com/barun-bash/human/internal/llm/prompts"
 )
 
 // REPL is the interactive Human compiler shell.
@@ -24,8 +25,9 @@ type REPL struct {
 	history     *History
 	commands    map[string]*Command
 	aliases     map[string]string
-	running     bool
-	settings    *config.GlobalSettings
+	running         bool
+	settings        *config.GlobalSettings
+	lastSuggestions []prompts.Suggestion // cached from last /suggest, cleared on source change
 }
 
 // Option configures the REPL.
@@ -229,6 +231,12 @@ func (r *REPL) suggestCommand(name string) {
 	} else {
 		fmt.Fprintln(r.errOut, "Type /help for a list of commands.")
 	}
+}
+
+// clearSuggestions invalidates cached /suggest results. Called when the
+// source file changes (via /edit, /undo, /open, /ask).
+func (r *REPL) clearSuggestions() {
+	r.lastSuggestions = nil
 }
 
 // requireProject checks that a project file is loaded and prints an error if not.

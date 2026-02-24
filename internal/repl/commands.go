@@ -55,6 +55,12 @@ func (r *REPL) registerCommands() {
 			Handler:     cmdUndo,
 		},
 		{
+			Name:        "/suggest",
+			Description: "AI improvement suggestions for the loaded project",
+			Usage:       "/suggest [apply <number|all>]",
+			Handler:     cmdSuggest,
+		},
+		{
 			Name:        "/build",
 			Aliases:     []string{"/b"},
 			Description: "Compile the loaded project",
@@ -184,6 +190,7 @@ func cmdOpen(r *REPL, args []string) {
 		return
 	}
 	r.setProject(file)
+	r.clearSuggestions()
 	fmt.Fprintf(r.out, "Loaded %s\n", file)
 }
 
@@ -581,7 +588,7 @@ func cmdHelp(r *REPL, args []string) {
 
 	// Ordered list of command names for display
 	order := []string{
-		"/open", "/new", "/ask", "/edit", "/undo", "/check", "/build", "/deploy", "/stop",
+		"/open", "/new", "/ask", "/edit", "/undo", "/suggest", "/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
 		"/connect", "/theme", "/config",
 		"/clear", "/version", "/help", "/quit",

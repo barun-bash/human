@@ -114,6 +114,7 @@ func cmdAsk(r *REPL, args []string) {
 
 	// Auto-load as current project.
 	r.setProject(filename)
+	r.clearSuggestions()
 
 	// Prompt to build.
 	fmt.Fprintf(r.out, "Build now? (y/n): ")

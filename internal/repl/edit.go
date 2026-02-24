@@ -113,6 +113,9 @@ func editOnce(r *REPL, connector *llm.Connector, llmCfg *config.LLMConfig, instr
 
 	fmt.Fprintln(r.out, cli.Success(fmt.Sprintf("Applied to %s", r.projectFile)))
 
+	// Source changed — invalidate cached suggestions.
+	r.clearSuggestions()
+
 	// Update history for multi-turn context.
 	newHistory := append(history,
 		llm.Message{Role: llm.RoleUser, Content: instruction},
@@ -199,6 +202,9 @@ func cmdUndo(r *REPL, args []string) {
 
 	// Remove backup — single-level undo, no undo-of-undo.
 	os.Remove(bp)
+
+	// Source changed — invalidate cached suggestions.
+	r.clearSuggestions()
 
 	fmt.Fprintln(r.out, cli.Success(fmt.Sprintf("Reverted %s to previous version.", r.projectFile)))
 }
