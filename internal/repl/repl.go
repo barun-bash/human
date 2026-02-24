@@ -20,6 +20,7 @@ type REPL struct {
 	in          io.Reader
 	out         io.Writer
 	errOut      io.Writer
+	scanner     *bufio.Scanner // shared scanner — all input reading goes through this
 	history     *History
 	commands    map[string]*Command
 	aliases     map[string]string
@@ -58,6 +59,7 @@ func New(version string, opts ...Option) *REPL {
 	for _, opt := range opts {
 		opt(r)
 	}
+	r.scanner = bufio.NewScanner(r.in)
 	r.history = NewHistory()
 	r.registerCommands()
 	r.loadSettings()
@@ -70,17 +72,16 @@ func (r *REPL) Run() {
 	r.printBanner()
 	r.running = true
 
-	scanner := bufio.NewScanner(r.in)
 	for r.running {
 		r.printPrompt()
-		if !scanner.Scan() {
+		if !r.scanner.Scan() {
 			// EOF (Ctrl+D)
 			fmt.Fprintln(r.out)
 			fmt.Fprintln(r.out, "Goodbye.")
 			break
 		}
 
-		line := strings.TrimSpace(scanner.Text())
+		line := strings.TrimSpace(r.scanner.Text())
 		if line == "" {
 			continue
 		}
@@ -90,6 +91,16 @@ func (r *REPL) Run() {
 	}
 
 	r.history.Save()
+}
+
+// scanLine reads one line from the shared scanner. Returns the trimmed line
+// and false if EOF was reached. Command handlers should use this instead of
+// creating their own scanners on r.in.
+func (r *REPL) scanLine() (string, bool) {
+	if !r.scanner.Scan() {
+		return "", false
+	}
+	return strings.TrimSpace(r.scanner.Text()), true
 }
 
 // loadSettings loads global settings and applies them (theme, etc.).

@@ -1,7 +1,6 @@
 package repl
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"strings"
@@ -72,7 +71,7 @@ func connectStatus(r *REPL) {
 func connectAPIKey(r *REPL, provider, displayName string) {
 	fmt.Fprintf(r.out, "Enter your %s API key: ", displayName)
 
-	key := readLine(r.in)
+	key, _ := r.scanLine()
 	if key == "" {
 		fmt.Fprintln(r.errOut, cli.Error("No API key provided. Aborting."))
 		return
@@ -110,7 +109,7 @@ func connectOllama(r *REPL) {
 	fmt.Fprintln(r.out, cli.Muted("  Ollama uses local models — no API key needed."))
 	fmt.Fprintf(r.out, "Base URL (default http://localhost:11434): ")
 
-	baseURL := readLine(r.in)
+	baseURL, _ := r.scanLine()
 	if baseURL == "" {
 		baseURL = "http://localhost:11434"
 	}
@@ -148,15 +147,6 @@ func maskAPIKey(key string) string {
 		return "****"
 	}
 	return "..." + key[len(key)-4:]
-}
-
-// readLine reads a single line from the reader, trimming whitespace.
-func readLine(r interface{}) string {
-	scanner := bufio.NewScanner(r.(interface{ Read([]byte) (int, error) }))
-	if scanner.Scan() {
-		return strings.TrimSpace(scanner.Text())
-	}
-	return ""
 }
 
 // validateProvider creates a provider and makes a minimal test call.

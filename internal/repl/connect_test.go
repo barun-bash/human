@@ -131,19 +131,27 @@ func TestConnect_Ollama_SavesConfig(t *testing.T) {
 	}
 }
 
-func TestConnect_ReadLine(t *testing.T) {
-	input := strings.NewReader("  hello world  \n")
-	got := readLine(input)
+func TestConnect_ScanLine(t *testing.T) {
+	cli.ColorEnabled = false
+	r, _, _ := newTestREPL("  hello world  \nignored\n")
+	got, ok := r.scanLine()
+	if !ok {
+		t.Error("expected scanLine to succeed")
+	}
 	if got != "hello world" {
-		t.Errorf("readLine = %q, want %q", got, "hello world")
+		t.Errorf("scanLine = %q, want %q", got, "hello world")
 	}
 }
 
-func TestConnect_ReadLineEmpty(t *testing.T) {
-	input := strings.NewReader("")
-	got := readLine(input)
+func TestConnect_ScanLineEOF(t *testing.T) {
+	cli.ColorEnabled = false
+	r, _, _ := newTestREPL("")
+	got, ok := r.scanLine()
+	if ok {
+		t.Error("expected scanLine to return false on EOF")
+	}
 	if got != "" {
-		t.Errorf("readLine on empty = %q, want %q", got, "")
+		t.Errorf("scanLine on empty = %q, want %q", got, "")
 	}
 }
 
@@ -152,25 +160,13 @@ func TestConnect_APIKey_EmptyInput(t *testing.T) {
 	t.Setenv("HOME", tmpHome)
 	cli.ColorEnabled = false
 
-	// Simulate the user entering an empty key (just pressing enter).
-	// The /connect anthropic command reads from the REPL's main scanner,
-	// so we need to provide a line after the command.
-	// In the REPL flow: the scanner reads "/connect anthropic", then
-	// connectAPIKey reads the next line from r.in.
-	// With bufio.Scanner in Run(), the main scanner consumes all input.
-	// So we use a direct call instead of Run().
-	out := &bytes.Buffer{}
-	errOut := &bytes.Buffer{}
-	r := New("0.4.0-test",
-		WithInput(strings.NewReader("\n")),
-		WithOutput(out),
-		WithErrOutput(errOut),
-	)
-
-	cmdConnect(r, []string{"anthropic"})
+	// With the shared scanner, /connect anthropic reads the NEXT line from
+	// the same scanner as Run(). Provide: command, empty key, quit.
+	r, _, errOut := newTestREPL("/connect anthropic\n\n/quit\n")
+	r.Run()
 
 	if !strings.Contains(errOut.String(), "No API key provided") {
-		t.Errorf("expected 'No API key provided' error, got out=%q errOut=%q", out.String(), errOut.String())
+		t.Errorf("expected 'No API key provided' error, got errOut=%q", errOut.String())
 	}
 }
 

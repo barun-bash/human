@@ -36,6 +36,12 @@ func (r *REPL) registerCommands() {
 			Handler:     cmdNew,
 		},
 		{
+			Name:        "/ask",
+			Description: "Generate a .human file from a description",
+			Usage:       "/ask <description>",
+			Handler:     cmdAsk,
+		},
+		{
 			Name:        "/build",
 			Aliases:     []string{"/b"},
 			Description: "Compile the loaded project",
@@ -562,7 +568,7 @@ func cmdHelp(r *REPL, args []string) {
 
 	// Ordered list of command names for display
 	order := []string{
-		"/open", "/new", "/check", "/build", "/deploy", "/stop",
+		"/open", "/new", "/ask", "/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
 		"/connect", "/theme", "/config",
 		"/clear", "/version", "/help", "/quit",
