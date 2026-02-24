@@ -12,16 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/barun-bash/human/internal/analyzer"
 	"github.com/barun-bash/human/internal/build"
 	"github.com/barun-bash/human/internal/cli"
+	"github.com/barun-bash/human/internal/cmdutil"
 	"github.com/barun-bash/human/internal/config"
-	cerr "github.com/barun-bash/human/internal/errors"
 	"github.com/barun-bash/human/internal/ir"
 	"github.com/barun-bash/human/internal/llm"
 	_ "github.com/barun-bash/human/internal/llm/providers" // register providers
-	"github.com/barun-bash/human/internal/parser"
-	"github.com/barun-bash/human/internal/quality"
+	"github.com/barun-bash/human/internal/repl"
 )
 
 var version = "0.4.0"
@@ -31,8 +29,9 @@ func main() {
 	args := filterGlobalFlags(os.Args[1:])
 
 	if len(args) < 1 {
-		printUsage()
-		os.Exit(0)
+		r := repl.New(version)
+		r.Run()
+		return
 	}
 
 	switch args[0] {
@@ -94,74 +93,18 @@ func cmdCheck() {
 	}
 	file := os.Args[2]
 
-	source, err := os.ReadFile(file)
+	result, err := cmdutil.ParseAndAnalyze(file)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error reading %s: %v", file, err)))
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
 		os.Exit(1)
 	}
 
-	prog, err := parser.Parse(string(source))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error in %s: %v", file, err)))
+	if cmdutil.PrintDiagnostics(result.Errs) {
+		fmt.Fprintf(os.Stderr, "\n%s\n", cli.Error(fmt.Sprintf("%d error(s) found", len(result.Errs.Errors()))))
 		os.Exit(1)
 	}
 
-	// Semantic analysis
-	app, irErr := ir.Build(prog)
-	if irErr != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("IR build error: %v", irErr)))
-		os.Exit(1)
-	}
-
-	errs := analyzer.Analyze(app, file)
-	if errs.HasWarnings() {
-		for _, w := range errs.Warnings() {
-			printDiagnostic(w)
-		}
-	}
-	if errs.HasErrors() {
-		for _, e := range errs.Errors() {
-			printDiagnostic(e)
-		}
-		fmt.Fprintf(os.Stderr, "\n%s\n", cli.Error(fmt.Sprintf("%d error(s) found", len(errs.Errors()))))
-		os.Exit(1)
-	}
-
-	// Summarize what was found
-	var parts []string
-	if len(prog.Data) > 0 {
-		parts = append(parts, fmt.Sprintf("%d data model%s", len(prog.Data), plural(len(prog.Data))))
-	}
-	if len(prog.Pages) > 0 {
-		parts = append(parts, fmt.Sprintf("%d page%s", len(prog.Pages), plural(len(prog.Pages))))
-	}
-	if len(prog.Components) > 0 {
-		parts = append(parts, fmt.Sprintf("%d component%s", len(prog.Components), plural(len(prog.Components))))
-	}
-	if len(prog.APIs) > 0 {
-		parts = append(parts, fmt.Sprintf("%d API%s", len(prog.APIs), plural(len(prog.APIs))))
-	}
-	if len(prog.Policies) > 0 {
-		parts = append(parts, fmt.Sprintf("%d polic%s", len(prog.Policies), pluralY(len(prog.Policies))))
-	}
-	if len(prog.Workflows) > 0 {
-		parts = append(parts, fmt.Sprintf("%d workflow%s", len(prog.Workflows), plural(len(prog.Workflows))))
-	}
-	if len(prog.Integrations) > 0 {
-		parts = append(parts, fmt.Sprintf("%d integration%s", len(prog.Integrations), plural(len(prog.Integrations))))
-	}
-	if len(prog.Environments) > 0 {
-		parts = append(parts, fmt.Sprintf("%d environment%s", len(prog.Environments), plural(len(prog.Environments))))
-	}
-	if len(prog.ErrorHandlers) > 0 {
-		parts = append(parts, fmt.Sprintf("%d error handler%s", len(prog.ErrorHandlers), plural(len(prog.ErrorHandlers))))
-	}
-
-	msg := fmt.Sprintf("%s is valid", file)
-	if len(parts) > 0 {
-		msg += " — " + strings.Join(parts, ", ")
-	}
-	fmt.Println(cli.Success(msg))
+	fmt.Println(cli.Success(cmdutil.CheckSummary(result.Prog, file)))
 }
 
 // ── build ──
@@ -194,124 +137,28 @@ func cmdBuild() {
 		return
 	}
 
-	source, err := os.ReadFile(file)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error reading %s: %v", file, err)))
-		os.Exit(1)
-	}
-
-	prog, err := parser.Parse(string(source))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Parse error in %s: %v", file, err)))
-		os.Exit(1)
-	}
-
-	app, err := ir.Build(prog)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("IR build error: %v", err)))
-		os.Exit(1)
-	}
-
-	// Semantic analysis
-	errs := analyzer.Analyze(app, file)
-	if errs.HasWarnings() {
-		for _, w := range errs.Warnings() {
-			printDiagnostic(w)
-		}
-	}
-	if errs.HasErrors() {
-		for _, e := range errs.Errors() {
-			printDiagnostic(e)
-		}
-		fmt.Fprintf(os.Stderr, "\n%s\n", cli.Error(fmt.Sprintf("%d error(s) found — build aborted", len(errs.Errors()))))
-		os.Exit(1)
-	}
-
-	yaml, err := ir.ToYAML(app)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Serialization error: %v", err)))
-		os.Exit(1)
-	}
-
 	if inspect {
+		result, err := cmdutil.ParseAndAnalyze(file)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+			os.Exit(1)
+		}
+		if cmdutil.PrintDiagnostics(result.Errs) {
+			fmt.Fprintf(os.Stderr, "\n%s\n", cli.Error(fmt.Sprintf("%d error(s) found — build aborted", len(result.Errs.Errors()))))
+			os.Exit(1)
+		}
+		yaml, err := ir.ToYAML(result.App)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Serialization error: %v", err)))
+			os.Exit(1)
+		}
 		fmt.Print(yaml)
 		return
 	}
 
-	// Write IR to .human/intent/<name>.yaml
-	outDir := filepath.Join(".human", "intent")
-	if err := os.MkdirAll(outDir, 0755); err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error creating output directory: %v", err)))
+	if _, _, _, err := cmdutil.FullBuild(file); err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
 		os.Exit(1)
-	}
-
-	base := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
-	outFile := filepath.Join(outDir, base+".yaml")
-
-	if err := os.WriteFile(outFile, []byte(yaml), 0644); err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error writing %s: %v", outFile, err)))
-		os.Exit(1)
-	}
-
-	// Print summary
-	fmt.Printf("Built %s → %s\n", file, outFile)
-	printIRSummary(app)
-
-	// Run all code generators
-	outputDir := filepath.Join(".human", "output")
-	results, qResult, genErr := build.RunGenerators(app, outputDir)
-	if genErr != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Build failed: %v", genErr)))
-		os.Exit(1)
-	}
-
-	quality.PrintSummary(qResult)
-	printBuildSummary(results, outputDir)
-}
-
-func printIRSummary(app *ir.Application) {
-	fmt.Println(cli.Info(fmt.Sprintf("  app:          %s (%s)", app.Name, app.Platform)))
-	if app.Config != nil {
-		fmt.Println(cli.Info(fmt.Sprintf("  config:       %s / %s / %s", app.Config.Frontend, app.Config.Backend, app.Config.Database)))
-	}
-	if len(app.Data) > 0 {
-		fmt.Printf("  data models:  %d\n", len(app.Data))
-	}
-	if len(app.Pages) > 0 {
-		fmt.Printf("  pages:        %d\n", len(app.Pages))
-	}
-	if len(app.Components) > 0 {
-		fmt.Printf("  components:   %d\n", len(app.Components))
-	}
-	if len(app.APIs) > 0 {
-		fmt.Printf("  APIs:         %d\n", len(app.APIs))
-	}
-	if len(app.Policies) > 0 {
-		fmt.Printf("  policies:     %d\n", len(app.Policies))
-	}
-	if len(app.Workflows) > 0 {
-		fmt.Printf("  workflows:    %d\n", len(app.Workflows))
-	}
-	if len(app.Pipelines) > 0 {
-		fmt.Printf("  pipelines:    %d\n", len(app.Pipelines))
-	}
-	if app.Auth != nil && len(app.Auth.Methods) > 0 {
-		fmt.Printf("  auth methods: %d\n", len(app.Auth.Methods))
-	}
-	if app.Database != nil {
-		fmt.Printf("  database:     %s\n", app.Database.Engine)
-	}
-	if len(app.Integrations) > 0 {
-		fmt.Printf("  integrations: %d\n", len(app.Integrations))
-	}
-	if len(app.Environments) > 0 {
-		fmt.Printf("  environments: %d\n", len(app.Environments))
-	}
-	if app.Architecture != nil {
-		fmt.Printf("  architecture: %s\n", app.Architecture.Style)
-	}
-	if len(app.Monitoring) > 0 {
-		fmt.Printf("  monitoring:   %d rule(s)\n", len(app.Monitoring))
 	}
 }
 
@@ -322,86 +169,14 @@ func cmdInit() {
 	if len(os.Args) >= 3 && !strings.HasPrefix(os.Args[2], "-") {
 		name = os.Args[2]
 	}
-	if name == "" {
-		dir, err := os.Getwd()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, cli.Error("Could not determine current directory"))
-			os.Exit(1)
-		}
-		name = filepath.Base(dir)
-	}
 
-	scanner := bufio.NewScanner(os.Stdin)
-
-	platform := prompt(scanner, "Platform", []string{"web", "mobile", "api"}, "web")
-	frontend := prompt(scanner, "Frontend", []string{"React", "Vue", "Angular", "Svelte", "None"}, "React")
-	backend := prompt(scanner, "Backend", []string{"Node", "Python", "Go"}, "Node")
-	database := prompt(scanner, "Database", []string{"PostgreSQL", "MySQL", "SQLite"}, "PostgreSQL")
-
-	// Create project directory
-	if err := os.MkdirAll(name, 0755); err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Could not create directory %s: %v", name, err)))
-		os.Exit(1)
-	}
-
-	// Generate starter app.human
-	content := generateTemplate(name, platform, frontend, backend, database)
-	outPath := filepath.Join(name, "app.human")
-	if err := os.WriteFile(outPath, []byte(content), 0644); err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Could not write %s: %v", outPath, err)))
+	outPath, err := cmdutil.InitProject(name, os.Stdin, os.Stdout)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
 		os.Exit(1)
 	}
 
 	fmt.Println(cli.Success(fmt.Sprintf("Created %s — run 'human check %s' to validate, 'human build %s' to compile", outPath, outPath, outPath)))
-}
-
-// prompt asks the user to choose from options with a default.
-func prompt(scanner *bufio.Scanner, label string, options []string, defaultVal string) string {
-	fmt.Printf("%s (%s) [%s]: ", label, strings.Join(options, "/"), defaultVal)
-	if scanner.Scan() {
-		input := strings.TrimSpace(scanner.Text())
-		if input != "" {
-			// Match case-insensitively against options
-			for _, opt := range options {
-				if strings.EqualFold(input, opt) {
-					return opt
-				}
-			}
-			return input
-		}
-	}
-	return defaultVal
-}
-
-func generateTemplate(name, platform, frontend, backend, database string) string {
-	var b strings.Builder
-
-	fmt.Fprintf(&b, "app %s is a %s application\n\n", name, platform)
-
-	b.WriteString("# ── Data Models ──\n\n")
-	b.WriteString("data User:\n")
-	b.WriteString("  name is text, required\n")
-	b.WriteString("  email is email, required, unique\n")
-	b.WriteString("  password is text, required, encrypted\n\n")
-
-	b.WriteString("# ── Pages ──\n\n")
-	b.WriteString("page Home:\n")
-	b.WriteString("  show heading \"Welcome to " + name + "\"\n\n")
-
-	b.WriteString("# ── APIs ──\n\n")
-	b.WriteString("api SignUp:\n")
-	b.WriteString("  accepts name, email, password\n")
-	b.WriteString("  create User with name, email, password\n")
-	b.WriteString("  respond with success\n\n")
-
-	b.WriteString("# ── Build ──\n\n")
-	b.WriteString("build with:\n")
-	fmt.Fprintf(&b, "  frontend using %s\n", frontend)
-	fmt.Fprintf(&b, "  backend using %s\n", backend)
-	fmt.Fprintf(&b, "  database using %s\n", database)
-	b.WriteString("  deploy to Docker\n")
-
-	return b.String()
 }
 
 // ── run ──
@@ -414,12 +189,7 @@ func cmdRun() {
 
 	if _, err := os.Stat(startSh); err == nil {
 		fmt.Println(cli.Info("Starting application via start.sh..."))
-		cmd := exec.Command("bash", "start.sh")
-		cmd.Dir = outputDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Stdin = os.Stdin
-		if err := cmd.Run(); err != nil {
+		if err := cmdutil.RunCommand(outputDir, "bash", "start.sh"); err != nil {
 			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Run failed: %v", err)))
 			os.Exit(1)
 		}
@@ -428,12 +198,7 @@ func cmdRun() {
 
 	if _, err := os.Stat(pkgJSON); err == nil {
 		fmt.Println(cli.Info("Starting application via npm run dev..."))
-		cmd := exec.Command("npm", "run", "dev")
-		cmd.Dir = outputDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Stdin = os.Stdin
-		if err := cmd.Run(); err != nil {
+		if err := cmdutil.RunCommand(outputDir, "npm", "run", "dev"); err != nil {
 			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Run failed: %v", err)))
 			os.Exit(1)
 		}
@@ -447,19 +212,14 @@ func cmdRun() {
 // ── test ──
 
 func cmdTest() {
-	outputDir := filepath.Join(".human", "output")
-
-	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
-		fmt.Fprintln(os.Stderr, cli.Error("No build found. Run 'human build <file>' first."))
+	outputDir, err := cmdutil.RequireOutputDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
 		os.Exit(1)
 	}
 
 	fmt.Println(cli.Info("Running tests..."))
-	cmd := exec.Command("npm", "test")
-	cmd.Dir = outputDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := cmdutil.RunCommandSilent(outputDir, "npm", "test"); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			os.Exit(exitErr.ExitCode())
 		}
@@ -471,10 +231,9 @@ func cmdTest() {
 // ── audit ──
 
 func cmdAudit() {
-	outputDir := filepath.Join(".human", "output")
-
-	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
-		fmt.Fprintln(os.Stderr, cli.Error("No build found. Run 'human build <file>' first."))
+	outputDir, err := cmdutil.RequireOutputDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
 		os.Exit(1)
 	}
 
@@ -485,35 +244,15 @@ func cmdAudit() {
 		os.Exit(1)
 	}
 
-	fmt.Println(cli.Info("Security & Quality Audit"))
-	fmt.Println(cli.Info(strings.Repeat("─", 40)))
-	fmt.Println()
-
-	// Parse and colorize the report
-	for _, line := range strings.Split(string(report), "\n") {
-		trimmed := strings.TrimSpace(line)
-		switch {
-		case strings.Contains(trimmed, "CRITICAL") || strings.Contains(trimmed, "❌"):
-			fmt.Println(cli.Error(line))
-		case strings.Contains(trimmed, "WARNING") || strings.Contains(trimmed, "⚠"):
-			fmt.Println(cli.Warn(line))
-		case strings.Contains(trimmed, "✅") || strings.Contains(trimmed, "PASS"):
-			fmt.Println(cli.Success(line))
-		case strings.HasPrefix(trimmed, "#"):
-			fmt.Println(cli.Info(line))
-		default:
-			fmt.Println(line)
-		}
-	}
+	cmdutil.PrintAuditReport(string(report))
 }
 
 // ── eject ──
 
 func cmdEject() {
-	outputDir := filepath.Join(".human", "output")
-
-	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
-		fmt.Fprintln(os.Stderr, cli.Error("No build found. Run 'human build <file>' first."))
+	outputDir, err := cmdutil.RequireOutputDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
 		os.Exit(1)
 	}
 
@@ -529,7 +268,7 @@ func cmdEject() {
 	}
 
 	// Copy all files from .human/output/ to target
-	err := filepath.WalkDir(outputDir, func(path string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir(outputDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -627,21 +366,12 @@ func cmdDeploy() {
 	}
 
 	// Load the IR to read config
-	source, err := os.ReadFile(file)
+	result, err := cmdutil.ParseAndAnalyze(file)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error reading %s: %v", file, err)))
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
 		os.Exit(1)
 	}
-	prog, err := parser.Parse(string(source))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Parse error: %v", err)))
-		os.Exit(1)
-	}
-	app, err := ir.Build(prog)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("IR error: %v", err)))
-		os.Exit(1)
-	}
+	app := result.App
 
 	// Determine deploy target
 	deployTarget := ""
@@ -685,98 +415,13 @@ func cmdDeploy() {
 	case strings.Contains(deployTarget, "aws"), strings.Contains(deployTarget, "gcp"), strings.Contains(deployTarget, "terraform"):
 		deployTerraform(app, outputDir, envName, dryRun)
 	case strings.Contains(deployTarget, "docker"):
-		deployDocker(app, outputDir, dryRun)
+		if err := cmdutil.DeployDocker(app, outputDir, dryRun); err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+			os.Exit(1)
+		}
 	default:
 		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Unsupported deploy target: %s. Supported: Docker, AWS, GCP", app.Config.Deploy)))
 		os.Exit(1)
-	}
-}
-
-func deployDocker(app *ir.Application, outputDir string, dryRun bool) {
-	// Check docker-compose.yml exists
-	composePath := filepath.Join(outputDir, "docker-compose.yml")
-	if _, err := os.Stat(composePath); os.IsNotExist(err) {
-		fmt.Fprintln(os.Stderr, cli.Error("docker-compose.yml not found. Run 'human build <file>' first."))
-		os.Exit(1)
-	}
-
-	// Check that docker is available
-	if _, err := exec.LookPath("docker"); err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error("docker not found in PATH. Install Docker to deploy."))
-		os.Exit(1)
-	}
-
-	// Determine compose command (docker compose v2 or docker-compose v1)
-	composeCmd := []string{"docker", "compose"}
-	if err := exec.Command("docker", "compose", "version").Run(); err != nil {
-		// Try v1
-		if _, err := exec.LookPath("docker-compose"); err != nil {
-			fmt.Fprintln(os.Stderr, cli.Error("Neither 'docker compose' nor 'docker-compose' found. Install Docker Compose."))
-			os.Exit(1)
-		}
-		composeCmd = []string{"docker-compose"}
-	}
-
-	// Check .env file
-	envPath := filepath.Join(outputDir, ".env")
-	envExamplePath := filepath.Join(outputDir, ".env.example")
-	if _, err := os.Stat(envPath); os.IsNotExist(err) {
-		if _, err := os.Stat(envExamplePath); err == nil {
-			fmt.Println(cli.Warn("No .env file found. Copying .env.example → .env"))
-			fmt.Println(cli.Warn("Review and update .env with production values before deploying to production."))
-			if !dryRun {
-				content, readErr := os.ReadFile(envExamplePath)
-				if readErr != nil {
-					fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error reading .env.example: %v", readErr)))
-					os.Exit(1)
-				}
-				if writeErr := os.WriteFile(envPath, content, 0644); writeErr != nil {
-					fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error creating .env: %v", writeErr)))
-					os.Exit(1)
-				}
-			}
-		}
-	}
-
-	// Build step
-	buildArgs := append(composeCmd, "build")
-	fmt.Println(cli.Info(fmt.Sprintf("Step 1/2: %s", strings.Join(buildArgs, " "))))
-	if dryRun {
-		fmt.Println(cli.Info("  (dry-run — skipped)"))
-	} else {
-		cmd := exec.Command(buildArgs[0], buildArgs[1:]...)
-		cmd.Dir = outputDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Docker build failed: %v", err)))
-			os.Exit(1)
-		}
-	}
-
-	// Up step
-	upArgs := append(composeCmd, "up", "-d")
-	fmt.Println(cli.Info(fmt.Sprintf("Step 2/2: %s", strings.Join(upArgs, " "))))
-	if dryRun {
-		fmt.Println(cli.Info("  (dry-run — skipped)"))
-	} else {
-		cmd := exec.Command(upArgs[0], upArgs[1:]...)
-		cmd.Dir = outputDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Docker deploy failed: %v", err)))
-			os.Exit(1)
-		}
-	}
-
-	if dryRun {
-		fmt.Println(cli.Success("Dry run complete — no changes were made."))
-	} else {
-		fmt.Println(cli.Success(fmt.Sprintf("Deployed %s via Docker.", app.Name)))
-		fmt.Println(cli.Info("  Run 'docker compose ps' in .human/output/ to check status."))
-		fmt.Println(cli.Info("  Run 'docker compose logs -f' to view logs."))
-		fmt.Println(cli.Info("  Run 'docker compose down' to stop."))
 	}
 }
 
@@ -796,11 +441,7 @@ func deployTerraform(app *ir.Application, outputDir, envName string, dryRun bool
 	// Init
 	fmt.Println(cli.Info("Step 1/3: terraform init"))
 	if !dryRun {
-		cmd := exec.Command("terraform", "init")
-		cmd.Dir = tfDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
+		if err := cmdutil.RunCommandSilent(tfDir, "terraform", "init"); err != nil {
 			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("terraform init failed: %v", err)))
 			os.Exit(1)
 		}
@@ -818,21 +459,13 @@ func deployTerraform(app *ir.Application, outputDir, envName string, dryRun bool
 	}
 	fmt.Println(cli.Info(fmt.Sprintf("Step 2/3: terraform %s", strings.Join(planArgs, " "))))
 	if !dryRun {
-		cmd := exec.Command("terraform", planArgs...)
-		cmd.Dir = tfDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
+		if err := cmdutil.RunCommandSilent(tfDir, "terraform", planArgs...); err != nil {
 			fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("terraform plan failed: %v", err)))
 			os.Exit(1)
 		}
 	} else {
 		fmt.Println(cli.Info("  (dry-run — showing plan only)"))
-		cmd := exec.Command("terraform", planArgs...)
-		cmd.Dir = tfDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		_ = cmd.Run()
+		_ = cmdutil.RunCommandSilent(tfDir, "terraform", planArgs...)
 	}
 
 	// Apply (only if not dry-run)
@@ -849,11 +482,7 @@ func deployTerraform(app *ir.Application, outputDir, envName string, dryRun bool
 		}
 	}
 	fmt.Println(cli.Info(fmt.Sprintf("Step 3/3: terraform %s", strings.Join(applyArgs, " "))))
-	cmd := exec.Command("terraform", applyArgs...)
-	cmd.Dir = tfDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := cmdutil.RunCommandSilent(tfDir, "terraform", applyArgs...); err != nil {
 		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("terraform apply failed: %v", err)))
 		os.Exit(1)
 	}
@@ -910,38 +539,19 @@ func cmdBuildWatch(file string) {
 	}
 }
 
-// runBuild executes the full build pipeline for watch mode, returning any error
-// instead of calling os.Exit.
+// runBuild executes the full build pipeline for watch mode and deploy,
+// returning any error instead of calling os.Exit.
 func runBuild(file string) error {
-	source, err := os.ReadFile(file)
+	result, err := cmdutil.ParseAndAnalyze(file)
 	if err != nil {
-		return fmt.Errorf("reading %s: %w", file, err)
+		return err
 	}
 
-	prog, err := parser.Parse(string(source))
-	if err != nil {
-		return fmt.Errorf("parse error: %w", err)
+	if cmdutil.PrintDiagnostics(result.Errs) {
+		return fmt.Errorf("%d error(s) found", len(result.Errs.Errors()))
 	}
 
-	app, err := ir.Build(prog)
-	if err != nil {
-		return fmt.Errorf("IR build error: %w", err)
-	}
-
-	errs := analyzer.Analyze(app, file)
-	if errs.HasWarnings() {
-		for _, w := range errs.Warnings() {
-			printDiagnostic(w)
-		}
-	}
-	if errs.HasErrors() {
-		for _, e := range errs.Errors() {
-			printDiagnostic(e)
-		}
-		return fmt.Errorf("%d error(s) found", len(errs.Errors()))
-	}
-
-	yaml, err := ir.ToYAML(app)
+	yaml, err := ir.ToYAML(result.App)
 	if err != nil {
 		return fmt.Errorf("serialization error: %w", err)
 	}
@@ -959,36 +569,15 @@ func runBuild(file string) error {
 
 	// Run all code generators
 	outputDir := filepath.Join(".human", "output")
-	if _, _, err := build.RunGenerators(app, outputDir); err != nil {
-		return err
+	results, qResult, genErr := build.RunGenerators(result.App, outputDir)
+	if genErr != nil {
+		return genErr
 	}
+	// Suppress unused warnings — watch/deploy don't print summaries
+	_ = results
+	_ = qResult
 
 	return nil
-}
-
-// printBuildSummary displays a table of generator results.
-func printBuildSummary(results []build.Result, outputDir string) {
-	total := 0
-	for _, r := range results {
-		total += r.Files
-	}
-
-	fmt.Println()
-	fmt.Println("  " + cli.Info("Build Summary"))
-	fmt.Println("  " + strings.Repeat("─", 50))
-	fmt.Printf("  %-14s %-8s %s\n", "Generator", "Files", "Output")
-	fmt.Println("  " + strings.Repeat("─", 50))
-	for _, r := range results {
-		relDir := r.Dir
-		if rel, err := filepath.Rel(".", r.Dir); err == nil {
-			relDir = rel
-		}
-		fmt.Printf("  %-14s %-8d %s/\n", r.Name, r.Files, relDir)
-	}
-	fmt.Println("  " + strings.Repeat("─", 50))
-	fmt.Printf("  %-14s %-8d\n", "Total", total)
-	fmt.Println()
-	fmt.Println(cli.Success(fmt.Sprintf("Build complete — %d files in %s/", total, outputDir)))
 }
 
 // ── LLM Commands ──
@@ -1054,7 +643,7 @@ func promptProviderSetup(projectDir string) *config.LLMConfig {
 	fmt.Println()
 
 	scanner := bufio.NewScanner(os.Stdin)
-	choice := prompt(scanner, "LLM Provider", []string{"anthropic", "openai", "ollama"}, "anthropic")
+	choice := cmdutil.Prompt(scanner, os.Stdout, "LLM Provider", []string{"anthropic", "openai", "ollama"}, "anthropic")
 
 	llmCfg := config.DefaultLLMConfig(choice)
 
@@ -1331,33 +920,6 @@ func cmdConvert() {
 }
 
 // ── Helpers ──
-
-// printDiagnostic prints a CompilerError with its suggestion (if any) to stderr.
-func printDiagnostic(e *cerr.CompilerError) {
-	switch e.Severity {
-	case cerr.SeverityWarning:
-		fmt.Fprintln(os.Stderr, cli.Warn(e.Format()))
-	default:
-		fmt.Fprintln(os.Stderr, cli.Error(e.Format()))
-	}
-	if e.Suggestion != "" {
-		fmt.Fprintf(os.Stderr, "  suggestion: %s\n", e.Suggestion)
-	}
-}
-
-func plural(n int) string {
-	if n == 1 {
-		return ""
-	}
-	return "s"
-}
-
-func pluralY(n int) string {
-	if n == 1 {
-		return "y"
-	}
-	return "ies"
-}
 
 func printUsage() {
 	fmt.Print(`Human — English in, production-ready code out.
