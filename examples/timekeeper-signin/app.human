@@ -1,0 +1,120 @@
+app TimeKeeper is a web application
+
+# ─────────────────────────────────────────────────────────────
+── theme ──
+# ─────────────────────────────────────────────────────────────
+
+theme:
+  primary color is #2D4A98
+  secondary color is #4263BA
+  danger color is #D63031
+  font is Plus Jakarta Sans for body and Plus Jakarta Sans for headings
+  border radius is smooth on all elements
+  dark mode is not supported
+  spacing is comfortable
+
+# ─────────────────────────────────────────────────────────────
+── frontend ──
+# ─────────────────────────────────────────────────────────────
+
+page SignIn:
+  show a navigation bar with the app name "Time Keeper" on the left
+  the navigation bar has a language selector showing "EN" on the right
+  the navigation bar has a "Sign Up" button on the right
+
+  show a heading "Sign in"
+
+  show a "Sign in with Google" button with a Google icon
+  show social login icons for Slack, Microsoft Teams, Apple, and Facebook
+
+  show text "or use your email to sign in:"
+
+  there is a text input for work email with placeholder "Add work email address"
+  there is a password input for password with placeholder "Password"
+  the password input has a toggle to show or hide the password
+
+  show a link "I forgot my password"
+  clicking "I forgot my password" navigates to ForgotPassword
+
+  there is a "Sign In" button that submits the form
+  clicking "Sign In" does Login with the email and password
+
+  show a link "Sign in with Single Sign On"
+
+  if login fails, show the error message
+  while loading, show a spinner
+
+page ForgotPassword:
+  show a navigation bar with the app name "Time Keeper" on the left
+
+  show a heading "Password recovery"
+  show text "Enter the email address associated with your account to get a code"
+
+  there is a text input for email
+  there is a "Send Recovery Email" button
+  clicking "Send Recovery Email" sends a password reset email
+
+  show a link "Back to Login"
+  clicking "Back to Login" navigates to SignIn
+
+# ─────────────────────────────────────────────────────────────
+── backend ──
+# ─────────────────────────────────────────────────────────────
+
+data User:
+  has a name which is text
+  has an email which is unique email
+  has a password which is encrypted text
+  has a role which is either "employee" or "manager" or "admin"
+  has an optional avatar which is image
+  has a created datetime
+
+api Login:
+  accepts email and password
+  check that email is not empty
+  check that password is not empty
+  fetch the user by email
+  if user does not exist, respond with "invalid credentials"
+  check that password matches the stored hash
+  if password does not match, respond with "invalid credentials"
+  respond with the user and auth token
+
+api ForgotPassword:
+  accepts email
+  check that email is not empty
+  check that email is a valid email
+  fetch the user by email
+  if user exists, send password reset email
+  respond with "If an account exists, we'll send reset instructions"
+
+# ─────────────────────────────────────────────────────────────
+── security ──
+# ─────────────────────────────────────────────────────────────
+
+authentication:
+  method JWT tokens that expire in 7 days
+  method Google OAuth with redirect to /auth/google/callback
+  passwords are hashed with bcrypt using 12 rounds
+  all api requests require a valid token except Login and ForgotPassword
+  rate limit all endpoints to 100 requests per minute per user
+  sanitize all text inputs against XSS
+  enable CORS only for our frontend domain
+
+# ─────────────────────────────────────────────────────────────
+── database ──
+# ─────────────────────────────────────────────────────────────
+
+database:
+  use PostgreSQL
+  when the app starts, create tables if they don't exist
+  index User by email
+
+# ─────────────────────────────────────────────────────────────
+── build ──
+# ─────────────────────────────────────────────────────────────
+
+build with:
+  frontend using React with TypeScript
+  backend using Node with Express
+  database using PostgreSQL
+  deploy to Docker

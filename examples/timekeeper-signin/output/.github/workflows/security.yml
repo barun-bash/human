@@ -1,0 +1,21 @@
+name: timekeeper-security
+
+"on":
+  schedule:
+    - cron: '0 0 * * 0'
+  pull_request:
+    branches: [main]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm ci
+      - name: Security audit
+        run: npm audit --audit-level=high
