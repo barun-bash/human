@@ -17,6 +17,7 @@ import (
 
 // cmdAsk handles the /ask command — generates a .human file from a description.
 func cmdAsk(r *REPL, args []string) {
+	args, yesFlag := extractYesFlag(args)
 	query := strings.Join(args, " ")
 
 	// If no args, prompt for a description.
@@ -64,6 +65,7 @@ func cmdAsk(r *REPL, args []string) {
 	spinner.Start()
 	firstChunk := true
 
+	sw := cli.NewStreamWriter(r.out)
 	var fullText strings.Builder
 	var totalIn, totalOut int
 	for chunk := range ch {
@@ -76,7 +78,7 @@ func cmdAsk(r *REPL, args []string) {
 			spinner.Stop()
 			firstChunk = false
 		}
-		fmt.Fprint(r.out, chunk.Delta)
+		fmt.Fprint(sw, chunk.Delta)
 		fullText.WriteString(chunk.Delta)
 		if chunk.Usage != nil {
 			totalIn = chunk.Usage.InputTokens
@@ -86,7 +88,7 @@ func cmdAsk(r *REPL, args []string) {
 	if firstChunk {
 		spinner.Stop() // no text chunks received
 	}
-	fmt.Fprintln(r.out)
+	sw.Finish()
 
 	// Show token usage.
 	if totalIn > 0 || totalOut > 0 {
@@ -132,8 +134,8 @@ func cmdAsk(r *REPL, args []string) {
 	r.setProject(filename)
 	r.clearSuggestions()
 
-	// Prompt to build (auto-accept skips the prompt).
-	if r.settings.AutoAcceptEnabled() {
+	// Prompt to build (auto-accept or --yes skips the prompt).
+	if r.shouldAutoAccept(yesFlag) {
 		fmt.Fprintln(r.out, cli.Muted("  Auto-building..."))
 	} else {
 		fmt.Fprintf(r.out, "Build now? (y/n): ")
@@ -275,4 +277,24 @@ func isYes(s string) bool {
 		return true
 	}
 	return false
+}
+
+// extractYesFlag removes --yes/-y from args and returns the cleaned args
+// and whether the flag was present.
+func extractYesFlag(args []string) ([]string, bool) {
+	var clean []string
+	found := false
+	for _, arg := range args {
+		if arg == "--yes" || arg == "-y" {
+			found = true
+		} else {
+			clean = append(clean, arg)
+		}
+	}
+	return clean, found
+}
+
+// shouldAutoAccept returns true if auto-accept is enabled via settings or --yes flag.
+func (r *REPL) shouldAutoAccept(yesFlag bool) bool {
+	return yesFlag || r.settings.AutoAcceptEnabled()
 }

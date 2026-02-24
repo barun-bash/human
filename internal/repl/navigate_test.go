@@ -65,6 +65,40 @@ func TestCd_NoArgs_GoesHome(t *testing.T) {
 	}
 }
 
+func TestCd_Dash_PreviousDir(t *testing.T) {
+	cli.ColorEnabled = false
+	old, _ := os.Getwd()
+	defer os.Chdir(old)
+
+	dir1 := t.TempDir()
+	dir2 := t.TempDir()
+
+	r, out, _ := newTestREPL("/cd " + dir1 + "\n/cd " + dir2 + "\n/cd -\n/quit\n")
+	r.Run()
+
+	// After /cd -, should be back in dir1.
+	cwd, _ := os.Getwd()
+	cwdReal, _ := filepath.EvalSymlinks(cwd)
+	dir1Real, _ := filepath.EvalSymlinks(dir1)
+	if cwdReal != dir1Real {
+		t.Errorf("after /cd -, CWD = %q, want %q", cwdReal, dir1Real)
+	}
+	_ = out
+}
+
+func TestCd_Dash_NoPrevious(t *testing.T) {
+	cli.ColorEnabled = false
+	old, _ := os.Getwd()
+	defer os.Chdir(old)
+
+	r, _, errOut := newTestREPL("/cd -\n/quit\n")
+	r.Run()
+
+	if !strings.Contains(errOut.String(), "No previous directory") {
+		t.Errorf("expected 'No previous directory' error, got: %s", errOut.String())
+	}
+}
+
 func TestCd_NonExistent(t *testing.T) {
 	cli.ColorEnabled = false
 	old, _ := os.Getwd()

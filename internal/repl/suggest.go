@@ -22,9 +22,12 @@ func cmdSuggest(r *REPL, args []string) {
 		return
 	}
 
+	args, yesFlag := extractYesFlag(args)
+	autoAccept := r.shouldAutoAccept(yesFlag)
+
 	// Dispatch subcommands.
 	if len(args) > 0 && strings.ToLower(args[0]) == "apply" {
-		suggestApply(r, args[1:])
+		suggestApply(r, args[1:], autoAccept)
 		return
 	}
 
@@ -99,7 +102,7 @@ func suggestAnalyze(r *REPL) {
 }
 
 // suggestApply applies one or all cached suggestions using /edit logic.
-func suggestApply(r *REPL, args []string) {
+func suggestApply(r *REPL, args []string, autoAccept bool) {
 	if len(r.lastSuggestions) == 0 {
 		fmt.Fprintln(r.errOut, cli.Error("No suggestions available. Run /suggest first."))
 		return
@@ -113,7 +116,7 @@ func suggestApply(r *REPL, args []string) {
 	target := strings.ToLower(args[0])
 
 	if target == "all" {
-		suggestApplyAll(r)
+		suggestApplyAll(r, autoAccept)
 		return
 	}
 
@@ -124,11 +127,11 @@ func suggestApply(r *REPL, args []string) {
 		return
 	}
 
-	suggestApplyOne(r, num-1) // 0-indexed internally
+	suggestApplyOne(r, num-1, autoAccept) // 0-indexed internally
 }
 
 // suggestApplyOne applies a single suggestion by index.
-func suggestApplyOne(r *REPL, idx int) {
+func suggestApplyOne(r *REPL, idx int, autoAccept bool) {
 	s := r.lastSuggestions[idx]
 
 	fmt.Fprintf(r.out, "Applying suggestion %d: [%s] %s\n", idx+1, s.Category, s.Text)
@@ -148,7 +151,7 @@ func suggestApplyOne(r *REPL, idx int) {
 	}
 
 	// Use the suggestion text as the edit instruction.
-	_, accepted, _ := editOnce(r, connector, llmCfg, s.Text, string(source), nil)
+	_, accepted, _ := editOnce(r, connector, llmCfg, s.Text, string(source), nil, autoAccept)
 	if accepted {
 		// Source changed — clear suggestions since they're now stale.
 		r.clearSuggestions()
@@ -156,7 +159,7 @@ func suggestApplyOne(r *REPL, idx int) {
 }
 
 // suggestApplyAll applies all suggestions sequentially with per-suggestion y/n.
-func suggestApplyAll(r *REPL) {
+func suggestApplyAll(r *REPL, autoAccept bool) {
 	connector, llmCfg, err := loadREPLConnector()
 	if err != nil {
 		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
@@ -190,7 +193,7 @@ func suggestApplyAll(r *REPL) {
 			continue
 		}
 
-		newSource, accepted, _ := editOnce(r, connector, llmCfg, s.text, string(source), nil)
+		newSource, accepted, _ := editOnce(r, connector, llmCfg, s.text, string(source), nil, autoAccept)
 		_ = newSource
 
 		if accepted {

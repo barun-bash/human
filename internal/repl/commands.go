@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/barun-bash/human/internal/build"
 	"github.com/barun-bash/human/internal/cli"
 	"github.com/barun-bash/human/internal/cmdutil"
 	"github.com/barun-bash/human/internal/config"
@@ -331,11 +332,32 @@ func cmdBuild(r *REPL, args []string) {
 		}
 	}
 
+	// Pre-plan build stages for progress display.
+	planResult, planErr := cmdutil.ParseAndAnalyze(r.projectFile)
+	var progressBox *cli.ProgressBox
+	if planErr == nil && planResult.App != nil {
+		stages := build.PlanStages(planResult.App)
+		title := fmt.Sprintf("Building %s", r.projectName)
+		progressBox = cli.NewProgressBox(r.out, title, stages)
+		progressBox.Start()
+	}
+
 	progress := func(stage string) {
-		fmt.Fprintf(r.out, "  %s %s...\n", cli.Accent("\u25b6"), stage)
+		if progressBox != nil {
+			progressBox.Update(stage)
+		} else {
+			fmt.Fprintf(r.out, "  %s %s...\n", cli.Accent("\u25b6"), stage)
+		}
 	}
 	if _, _, _, err := cmdutil.FullBuildWithProgress(r.projectFile, progress); err != nil {
+		if progressBox != nil {
+			progressBox.Finish()
+		}
 		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
+		return
+	}
+	if progressBox != nil {
+		progressBox.Finish()
 	}
 }
 
@@ -659,9 +681,16 @@ func cmdHistory(r *REPL, args []string) {
 			fmt.Fprintln(r.out, cli.Success("History cleared."))
 			return
 		}
-		// Try to parse as a number.
+		// Try to parse as a number — re-execute that command.
 		if n, err := strconv.Atoi(sub); err == nil && n > 0 {
-			showHistory(r, n)
+			entries := r.history.Entries()
+			if n > len(entries) {
+				fmt.Fprintf(r.errOut, "History entry %d does not exist (max: %d)\n", n, len(entries))
+				return
+			}
+			cmd := entries[n-1]
+			fmt.Fprintf(r.out, "%s\n", cli.Muted(fmt.Sprintf("  Re-executing: %s", cmd)))
+			r.execute(cmd)
 			return
 		}
 		fmt.Fprintln(r.errOut, "Usage: /history [clear|<n>]")

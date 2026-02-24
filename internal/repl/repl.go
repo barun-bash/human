@@ -33,6 +33,7 @@ type REPL struct {
 	lastSuggestions []prompts.Suggestion   // cached from last /suggest, cleared on source change
 	mcpClients      map[string]*mcp.Client // live MCP server connections
 	instructions    string                 // project instructions from HUMAN.md
+	lastDir         string                 // previous working directory for /cd -
 }
 
 // Option configures the REPL.

@@ -24,6 +24,15 @@ func cmdCd(r *REPL, args []string) {
 	} else {
 		target = args[0]
 
+		// Handle /cd - (go to previous directory).
+		if target == "-" {
+			if r.lastDir == "" {
+				fmt.Fprintln(r.errOut, cli.Error("No previous directory."))
+				return
+			}
+			target = r.lastDir
+		}
+
 		// Expand ~ prefix.
 		if strings.HasPrefix(target, "~/") || target == "~" {
 			home, err := os.UserHomeDir()
@@ -57,10 +66,14 @@ func cmdCd(r *REPL, args []string) {
 		return
 	}
 
+	// Save current directory before changing.
+	prevDir, _ := os.Getwd()
+
 	if err := os.Chdir(absPath); err != nil {
 		fmt.Fprintln(r.errOut, cli.Error(fmt.Sprintf("Could not change directory: %v", err)))
 		return
 	}
+	r.lastDir = prevDir
 
 	fmt.Fprintln(r.out, absPath)
 

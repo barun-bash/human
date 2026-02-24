@@ -60,6 +60,68 @@ func CountFiles(dir string) int {
 	return count
 }
 
+// PlanStages returns the list of stage names that will run for the given app.
+// Use this to pre-populate a progress display.
+func PlanStages(app *ir.Application) []string {
+	var stages []string
+
+	frontendLower := ""
+	backendLower := ""
+	deployLower := ""
+	databaseLower := ""
+	if app.Config != nil {
+		frontendLower = strings.ToLower(app.Config.Frontend)
+		backendLower = strings.ToLower(app.Config.Backend)
+		deployLower = strings.ToLower(app.Config.Deploy)
+		databaseLower = strings.ToLower(app.Config.Database)
+	}
+
+	if strings.Contains(frontendLower, "react") {
+		stages = append(stages, "Generating React frontend")
+	}
+	if strings.Contains(frontendLower, "vue") {
+		stages = append(stages, "Generating Vue frontend")
+	}
+	if strings.Contains(frontendLower, "angular") {
+		stages = append(stages, "Generating Angular frontend")
+	}
+	if strings.Contains(frontendLower, "svelte") {
+		stages = append(stages, "Generating Svelte frontend")
+	}
+	if frontendLower != "" {
+		stages = append(stages, "Generating Storybook stories")
+	}
+	if strings.Contains(backendLower, "node") {
+		stages = append(stages, "Generating Node.js backend")
+	}
+	if strings.Contains(backendLower, "python") {
+		stages = append(stages, "Generating Python backend")
+	}
+	if MatchesGoBackend(backendLower) {
+		stages = append(stages, "Generating Go backend")
+	}
+	if strings.Contains(databaseLower, "postgres") {
+		stages = append(stages, "Generating PostgreSQL schema")
+	}
+	if strings.Contains(deployLower, "docker") {
+		stages = append(stages, "Generating Docker configuration")
+	}
+	stages = append(stages, "Generating CI/CD pipelines")
+	if strings.Contains(deployLower, "aws") || strings.Contains(deployLower, "gcp") || strings.Contains(deployLower, "terraform") {
+		stages = append(stages, "Generating Terraform infrastructure")
+	}
+	if app.Architecture != nil && app.Architecture.Style != "" {
+		stages = append(stages, "Generating architecture layout")
+	}
+	if len(app.Monitoring) > 0 {
+		stages = append(stages, "Generating monitoring configuration")
+	}
+	stages = append(stages, "Running quality checks")
+	stages = append(stages, "Scaffolding project files")
+
+	return stages
+}
+
 // ProgressFunc is called before each build stage with the stage name.
 type ProgressFunc func(stage string)
 

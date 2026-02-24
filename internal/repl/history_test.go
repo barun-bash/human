@@ -145,24 +145,32 @@ func TestHistoryCommand_ShowRecent(t *testing.T) {
 	}
 }
 
-func TestHistoryCommand_ShowN(t *testing.T) {
+func TestHistoryCommand_ReExecute(t *testing.T) {
 	cli.ColorEnabled = false
 	r, out, _ := newTestREPL("")
-	// Add history entries manually and call handler directly.
+	r.history = &History{}
 	r.history.Add("/version")
-	r.history.Add("/status")
 	r.history.Add("/pwd")
 
 	cmdHistory(r, []string{"1"})
 	output := out.String()
 
-	// Should show only the last entry.
-	if !strings.Contains(output, "/pwd") {
-		t.Errorf("expected /pwd in output, got: %s", output)
+	// /history 1 should re-execute /version, which prints the version.
+	if !strings.Contains(output, "Re-executing: /version") {
+		t.Errorf("expected re-execute message for /version, got: %s", output)
 	}
-	// Should not contain /version (it's older than last 1).
-	if strings.Contains(output, "/version") {
-		t.Errorf("should not contain /version when showing only last 1, got: %s", output)
+}
+
+func TestHistoryCommand_ReExecuteOutOfRange(t *testing.T) {
+	cli.ColorEnabled = false
+	r, _, errOut := newTestREPL("")
+	r.history = &History{}
+	r.history.Add("/version")
+
+	cmdHistory(r, []string{"5"})
+
+	if !strings.Contains(errOut.String(), "does not exist") {
+		t.Errorf("expected 'does not exist' error, got: %s", errOut.String())
 	}
 }
 

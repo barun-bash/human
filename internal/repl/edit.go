@@ -23,6 +23,8 @@ func cmdEdit(r *REPL, args []string) {
 		return
 	}
 
+	args, yesFlag := extractYesFlag(args)
+
 	// Load source.
 	source, err := os.ReadFile(r.projectFile)
 	if err != nil {
@@ -45,12 +47,13 @@ func cmdEdit(r *REPL, args []string) {
 		fmt.Fprintln(r.out, cli.Muted("  Note: This uses your API key and may incur costs."))
 	}
 
+	autoAccept := r.shouldAutoAccept(yesFlag)
 	currentSource := string(source)
 
 	if len(args) > 0 {
 		// Single-instruction mode.
 		instruction := strings.Join(args, " ")
-		editOnce(r, connector, llmCfg, instruction, currentSource, nil)
+		editOnce(r, connector, llmCfg, instruction, currentSource, nil, autoAccept)
 		return
 	}
 
@@ -61,7 +64,7 @@ func cmdEdit(r *REPL, args []string) {
 // editOnce performs a single edit: call LLM, show diff, accept/decline.
 // Returns the new source if accepted (or original if declined), whether
 // the change was accepted, and the updated conversation history.
-func editOnce(r *REPL, connector *llm.Connector, llmCfg *config.LLMConfig, instruction, currentSource string, history []llm.Message) (string, bool, []llm.Message) {
+func editOnce(r *REPL, connector *llm.Connector, llmCfg *config.LLMConfig, instruction, currentSource string, history []llm.Message, autoAccept bool) (string, bool, []llm.Message) {
 	fmt.Fprintf(r.out, "%s  Editing with %s (%s)...\n",
 		cli.Info(""), llmCfg.Provider, llmCfg.Model)
 
@@ -102,11 +105,15 @@ func editOnce(r *REPL, connector *llm.Connector, llmCfg *config.LLMConfig, instr
 	showDiff(r, currentSource, result.Code)
 
 	// Accept?
-	fmt.Fprintf(r.out, "Apply changes? (y/n): ")
-	answer, ok := r.scanLine()
-	if !ok || !isYes(answer) {
-		fmt.Fprintln(r.out, cli.Info("Changes discarded."))
-		return currentSource, false, history
+	if autoAccept {
+		fmt.Fprintln(r.out, cli.Muted("  Auto-applying changes..."))
+	} else {
+		fmt.Fprintf(r.out, "Apply changes? (y/n): ")
+		answer, ok := r.scanLine()
+		if !ok || !isYes(answer) {
+			fmt.Fprintln(r.out, cli.Info("Changes discarded."))
+			return currentSource, false, history
+		}
 	}
 
 	// Create backup before applying.
@@ -165,7 +172,7 @@ func editInteractive(r *REPL, connector *llm.Connector, llmCfg *config.LLMConfig
 		}
 
 		var accepted bool
-		currentSource, accepted, history = editOnce(r, connector, llmCfg, line, currentSource, history)
+		currentSource, accepted, history = editOnce(r, connector, llmCfg, line, currentSource, history, false)
 		_ = accepted
 		fmt.Fprintln(r.out)
 	}
