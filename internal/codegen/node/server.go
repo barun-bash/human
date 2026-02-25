@@ -18,7 +18,7 @@ func generateServer(app *ir.Application) string {
 	b.WriteString("import { errorHandler } from './middleware/errors';\n\n")
 
 	b.WriteString("const app = express();\n")
-	fmt.Fprintf(&b, "const PORT = process.env.PORT || %d;\n\n", 3000)
+	fmt.Fprintf(&b, "const PORT = process.env.PORT || %d;\n\n", 3001)
 
 	// Core middleware
 	b.WriteString("// Middleware\n")

@@ -13,6 +13,7 @@ func minApp() *ir.Application {
 	return &ir.Application{
 		Name:     "TestApp",
 		Platform: "web",
+		Config:   &ir.BuildConfig{Frontend: "React with TypeScript", Backend: "Node with Express", Database: "PostgreSQL", Deploy: "Docker"},
 		Data: []*ir.DataModel{
 			{Name: "User", Fields: []*ir.DataField{{Name: "name", Type: "text"}, {Name: "email", Type: "email"}}},
 			{Name: "Task", Fields: []*ir.DataField{{Name: "title", Type: "text"}, {Name: "status", Type: "enum"}},
@@ -283,6 +284,38 @@ func TestFrontendWithoutPages(t *testing.T) {
 	}
 	errs := Analyze(app, "test.human")
 	assertCode(t, errs.Errors(), "E203")
+}
+
+func TestMissingBuildConfigWarning(t *testing.T) {
+	app := &ir.Application{
+		Name:     "TestApp",
+		Platform: "web",
+		Pages:    []*ir.Page{{Name: "Home"}},
+		Data:     []*ir.DataModel{{Name: "User", Fields: []*ir.DataField{{Name: "name", Type: "text"}}}},
+	}
+	errs := Analyze(app, "test.human")
+	if !errs.HasWarnings() {
+		t.Fatal("expected W201 warning for missing build config")
+	}
+	found := false
+	for _, w := range errs.Warnings() {
+		if w.Code == "W201" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected W201 warning code")
+	}
+}
+
+func TestBuildConfigPresentNoWarning(t *testing.T) {
+	app := minApp()
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W201" {
+			t.Error("unexpected W201 warning — build config is present")
+		}
+	}
 }
 
 // ── Design system validation ──

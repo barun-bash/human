@@ -350,7 +350,7 @@ func TestGenerateBackendDockerfileNode(t *testing.T) {
 		{"copy prisma schema", "COPY prisma ./prisma"},
 		{"npm build", "RUN npm run build"},
 		{"production stage", "FROM node:20-alpine\n"},
-		{"expose 3000", "EXPOSE 3000"},
+		{"expose 3001", "EXPOSE 3001"},
 		{"CMD", "CMD [\"./start.sh\"]"},
 	}
 
@@ -403,6 +403,7 @@ func TestGenerateBackendDockerfileGo(t *testing.T) {
 		{"Go base image", "FROM golang:1.23-alpine"},
 		{"multi-stage build", "AS builder"},
 		{"git installed", "apk add --no-cache git"},
+		{"copy go.mod first", "COPY go.mod go.sum*"},
 		{"go mod tidy", "go mod tidy"},
 		{"go build", "go build"},
 		{"CGO disabled", "CGO_ENABLED=0"},
@@ -443,6 +444,7 @@ func TestGenerateFrontendDockerfileVite(t *testing.T) {
 		{"SPA routing", "try_files"},
 		{"expose 80", "EXPOSE 80"},
 		{"nginx CMD", "daemon off"},
+		{"api proxy", "proxy_pass http://backend:"},
 	}
 
 	for _, c := range checks {

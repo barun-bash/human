@@ -345,6 +345,14 @@ func checkCompleteness(errs *cerr.CompilerErrors, app *ir.Application, apis map[
 		}
 	}
 
+	// W201: If app has pages/data/APIs but no build with: block, warn
+	if app.Config == nil || (app.Config.Frontend == "" && app.Config.Backend == "" && app.Config.Database == "") {
+		hasContent := len(app.Pages) > 0 || len(app.Data) > 0 || len(app.APIs) > 0
+		if hasContent {
+			errs.AddWarning("W201", "No build targets specified — add a 'build with:' block to generate frontend, backend, and database code. Without it, only CI/CD and scaffold files are produced.")
+		}
+	}
+
 	// E202: If database is configured, at least one data model must exist
 	if app.Config != nil && app.Config.Database != "" && len(app.Data) == 0 {
 		errs.AddError("E202", "Build config specifies a database but no data models are defined")

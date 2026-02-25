@@ -102,12 +102,12 @@ INTEGRATIONS:
     api key from environment variable <VAR>
     use for <purpose>
 
-BUILD TARGET:
+BUILD TARGET (REQUIRED — always include this at the end of the file):
   build with:
-    frontend using <framework>
-    backend using <language>
-    database using <database>
-    deploy to <platform>
+    frontend using <framework>                   # React with TypeScript, Vue with TypeScript, Angular with TypeScript, Svelte with TypeScript
+    backend using <language>                      # Node with Express, Python with FastAPI, Go with Gin
+    database using <database>                     # PostgreSQL, MySQL
+    deploy to <platform>                          # Docker, AWS, GCP
 
 RULES:
 - Indentation-based scoping (like Python)
@@ -115,8 +115,10 @@ RULES:
 - Strings in double quotes
 - Comments start with #
 - Section headers use ── name ── format
+- ALL declarations (page, data, api, etc.) must be at the TOP LEVEL (zero indentation), not nested under app
+- The build with: block is REQUIRED — without it, no frontend/backend/database code is generated
 
-OUTPUT FORMAT: When generating .human code, output ONLY valid .human code wrapped in a ` + "```human" + ` code fence. Do not include explanations outside the code fence unless specifically asked.`
+OUTPUT FORMAT: When generating .human code, output ONLY valid .human code wrapped in a ` + "```human" + ` code fence. Do not include explanations outside the code fence unless specifically asked. ALWAYS include a build with: block at the end.`
 
 // buildSystemPrompt returns the system prompt, optionally appending project
 // instructions from HUMAN.md when they are provided.
