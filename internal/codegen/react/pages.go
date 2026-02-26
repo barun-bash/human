@@ -37,6 +37,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	needsFormState := false
 	needsSuccess := false
 	needsError := false
+	hasLoadingCondition := false // whether the page explicitly references loading state
 
 	for _, a := range page.Content {
 		lower := strings.ToLower(a.Text)
@@ -72,6 +73,9 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 			}
 			if strings.Contains(lower, "error") {
 				needsError = true
+			}
+			if strings.Contains(lower, "while loading") || strings.Contains(lower, "is loading") {
+				hasLoadingCondition = true
 			}
 		}
 	}
@@ -159,6 +163,12 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	// Return JSX
 	b.WriteString("\n  return (\n")
 	fmt.Fprintf(&b, "    <div className=\"%s-page\">\n", toKebabCase(page.Name))
+
+	// Auto-generate loading guard when data state exists but no explicit
+	// "while loading" condition is declared — avoids unused-variable errors.
+	if needsDataState && !hasLoadingCondition {
+		b.WriteString("      {loading && <div className=\"loading-spinner\"><div className=\"spinner\" /></div>}\n")
+	}
 
 	loopRendered := false
 	for _, a := range page.Content {

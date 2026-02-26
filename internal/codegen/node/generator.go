@@ -116,7 +116,7 @@ func toKebabCase(s string) string {
 func httpMethod(name string) string {
 	lower := strings.ToLower(name)
 	switch {
-	case strings.HasPrefix(lower, "get"):
+	case strings.HasPrefix(lower, "get"), strings.HasPrefix(lower, "list"):
 		return "get"
 	case strings.HasPrefix(lower, "delete"):
 		return "delete"
@@ -130,7 +130,7 @@ func httpMethod(name string) string {
 // routePath infers the REST path from an endpoint name.
 func routePath(name string) string {
 	stripped := name
-	for _, prefix := range []string{"Get", "Create", "Update", "Delete"} {
+	for _, prefix := range []string{"Get", "List", "Create", "Update", "Delete"} {
 		if strings.HasPrefix(name, prefix) && len(name) > len(prefix) {
 			stripped = name[len(prefix):]
 			break

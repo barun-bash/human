@@ -80,6 +80,30 @@ func writePrismaModel(b *strings.Builder, model *ir.DataModel, app *ir.Applicati
 		writePrismaRelation(b, rel, model)
 	}
 
+	// Reverse relation fields: if another model has belongs_to pointing here,
+	// Prisma requires the inverse has_many side to be declared.
+	for _, other := range app.Data {
+		if other.Name == model.Name {
+			continue
+		}
+		for _, rel := range other.Relations {
+			if rel.Kind == "belongs_to" && rel.Target == model.Name {
+				// Check this model doesn't already declare this relation
+				alreadyDeclared := false
+				for _, ownRel := range model.Relations {
+					if (ownRel.Kind == "has_many" || ownRel.Kind == "has_one") && ownRel.Target == other.Name {
+						alreadyDeclared = true
+						break
+					}
+				}
+				if !alreadyDeclared {
+					relName := toCamelCase(other.Name) + "s"
+					fmt.Fprintf(b, "  %-9s %s[]\n", relName, other.Name)
+				}
+			}
+		}
+	}
+
 	// Timestamp fields
 	b.WriteString("  createdAt DateTime @default(now())\n")
 	b.WriteString("  updatedAt DateTime @updatedAt\n")
