@@ -773,27 +773,32 @@
           <div class="phase-card">
             <div class="phase-header">
               <div class="phase-weeks">Weeks 19 - 20</div>
-              <h3 class="phase-title">CLI + Developer Experience <span class="phase-status started">Partial</span></h3>
+              <h3 class="phase-title">CLI + Developer Experience <span class="phase-status complete">Complete</span></h3>
               <p class="phase-goal">Polished command-line interface.</p>
             </div>
 
             <ul class="task-list">
-              <li class="task-item"><span class="task-checkbox"></span><code>human init</code> &mdash; interactive project creation</li>
+              <li class="task-item done"><span class="task-checkbox"></span><code>human init</code> &mdash; interactive project creation</li>
               <li class="task-item done"><span class="task-checkbox"></span><code>human build</code> &mdash; compile to target</li>
-              <li class="task-item"><span class="task-checkbox"></span><code>human run</code> &mdash; development server</li>
+              <li class="task-item done"><span class="task-checkbox"></span><code>human run</code> &mdash; development server</li>
               <li class="task-item done"><span class="task-checkbox"></span><code>human check</code> &mdash; validate .human files</li>
-              <li class="task-item"><span class="task-checkbox"></span><code>human test</code> &mdash; run generated tests</li>
-              <li class="task-item"><span class="task-checkbox"></span><code>human audit</code> &mdash; run security audit</li>
-              <li class="task-item"><span class="task-checkbox"></span><code>human deploy</code> &mdash; deploy to target</li>
-              <li class="task-item"><span class="task-checkbox"></span><code>human eject</code> &mdash; export as standalone project</li>
-              <li class="task-item done"><span class="task-checkbox"></span>Colored terminal output</li>
-              <li class="task-item done"><span class="task-checkbox"></span>Progress indicators</li>
-              <li class="task-item"><span class="task-checkbox"></span>Watch mode (rebuild on file change)</li>
+              <li class="task-item done"><span class="task-checkbox"></span><code>human test</code> &mdash; run generated tests</li>
+              <li class="task-item done"><span class="task-checkbox"></span><code>human audit</code> &mdash; run security audit</li>
+              <li class="task-item done"><span class="task-checkbox"></span><code>human deploy</code> &mdash; deploy to target (Docker, Terraform/AWS/GCP)</li>
+              <li class="task-item done"><span class="task-checkbox"></span><code>human eject</code> &mdash; export as standalone project</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Colored terminal output with 6 themes</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Progress indicators (spinners, progress boxes)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Watch mode (<code>human build --watch</code>)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Interactive REPL with 20+ commands</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Readline with tab completion and command history</li>
+              <li class="task-item done"><span class="task-checkbox"></span>AI-assisted commands (<code>/ask</code>, <code>/edit</code>, <code>/suggest</code>)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Self-update via GitHub releases (<code>/update</code>)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Build metadata embedding via ldflags</li>
             </ul>
 
             <div class="phase-milestone">
               <svg class="milestone-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.09 7.26L18 8.27L13.88 12.14L14.81 18.02L10 15.27L5.19 18.02L6.12 12.14L2 8.27L7.91 7.26L10 2Z" fill="#E85D3A" opacity="0.9"/></svg>
-              <span class="milestone-text">Complete developer experience from init to deploy</span>
+              <span class="milestone-text">Complete developer experience from init to deploy, plus interactive REPL</span>
             </div>
           </div>
         </div>
@@ -1145,7 +1150,7 @@
             <tr>
               <td>CLI developer experience</td>
               <td class="target-phase">Phase 6</td>
-              <td><span style="color:var(--accent); font-weight:600;">Partial</span></td>
+              <td><span style="color:var(--success); font-weight:600;">Done</span></td>
             </tr>
             <tr>
               <td>Design-to-code pipeline</td>

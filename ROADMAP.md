@@ -125,22 +125,27 @@ English in → production-ready applications out.
 
 ---
 
-## Phase 6: CLI + Developer Experience (Weeks 19-20) ⚠️ Partial
+## Phase 6: CLI + Developer Experience (Weeks 19-20) ✅
 **Goal: Polished command-line interface**
 
-- [ ] `human init` — interactive project creation
+- [x] `human init` — interactive project creation
 - [x] `human build` — compile to target
-- [ ] `human run` — development server
+- [x] `human run` — development server
 - [x] `human check` — validate .human files
-- [ ] `human test` — run generated tests
-- [ ] `human audit` — run security audit
-- [ ] `human deploy` — deploy to target
-- [ ] `human eject` — export as standalone project
-- [x] Colored terminal output
-- [x] Progress indicators
-- [ ] Watch mode (rebuild on file change)
+- [x] `human test` — run generated tests
+- [x] `human audit` — run security audit
+- [x] `human deploy` — deploy to target (Docker, Terraform/AWS/GCP)
+- [x] `human eject` — export as standalone project
+- [x] Colored terminal output with 6 themes
+- [x] Progress indicators (spinners, progress boxes)
+- [x] Watch mode (`human build --watch`)
+- [x] Interactive REPL with 20+ commands
+- [x] Readline with tab completion and command history
+- [x] AI-assisted commands (`/ask`, `/edit`, `/suggest`)
+- [x] Self-update via GitHub releases (`/update`)
+- [x] Build metadata embedding via ldflags
 
-### Milestone: ⚠️ Core CLI works (build, check); remaining commands planned
+### Milestone: ✅ Complete developer experience from init to deploy, plus interactive REPL
 
 ---
 

@@ -9,7 +9,7 @@ Human is a programming language where you write in structured English and the co
 ## Repository
 
 - **Repo:** https://github.com/barun-bash/human
-- **Language:** Go (1.21+)
+- **Language:** Go (1.25+)
 - **Module path:** `github.com/barun-bash/human`
 - **License:** MIT
 
@@ -48,38 +48,43 @@ The **Intent IR** is the key innovation — a typed, serializable, framework-agn
 ```
 human/
 ├── cmd/
-│   └── human/
-│       └── main.go                  # CLI entry point
+│   ├── human/main.go                # CLI entry point
+│   └── human-mcp/                   # MCP server (JSON-RPC 2.0, 6 tools)
 ├── internal/
-│   ├── lexer/
-│   │   ├── token.go                 # Token type definitions
-│   │   ├── lexer.go                 # Tokenizer
-│   │   └── lexer_test.go            # Lexer tests
-│   ├── parser/
-│   │   ├── ast.go                   # AST node definitions
-│   │   ├── parser.go                # Recursive descent parser
-│   │   └── parser_test.go           # Parser tests
-│   ├── analyzer/                    # Semantic analysis (future)
-│   ├── ir/
-│   │   ├── ir.go                    # Intent IR type definitions
-│   │   ├── builder.go               # AST → IR transformation
-│   │   ├── serialize.go             # IR ↔ YAML/JSON
-│   │   └── ir_test.go               # IR tests
-│   ├── codegen/                     # Code generators (future)
-│   │   ├── frontend/react/
-│   │   ├── backend/node/
-│   │   ├── database/postgresql/
-│   │   └── infra/docker/
-│   ├── quality/                     # Quality engine (future)
-│   ├── design/                      # Figma/image import (future)
-│   ├── llm/                         # LLM connector (future)
-│   ├── errors/                      # Error types and messages
-│   └── config/                      # Configuration loading
-├── examples/
-│   └── taskflow/
-│       └── app.human                # Reference example application
+│   ├── lexer/                       # Tokenizer (token.go, lexer.go)
+│   ├── parser/                      # Recursive descent parser (ast.go, parser.go)
+│   ├── analyzer/                    # Semantic analysis + validation
+│   ├── ir/                          # Intent IR types, AST→IR builder, YAML/JSON serialization
+│   ├── codegen/                     # 16 code generators:
+│   │   ├── react/                   #   React, Angular, Vue, Svelte (frontend)
+│   │   ├── angular/, vue/, svelte/
+│   │   ├── node/, python/, gobackend/ # Node+Express, FastAPI, Go+Gin (backend)
+│   │   ├── postgres/                #   PostgreSQL migrations + seeds
+│   │   ├── docker/                  #   Dockerfiles + docker-compose
+│   │   ├── terraform/               #   AWS ECS/RDS, GCP Cloud Run/SQL
+│   │   ├── cicd/                    #   GitHub Actions workflows
+│   │   ├── monitoring/              #   Prometheus + Grafana
+│   │   ├── architecture/            #   Monolith/microservices/serverless topology
+│   │   ├── scaffold/                #   Project scaffolding (package.json, configs)
+│   │   ├── storybook/               #   Storybook stories
+│   │   └── themes/                  #   7 design systems (Material, Shadcn, Chakra, etc.)
+│   ├── quality/                     # Quality engine (tests, security, lint reports)
+│   ├── build/                       # Build pipeline orchestrator
+│   ├── cli/                         # Terminal output (colors, themes, banners, spinners)
+│   ├── cmdutil/                     # Shared CLI command utilities
+│   ├── repl/                        # Interactive REPL (20+ commands, readline, tab completion)
+│   ├── readline/                    # Line editor with history + completion
+│   ├── config/                      # Project + global config, settings
+│   ├── version/                     # SemVer parsing, build metadata (ldflags)
+│   ├── llm/                         # LLM connector (Anthropic, OpenAI, Ollama, Groq, Gemini)
+│   ├── mcp/                         # MCP client for external tool servers
+│   ├── figma/                       # Figma design → .human mapping intelligence
+│   └── errors/                      # Error types with fix suggestions
+├── examples/                        # 13 example apps (taskflow, blog, ecommerce, saas, ...)
+├── docs/                            # Website (GitHub Pages)
+├── brand/                           # Logos and assets
 ├── go.mod
-├── Makefile
+├── Makefile                         # build, test, install (with ldflags for version embedding)
 ├── LANGUAGE_SPEC.md
 ├── ARCHITECTURE.md
 ├── ROADMAP.md
@@ -89,18 +94,11 @@ human/
 
 ## Current Status
 
-**Phase 1: Foundation** — Building the lexer and parser.
+**Phases 1–12 complete.** The compiler is fully functional: lexer, parser, analyzer, IR, 16 code generators, quality engine, interactive REPL, LLM connector, MCP server, and 13 example apps. 600+ tests across 30+ packages.
 
-What exists so far:
-- Documentation: README, Language Spec, Architecture, Roadmap, Manifesto
-- Example: examples/taskflow/app.human (complete task management app)
-- Go module initialized
-
-What needs to be built next (in order):
-1. **Lexer + Tokens** (`internal/lexer/`) — Tokenize .human files
-2. **Parser + AST** (`internal/parser/`) — Build syntax tree from tokens
-3. **Intent IR** (`internal/ir/`) — Framework-agnostic intermediate representation
-4. **CLI** (`cmd/human/main.go`) — Command-line interface
+What's shipping now:
+- **Phase 13** — Plugin ecosystem (community-extensible generators)
+- **Phase 14** — Polish + launch (performance, tutorials, v1.0)
 
 ## Language Design Decisions
 
@@ -146,7 +144,7 @@ make clean       # Remove build artifacts
 make lint        # Run go vet
 ```
 
-Or without Make:
+Or without Make (note: `make build` embeds version via ldflags):
 ```bash
 go build -o human ./cmd/human/
 go test ./...
@@ -187,54 +185,23 @@ go vet ./...
 - Do not skip quality checks in the compiler. If we enforce quality on users, we enforce it on ourselves.
 - Do not make error messages technical. They should read like advice from a helpful colleague.
 
-## Figma Design Conversion Workflow
+## Interactive REPL
 
-When converting a Figma design to a `.human` file, follow this workflow:
+The CLI includes a full interactive REPL (`internal/repl/`) with 20+ commands:
 
-### Pre-flight Check (mandatory)
+**Core:** `/open`, `/new`, `/check`, `/build`, `/deploy`, `/stop`, `/status`, `/run`, `/test`, `/audit`, `/eject`
+**AI-assisted:** `/ask`, `/edit`, `/suggest`, `/connect`, `/disconnect`, `/model`
+**System:** `/theme`, `/config`, `/history`, `/update`, `/version`, `/help`, `/quit`
+**Navigation:** `/cd`, `/pwd`, `/examples`, `/instructions`, `/review`, `/mcp`
 
-Before starting any design conversion, verify that the Figma MCP is working:
+Features: readline with tab completion, command history, plan mode, auto-detect project, MCP server connections, self-update via GitHub releases.
 
-1. **Test Figma MCP connectivity** — Call `get_metadata` or `get_screenshot` on a known node. If it fails, stop and inform the user that Figma MCP is not available.
-2. **Ask the user to confirm** — Before fetching designs, confirm with the user which screens to convert and how many (keep it small — 1-3 screens max to avoid context overflow).
-3. **Verify the Figma file URL** — Extract the `fileKey` and `nodeId` from the URL. If the URL is malformed, ask the user for a valid one.
+## Figma Design Conversion
 
-### Conversion Steps
+When converting Figma designs to `.human` files, scope to 1-3 screens at a time (larger imports exceed context limits). Use Figma MCP tools: `get_metadata` → `get_screenshot` + `get_design_context` → write `.human` → `human_validate` → `human_build`.
 
-1. **Fetch design metadata** — Use `get_metadata` to find the correct screen node IDs
-2. **Get screenshot + design context** — Use `get_screenshot` and `get_design_context` to extract visual layout and design tokens (colors, fonts, spacing, border radius, etc.)
-3. **Read the Human language spec** — Use `human_spec` MCP tool to get the grammar reference
-4. **Write the `.human` file** — Translate the Figma design into Human language, matching the visual layout
-5. **Validate** — Use `human_validate` to check for errors before building
-6. **Build** — Use `human_build` to compile to full-stack code
-7. **Copy output** — Use `human_read_file` to retrieve generated files and save them to the project
+Docker port convention: frontend `73xx`, backend `74xx`, database `74xx` range.
 
-### Port Configuration
+## Version & Build
 
-The compiler supports custom port configuration for Docker services. When building multiple projects, always use different ports to avoid conflicts. Default convention:
-
-- Frontend: `73xx` range (e.g., 7320, 7321, 7322)
-- Backend: `74xx` range (e.g., 7420, 7421, 7422)
-- Database: `74xx` range (e.g., 7433, 7434, 7435)
-
-The CLI will prompt for ports during `human build` if the build target includes Docker.
-
-### Context Size Warning
-
-Figma files can be very large (100+ screens). Always scope conversions to 1-3 screens at a time. Previous attempts with 19+ screens exceeded context limits and failed.
-
-## Immediate Next Task
-
-Build the lexer and token system in `internal/lexer/`:
-
-1. `token.go` — Define all token types (100+ tokens covering declarations, types, actions, conditions, connectors, modifiers)
-2. `lexer.go` — Tokenizer that handles indentation tracking, keyword recognition (case-insensitive), string/number parsing, section headers, comments
-3. `lexer_test.go` — Comprehensive tests covering app declarations, data models, APIs, enums, indentation, comments, section headers
-
-Then build the parser in `internal/parser/`:
-
-1. `ast.go` — AST node definitions for all language constructs
-2. `parser.go` — Recursive descent parser consuming tokens from lexer
-3. `parser_test.go` — Tests parsing complete .human files into AST
-
-**Test target:** Successfully parse `examples/taskflow/app.human` end-to-end.
+Version is embedded via ldflags at build time (`make build`). The `internal/version/` package provides SemVer parsing and comparison. The REPL checks GitHub releases on startup (24h cache) and shows update notifications.

@@ -12,7 +12,7 @@
   <br><br>
   <a href="https://github.com/barun-bash/human/releases/tag/v0.4.2"><img src="https://img.shields.io/badge/release-v0.4.2-E85D3A.svg" alt="v0.4.2"></a>&nbsp;
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>&nbsp;
-  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8.svg" alt="Go 1.21+"></a>&nbsp;
+  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.25+-00ADD8.svg" alt="Go 1.25+"></a>&nbsp;
   <a href="https://barun-bash.github.io/human/"><img src="https://img.shields.io/badge/website-live-E85D3A.svg" alt="Website"></a>
   <br><br>
   <a href="https://barun-bash.github.io/human/">Website</a> &middot;
@@ -132,7 +132,7 @@ curl -fsSL https://raw.githubusercontent.com/barun-bash/human/main/install.sh | 
 # Homebrew
 brew install barun-bash/tap/human
 
-# Go install (requires Go 1.21+)
+# Go install (requires Go 1.25+)
 go install github.com/barun-bash/human/cmd/human@latest
 
 # Build from source
@@ -210,15 +210,15 @@ my-app/
 | `human audit` | Run security audit |
 | `human deploy` | Deploy to configured environment |
 | `human eject` | Export generated code as standalone project |
-| `human edit --with-llm` | Start conversational editing session |
-| `human ask "<question>"` | Ask about your project (LLM) |
-| `human suggest` | Get improvement suggestions (LLM) |
+| `human` (no args) | Launch interactive REPL with 20+ commands |
+
+The interactive REPL includes `/ask`, `/edit`, `/suggest` (LLM-powered), `/update` (self-update), `/build`, `/check`, `/version`, tab completion, and command history.
 
 ---
 
 ## Project Status
 
-**[v0.4.2 released](https://github.com/barun-bash/human/releases/tag/v0.4.2)** — Full-stack multi-framework output. 4 frontend frameworks, 3 backend languages, Terraform, monitoring, CI/CD, 7 design systems, 5 integrations, LLM connector, VS Code extension, 12 example apps, language specification, LLM system prompt. 600+ tests across 28 packages. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) and [Changelog](CHANGELOG.md) for details.
+**[v0.4.2 released](https://github.com/barun-bash/human/releases/tag/v0.4.2)** — Full-stack multi-framework output. 4 frontend frameworks, 3 backend languages, Terraform, monitoring, CI/CD, 7 design systems, 5 integrations, LLM connector, interactive REPL with self-update, VS Code extension, 12 example apps, language specification, LLM system prompt. 600+ tests across 30 packages. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) and [Changelog](CHANGELOG.md) for details.
 
 ---
 
@@ -247,7 +247,7 @@ make test       # run tests
 make install    # install to /usr/local/bin
 ```
 
-Requires Go 1.21+.
+Requires Go 1.25+.
 
 ---
 
