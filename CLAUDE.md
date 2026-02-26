@@ -94,9 +94,9 @@ human/
 
 ## Current Status
 
-**Phases 1–12 complete.** The compiler is fully functional: lexer, parser, analyzer, IR, 16 code generators, quality engine, interactive REPL, LLM connector, MCP server, and 13 example apps. 600+ tests across 30+ packages.
+**Phases 1–12 complete.** The compiler is fully functional: lexer, parser, analyzer, IR, 16 code generators, quality engine, interactive REPL, LLM connector, MCP server, and 13 example apps. 1,185+ tests across 34 packages.
 
-What's shipping now:
+What's next:
 - **Phase 13** — Plugin ecosystem (community-extensible generators)
 - **Phase 14** — Polish + launch (performance, tutorials, v1.0)
 
@@ -128,7 +128,6 @@ Modifiers: requires, accepts, only, every, each, all, optional, unique, encrypte
 
 - Go standard project layout (`cmd/`, `internal/`, `pkg/`)
 - All compiler internals in `internal/` (not importable by external packages)
-- Public IR types in `pkg/humanir/` (for plugin authors)
 - Every package has `*_test.go` files
 - Error messages must be in plain English and suggest fixes in Human language
 - Use Go's `testing` package, no external test frameworks
@@ -187,11 +186,12 @@ go vet ./...
 
 ## Interactive REPL
 
-The CLI includes a full interactive REPL (`internal/repl/`) with 20+ commands:
+The CLI includes a full interactive REPL (`internal/repl/`) with 32 commands:
 
 **Core:** `/open`, `/new`, `/check`, `/build`, `/deploy`, `/stop`, `/status`, `/run`, `/test`, `/audit`, `/eject`
-**AI-assisted:** `/ask`, `/edit`, `/suggest`, `/connect`, `/disconnect`, `/model`
-**System:** `/theme`, `/config`, `/history`, `/update`, `/version`, `/help`, `/quit`
+**AI-assisted:** `/ask`, `/edit`, `/suggest`, `/connect`, `/disconnect`, `/model`, `/import`
+**Design:** `/import figma <url>` — Figma MCP bridge with design system picker (7 systems + custom)
+**System:** `/theme`, `/config`, `/history`, `/update`, `/version`, `/clear`, `/undo`, `/help`, `/quit`
 **Navigation:** `/cd`, `/pwd`, `/examples`, `/instructions`, `/review`, `/mcp`
 
 Features: readline with tab completion, command history, plan mode, auto-detect project, MCP server connections, self-update via GitHub releases.
@@ -201,6 +201,8 @@ Features: readline with tab completion, command history, plan mode, auto-detect 
 When converting Figma designs to `.human` files, scope to 1-3 screens at a time (larger imports exceed context limits). Use Figma MCP tools: `get_metadata` → `get_screenshot` + `get_design_context` → write `.human` → `human_validate` → `human_build`.
 
 Docker port convention: frontend `73xx`, backend `74xx`, database `74xx` range.
+
+The `/import` command bridges Figma MCP responses (3 JSON formats: document tree, flat node list, single node) into `figma.FigmaFile` structs, then generates `.human` files via LLM or deterministic pipeline. The `/ask` command includes a validation retry loop that feeds parse errors back to the LLM (up to 3 attempts).
 
 ## Version & Build
 
