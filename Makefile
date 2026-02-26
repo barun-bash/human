@@ -2,11 +2,18 @@ BINARY_NAME = human
 BUILD_DIR = build
 INSTALL_DIR = /usr/local/bin
 
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null | sed 's/^v//' || echo "dev")
+COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+DATE    ?= $(shell date -u +%Y-%m-%d)
+LDFLAGS = -X github.com/barun-bash/human/internal/version.Version=$(VERSION) \
+          -X github.com/barun-bash/human/internal/version.CommitSHA=$(COMMIT) \
+          -X github.com/barun-bash/human/internal/version.BuildDate=$(DATE)
+
 .PHONY: build test install uninstall clean lint mcp mcp-embed
 
 build:
 	@mkdir -p $(BUILD_DIR)
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/human/
+	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/human/
 
 mcp-embed:
 	@mkdir -p cmd/human-mcp/embedded/examples

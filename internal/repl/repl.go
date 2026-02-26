@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/barun-bash/human/internal/cli"
 	"github.com/barun-bash/human/internal/config"
@@ -34,6 +35,11 @@ type REPL struct {
 	mcpClients      map[string]*mcp.Client // live MCP server connections
 	instructions    string                 // project instructions from HUMAN.md
 	lastDir         string                 // previous working directory for /cd -
+
+	// Update check state (populated by checkUpdateBackground).
+	updateInfo *UpdateInfo
+	updateMu   sync.Mutex
+	updateDone chan struct{}
 }
 
 // Option configures the REPL.
@@ -85,7 +91,9 @@ func New(version string, opts ...Option) *REPL {
 func (r *REPL) Run() {
 	r.autoDetectProject()
 	r.autoConnectMCP()
+	r.checkUpdateBackground()
 	r.printBanner()
+	r.showUpdateNotification()
 	r.running = true
 
 	if r.rl != nil && r.rl.IsTTY() {

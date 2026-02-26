@@ -20,23 +20,22 @@ import (
 	"github.com/barun-bash/human/internal/llm"
 	_ "github.com/barun-bash/human/internal/llm/providers" // register providers
 	"github.com/barun-bash/human/internal/repl"
+	"github.com/barun-bash/human/internal/version"
 )
-
-var version = "0.4.0"
 
 func main() {
 	// Parse global --no-color flag before command dispatch
 	args := filterGlobalFlags(os.Args[1:])
 
 	if len(args) < 1 {
-		r := repl.New(version)
+		r := repl.New(version.Version)
 		r.Run()
 		return
 	}
 
 	switch args[0] {
 	case "version", "--version", "-v":
-		fmt.Printf("human v%s\n", version)
+		fmt.Printf("human v%s\n", version.Info())
 	case "help", "--help", "-h":
 		printUsage()
 	case "check":

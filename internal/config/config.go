@@ -247,6 +247,12 @@ type GlobalSettings struct {
 	PlanMode     string `json:"plan_mode,omitempty"`   // "always" (default), "auto", "off"
 	AutoAccept   *bool  `json:"auto_accept,omitempty"` // nil = false (default)
 	FirstRunDone bool   `json:"first_run_done"`
+
+	// Update check cache.
+	LastUpdateCheck string `json:"last_update_check,omitempty"` // RFC3339 timestamp
+	LatestVersion   string `json:"latest_version,omitempty"`    // e.g. "0.5.0"
+	InstallMethod   string `json:"install_method,omitempty"`    // "source", "go_install", "binary"
+	SourceDir       string `json:"source_dir,omitempty"`        // git clone path for source updates
 }
 
 // globalSettingsFile is the path relative to the user's home directory.

@@ -11,6 +11,7 @@ import (
 	"github.com/barun-bash/human/internal/cli"
 	"github.com/barun-bash/human/internal/cmdutil"
 	"github.com/barun-bash/human/internal/config"
+	"github.com/barun-bash/human/internal/version"
 )
 
 // Command is a REPL command with metadata and a handler function.
@@ -216,6 +217,12 @@ func (r *REPL) registerCommands() {
 			Description: "Print the compiler version",
 			Usage:       "/version",
 			Handler:     cmdVersion,
+		},
+		{
+			Name:        "/update",
+			Description: "Check for and install updates",
+			Usage:       "/update",
+			Handler:     cmdUpdate,
 		},
 		{
 			Name:        "/quit",
@@ -728,7 +735,7 @@ func cmdHelp(r *REPL, args []string) {
 		"/open", "/new", "/ask", "/edit", "/undo", "/suggest", "/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
 		"/instructions", "/connect", "/disconnect", "/model", "/mcp", "/theme", "/config",
-		"/history", "/cd", "/pwd", "/clear", "/version", "/help", "/quit",
+		"/history", "/cd", "/pwd", "/clear", "/version", "/update", "/help", "/quit",
 	}
 
 	for _, name := range order {
@@ -750,7 +757,16 @@ func cmdClear(r *REPL, args []string) {
 }
 
 func cmdVersion(r *REPL, args []string) {
-	fmt.Fprintf(r.out, "human v%s\n", r.version)
+	fmt.Fprintf(r.out, "human v%s\n", version.Info())
+
+	// Show cached update status if available.
+	r.updateMu.Lock()
+	info := r.updateInfo
+	r.updateMu.Unlock()
+
+	if info != nil && info.Available {
+		fmt.Fprintf(r.out, "  Update available: %s → %s (run /update)\n", info.CurrentVersion, cli.Accent(info.LatestVersion))
+	}
 }
 
 func cmdQuit(r *REPL, args []string) {
