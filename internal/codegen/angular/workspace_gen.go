@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/barun-bash/human/internal/codegen/storybook"
 	"github.com/barun-bash/human/internal/codegen/themes"
 	"github.com/barun-bash/human/internal/ir"
 )
@@ -161,6 +162,11 @@ func generatePackageJson(app *ir.Application) string {
 		}
 	}
 
+	// Storybook dependencies
+	for k, v := range storybook.DevDependencies("angular") {
+		devDeps[k] = v
+	}
+
 	var b strings.Builder
 	b.WriteString("{\n")
 	fmt.Fprintf(&b, "  \"name\": \"%s\",\n", name)
@@ -170,7 +176,9 @@ func generatePackageJson(app *ir.Application) string {
 	b.WriteString("    \"start\": \"ng serve\",\n")
 	b.WriteString("    \"build\": \"ng build\",\n")
 	b.WriteString("    \"watch\": \"ng build --watch --configuration development\",\n")
-	b.WriteString("    \"test\": \"ng test\"\n")
+	b.WriteString("    \"test\": \"ng test\",\n")
+	b.WriteString("    \"storybook\": \"storybook dev -p 6006\",\n")
+	b.WriteString("    \"build-storybook\": \"storybook build\"\n")
 	b.WriteString("  },\n")
 	b.WriteString("  \"private\": true,\n")
 

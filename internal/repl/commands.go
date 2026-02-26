@@ -47,6 +47,12 @@ func (r *REPL) registerCommands() {
 			Handler:     cmdAsk,
 		},
 		{
+			Name:        "/import",
+			Description: "Import from Figma or other sources",
+			Usage:       "/import figma <url>",
+			Handler:     cmdImport,
+		},
+		{
 			Name:        "/edit",
 			Aliases:     []string{"/e"},
 			Description: "AI-assisted editing of the loaded project",
@@ -732,7 +738,7 @@ func cmdHelp(r *REPL, args []string) {
 
 	// Ordered list of command names for display
 	order := []string{
-		"/open", "/new", "/ask", "/edit", "/undo", "/suggest", "/check", "/build", "/deploy", "/stop",
+		"/open", "/new", "/ask", "/import", "/edit", "/undo", "/suggest", "/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
 		"/instructions", "/connect", "/disconnect", "/model", "/mcp", "/theme", "/config",
 		"/history", "/cd", "/pwd", "/clear", "/version", "/update", "/help", "/quit",

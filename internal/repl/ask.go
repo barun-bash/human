@@ -31,6 +31,18 @@ func cmdAsk(r *REPL, args []string) {
 		query = line
 	}
 
+	// Offer design system selection if description doesn't already specify one.
+	if !containsDesignSystem(query) {
+		fmt.Fprintf(r.out, "Choose a design system? (y/n): ")
+		answer, ok := r.scanLine()
+		if ok && isYes(answer) {
+			ds := r.promptDesignSystem("")
+			if ds != "" {
+				query += "\n\nUse design system: " + ds
+			}
+		}
+	}
+
 	// Load LLM connector (REPL-safe: returns errors, checks global config).
 	connector, llmCfg, err := loadREPLConnector()
 	if err != nil {
@@ -297,4 +309,34 @@ func extractYesFlag(args []string) ([]string, bool) {
 // shouldAutoAccept returns true if auto-accept is enabled via settings or --yes flag.
 func (r *REPL) shouldAutoAccept(yesFlag bool) bool {
 	return yesFlag || r.settings.AutoAcceptEnabled()
+}
+
+// generateWithRetry calls the LLM to generate .human code, validates it,
+// and retries up to maxRetries times if validation fails (feeding errors back
+// to the LLM for self-correction). Returns the best code and whether it is valid.
+func (r *REPL) generateWithRetry(connector *llm.Connector, query string, maxRetries int) (string, bool) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		result, err := connector.Ask(ctx, query)
+		if err != nil {
+			fmt.Fprintln(r.errOut, cli.Error(fmt.Sprintf("LLM request failed: %v", err)))
+			return "", false
+		}
+
+		if result.Valid {
+			return result.Code, true
+		}
+
+		if attempt == maxRetries {
+			fmt.Fprintln(r.out, cli.Warn(fmt.Sprintf("Syntax issue after %d attempts: %s", maxRetries+1, result.ParseError)))
+			return result.Code, false
+		}
+
+		// Feed errors back to LLM for correction.
+		fmt.Fprintln(r.out, cli.Info(fmt.Sprintf("Validation failed, retrying (%d/%d)...", attempt+1, maxRetries)))
+		query = fmt.Sprintf("Fix these errors in the Human code:\n%s\n\nOriginal code:\n```human\n%s\n```", result.ParseError, result.Code)
+	}
+	return "", false
 }

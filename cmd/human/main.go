@@ -62,6 +62,8 @@ func main() {
 		cmdEdit()
 	case "convert":
 		cmdConvert()
+	case "storybook":
+		cmdStorybook()
 	default:
 		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Unknown command: %s", args[0])))
 		fmt.Fprintln(os.Stderr)
@@ -918,6 +920,33 @@ func cmdConvert() {
 		cli.Info(fmt.Sprintf("Tokens: %d in / %d out", result.Usage.InputTokens, result.Usage.OutputTokens)))
 }
 
+// ── storybook ──
+
+func cmdStorybook() {
+	outputDir := filepath.Join(".human", "output")
+
+	// Find the frontend directory that has a .storybook config.
+	for _, fw := range []string{"react", "vue", "angular", "svelte"} {
+		sbDir := filepath.Join(outputDir, fw, ".storybook")
+		if _, err := os.Stat(sbDir); err == nil {
+			fmt.Println(cli.Info(fmt.Sprintf("Starting Storybook in %s/%s...", outputDir, fw)))
+			cmd := exec.Command("npx", "storybook", "dev", "-p", "6006")
+			cmd.Dir = filepath.Join(outputDir, fw)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Stdin = os.Stdin
+			if err := cmd.Run(); err != nil {
+				fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Storybook failed: %v", err)))
+				os.Exit(1)
+			}
+			return
+		}
+	}
+
+	fmt.Fprintln(os.Stderr, cli.Error("No Storybook found. Run 'human build <file>' first."))
+	os.Exit(1)
+}
+
 // ── Helpers ──
 
 func printUsage() {
@@ -939,6 +968,7 @@ Commands:
   deploy --dry-run [file]   Show deploy steps without executing
   deploy --env <name> [file]  Deploy with a specific environment
   eject [path]              Export as standalone code (default: ./output/)
+  storybook                 Launch Storybook dev server from build output
 
 AI-Assisted (optional, requires API key or Ollama):
   ask "<description>"       Generate .human code from English

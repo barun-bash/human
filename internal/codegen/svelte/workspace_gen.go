@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/barun-bash/human/internal/codegen/storybook"
 	"github.com/barun-bash/human/internal/codegen/themes"
 	"github.com/barun-bash/human/internal/ir"
 )
@@ -38,6 +39,11 @@ func generatePackageJson(app *ir.Application) string {
 		}
 	}
 
+	// Storybook dependencies
+	for k, v := range storybook.DevDependencies("svelte") {
+		devDeps[k] = v
+	}
+
 	var b strings.Builder
 	b.WriteString("{\n")
 	fmt.Fprintf(&b, "  \"name\": \"%s\",\n", name)
@@ -49,7 +55,9 @@ func generatePackageJson(app *ir.Application) string {
 	b.WriteString("    \"preview\": \"vite preview\",\n")
 	b.WriteString("    \"start\": \"vite dev\",\n")
 	b.WriteString("    \"check\": \"svelte-kit sync && svelte-check --tsconfig ./tsconfig.json\",\n")
-	b.WriteString("    \"check:watch\": \"svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch\"\n")
+	b.WriteString("    \"check:watch\": \"svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch\",\n")
+	b.WriteString("    \"storybook\": \"storybook dev -p 6006\",\n")
+	b.WriteString("    \"build-storybook\": \"storybook build\"\n")
 	b.WriteString("  },\n")
 
 	if len(deps) > 0 {

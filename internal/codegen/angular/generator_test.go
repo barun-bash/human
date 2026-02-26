@@ -189,4 +189,17 @@ func TestFullIntegration(t *testing.T) {
 	if !strings.Contains(string(apiContent), "createTask(params: { title: string; description: string; status: string; priority: string; dueDate: string }):") {
 		t.Error("api client missing createTask param definitions")
 	}
+
+	// Verify Storybook deps and scripts in package.json
+	pkgContent, _ := os.ReadFile(filepath.Join(dir, "package.json"))
+	pkg := string(pkgContent)
+	if !strings.Contains(pkg, "@storybook/angular") {
+		t.Error("package.json missing @storybook/angular devDependency")
+	}
+	if !strings.Contains(pkg, `"storybook"`) {
+		t.Error("package.json missing storybook script")
+	}
+	if !strings.Contains(pkg, `"build-storybook"`) {
+		t.Error("package.json missing build-storybook script")
+	}
 }

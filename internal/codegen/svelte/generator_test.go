@@ -191,7 +191,19 @@ func TestFullIntegration(t *testing.T) {
 	}
 
 	pkgContent, _ := os.ReadFile(filepath.Join(dir, "package.json"))
-	if !strings.Contains(string(pkgContent), "\"svelte\":") {
+	pkg := string(pkgContent)
+	if !strings.Contains(pkg, "\"svelte\":") {
 		t.Error("package.json missing svelte dependency")
+	}
+
+	// Verify Storybook deps and scripts in package.json
+	if !strings.Contains(pkg, "@storybook/sveltekit") {
+		t.Error("package.json missing @storybook/sveltekit devDependency")
+	}
+	if !strings.Contains(pkg, `"storybook"`) {
+		t.Error("package.json missing storybook script")
+	}
+	if !strings.Contains(pkg, `"build-storybook"`) {
+		t.Error("package.json missing build-storybook script")
 	}
 }
