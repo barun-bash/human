@@ -9,105 +9,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <script>(function(){var t=localStorage.getItem('human-theme');if(t)document.documentElement.setAttribute('data-theme',t);else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:light)').matches)document.documentElement.setAttribute('data-theme','light')})()</script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-
-    :root {
-      --bg: #0D0D0D;
-      --bg-raised: #141414;
-      --bg-surface: #1A1A1A;
-      --text: #E8E8E4;
-      --text-muted: #7A7A7A;
-      --border: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.15);
-      --accent: #E85D3A;
-      --accent-dark: #C44A2D;
-      --success: #2D8C5A;
-      --font-logo: 'Nunito', sans-serif;
-      --font: 'Nunito Sans', system-ui, sans-serif;
-      --font-code: 'JetBrains Mono', monospace;
-    }
-
-    body {
-      font-family: var(--font);
-      font-size: 17px;
-      line-height: 1.65;
-      color: var(--text);
-      background: var(--bg);
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-
-    a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
-    a:hover { color: #F5F5F3; }
-
-    /* ── Animations ── */
-    .reveal {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
-
-    /* ══════════════════════════════════════════════
-       NAVIGATION
-       ══════════════════════════════════════════════ */
-    .nav {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      height: 60px;
-      display: flex;
-      align-items: center;
-    }
-    .nav-inner {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 24px;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .nav-logo {
-      font-family: var(--font-logo);
-      font-weight: 700;
-      font-size: 22px;
-      letter-spacing: -1px;
-      color: #F5F5F3;
-      text-decoration: none;
-    }
-    .nav-logo:hover { color: #F5F5F3; }
-    .nav-logo-cursor { color: var(--accent); }
-    .nav-links { display: flex; align-items: center; gap: 28px; }
-    .nav-links a {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      transition: color 0.2s;
-    }
-    .nav-links a:hover { color: #F5F5F3; }
-    .nav-links a.active { color: var(--accent); }
-    .nav-links a.nav-external::after {
-      content: '';
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      margin-left: 4px;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3.5 1.5h7v7M10.5 1.5L1.5 10.5' stroke='%237A7A7A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-      background-size: contain;
-      background-repeat: no-repeat;
-      vertical-align: middle;
-      opacity: 0.6;
-    }
-
     /* ══════════════════════════════════════════════
        HERO
        ══════════════════════════════════════════════ */
@@ -121,7 +25,7 @@
       font-size: clamp(32px, 6vw, 52px);
       line-height: 1.15;
       margin-bottom: 20px;
-      color: #F5F5F3;
+      color: var(--text-bright);
     }
     .hero-vision {
       font-size: 20px;
@@ -214,7 +118,7 @@
     .phase-title {
       font-weight: 700;
       font-size: 22px;
-      color: #F5F5F3;
+      color: var(--text-bright);
       margin-bottom: 4px;
     }
     .phase-weeks {
@@ -315,6 +219,11 @@
       color: var(--accent);
       border: 1px solid rgba(232, 93, 58, 0.25);
     }
+    .phase-status.planned {
+      background: rgba(122, 122, 122, 0.1);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
 
     /* Milestone */
     .phase-milestone {
@@ -351,7 +260,7 @@
       font-size: 32px;
       text-align: center;
       margin-bottom: 48px;
-      color: #F5F5F3;
+      color: var(--text-bright);
     }
 
     .metrics-table-wrap {
@@ -404,7 +313,7 @@
       font-size: 32px;
       text-align: center;
       margin-bottom: 48px;
-      color: #F5F5F3;
+      color: var(--text-bright);
     }
 
     .principles-list {
@@ -441,7 +350,7 @@
     .principle-content strong {
       display: block;
       font-size: 17px;
-      color: #F5F5F3;
+      color: var(--text-bright);
       margin-bottom: 4px;
     }
     .principle-content span {
@@ -451,48 +360,9 @@
     }
 
     /* ══════════════════════════════════════════════
-       FOOTER
-       ══════════════════════════════════════════════ */
-    .footer {
-      border-top: 1px solid var(--border);
-      padding: 56px 24px 40px;
-      text-align: center;
-    }
-    .footer-logo {
-      font-family: var(--font-logo);
-      font-weight: 700;
-      font-size: 26px;
-      letter-spacing: -1px;
-      margin-bottom: 24px;
-      color: #F5F5F3;
-    }
-    .footer-cursor { color: var(--accent); }
-
-    .footer-links {
-      display: flex;
-      justify-content: center;
-      gap: 32px;
-      flex-wrap: wrap;
-      margin-bottom: 28px;
-    }
-    .footer-links a {
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-    .footer-links a:hover { color: #F5F5F3; }
-
-    .footer-copy {
-      font-size: 13px;
-      color: rgba(122, 122, 122, 0.5);
-    }
-
-    /* ══════════════════════════════════════════════
        RESPONSIVE
        ══════════════════════════════════════════════ */
     @media (max-width: 768px) {
-      .nav-links { gap: 18px; }
-      .nav-links a { font-size: 13px; }
-
       .hero { padding: 72px 20px 56px; }
       .hero-vision { font-size: 17px; }
       .hero-sub { font-size: 15px; }
@@ -516,15 +386,9 @@
 
       .metrics-table thead th { padding: 12px 16px; }
       .metrics-table tbody td { padding: 10px 16px; font-size: 14px; }
-
-      .footer-links { gap: 16px; }
     }
 
     @media (max-width: 480px) {
-      .nav-links { gap: 12px; }
-      .nav-links a { font-size: 12px; }
-      .nav-links a.nav-external::after { display: none; }
-
       .hero { padding: 56px 16px 40px; }
       .phase-card { padding: 20px 16px; }
       .phase-subsection-title { font-size: 13px; }
@@ -534,16 +398,21 @@
 <body>
 
   <!-- NAVIGATION -->
-  <nav class="nav">
+  <nav class="site-nav">
     <div class="nav-inner">
       <a href="index.html" class="nav-logo">human<span class="nav-logo-cursor">_</span></a>
       <div class="nav-links">
         <a href="getting-started.html">Get Started</a>
+        <a href="cli-guide.html">CLI Guide</a>
         <a href="language-spec.html">Language Spec</a>
         <a href="roadmap.html" class="active">Roadmap</a>
-        <a href="manifesto.html">Manifesto</a>
-        <a href="contributing.html">Contributing</a>
-        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener" class="nav-external">GitHub</a>
+        <a href="manifesto.html" class="nav-hide-mobile">Manifesto</a>
+        <a href="contributing.html" class="nav-hide-mobile">Contributing</a>
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+        <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
       </div>
     </div>
   </nav>
@@ -1036,7 +905,7 @@
   <section class="metrics-section">
     <div class="container">
       <h2 class="reveal">Current Output</h2>
-      <p class="reveal" style="text-align:center; color:var(--text-muted); margin-bottom:36px; font-size:17px;">Running <code style="font-family:var(--font-code); background:var(--bg-surface); padding:2px 8px; border-radius:4px; font-size:15px; color:var(--accent);">human build app.human</code> produces <strong style="color:#F5F5F3;">85+ files</strong> across <strong style="color:#F5F5F3;">14 generators</strong>:</p>
+      <p class="reveal" style="text-align:center; color:var(--text-muted); margin-bottom:36px; font-size:17px;">Running <code style="font-family:var(--font-code); background:var(--bg-surface); padding:2px 8px; border-radius:4px; font-size:15px; color:var(--accent);">human build app.human</code> produces <strong style="color:var(--text-bright);">85+ files</strong> across <strong style="color:var(--text-bright);">14 generators</strong>:</p>
       <div class="metrics-table-wrap reveal reveal-delay-1">
         <table class="metrics-table">
           <thead>
@@ -1249,6 +1118,7 @@
       <nav class="footer-links">
         <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
         <a href="getting-started.html">Getting Started</a>
+        <a href="cli-guide.html">CLI Guide</a>
         <a href="contributing.html">Contributing</a>
         <a href="manifesto.html">Manifesto</a>
         <a href="language-spec.html">Language Spec</a>
@@ -1258,20 +1128,7 @@
     </div>
   </footer>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      var els = document.querySelectorAll('.reveal');
-      if (!('IntersectionObserver' in window)) {
-        els.forEach(function (el) { el.classList.add('visible'); });
-        return;
-      }
-      var obs = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
-        });
-      }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
-      els.forEach(function (el) { obs.observe(el); });
-    });
-  </script>
+  <script src="theme.js"></script>
+  <script src="reveal.js"></script>
 </body>
 </html>

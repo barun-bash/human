@@ -9,118 +9,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <script>(function(){var t=localStorage.getItem('human-theme');if(t)document.documentElement.setAttribute('data-theme',t);else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:light)').matches)document.documentElement.setAttribute('data-theme','light')})()</script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-
-    :root {
-      --bg: #0D0D0D;
-      --bg-raised: #141414;
-      --bg-surface: #1A1A1A;
-      --text: #E8E8E4;
-      --text-muted: #7A7A7A;
-      --border: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.15);
-      --accent: #E85D3A;
-      --accent-dark: #C44A2D;
-      --success: #2D8C5A;
-      --error: #C43030;
-      --font-logo: 'Nunito', sans-serif;
-      --font: 'Nunito Sans', system-ui, sans-serif;
-      --font-code: 'JetBrains Mono', monospace;
-    }
-
-    body {
-      font-family: var(--font);
-      font-size: 17px;
-      line-height: 1.65;
-      color: var(--text);
-      background: var(--bg);
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
-
-    a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
-    a:hover { color: #F5F5F3; }
-
-    /* ── Animations ── */
-    .reveal {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
-    .reveal-delay-4 { transition-delay: 0.4s; }
-    .reveal-delay-5 { transition-delay: 0.5s; }
-
     /* ══════════════════════════════════════════════
-       NAVBAR
+       Page-specific: Contributing
        ══════════════════════════════════════════════ */
-    .navbar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      height: 60px;
-      display: flex;
-      align-items: center;
-    }
-    .navbar-inner {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 24px;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .navbar-logo {
-      font-family: var(--font-logo);
-      font-weight: 700;
-      font-size: 22px;
-      letter-spacing: -1px;
-      color: #F5F5F3;
-      text-decoration: none;
-    }
-    .navbar-logo:hover { color: #F5F5F3; }
-    .navbar-cursor { color: var(--accent); }
-    .navbar-links {
-      display: flex;
-      align-items: center;
-      gap: 28px;
-    }
-    .navbar-links a {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      transition: color 0.2s;
-    }
-    .navbar-links a:hover { color: #F5F5F3; }
-    .navbar-links a.active { color: var(--accent); }
-    .navbar-links a.external::after {
-      content: '';
-      display: inline-block;
-      width: 11px;
-      height: 11px;
-      margin-left: 4px;
-      background: currentColor;
-      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 3h7v7m0-7L5 11' stroke='currentColor' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 3h7v7m0-7L5 11' stroke='currentColor' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-      -webkit-mask-size: contain;
-      mask-size: contain;
-      -webkit-mask-repeat: no-repeat;
-      mask-repeat: no-repeat;
-      vertical-align: middle;
-    }
+    .container-narrow { max-width: 860px; margin: 0 auto; padding: 0 24px; }
 
-    /* ══════════════════════════════════════════════
-       HERO
-       ══════════════════════════════════════════════ */
     .hero {
       padding: 96px 24px 72px;
       text-align: center;
@@ -131,7 +27,7 @@
       font-size: clamp(32px, 5vw, 48px);
       line-height: 1.2;
       margin-bottom: 16px;
-      color: #F5F5F3;
+      color: var(--text-bright);
     }
     .hero-accent { color: var(--accent); }
     .hero p {
@@ -142,12 +38,7 @@
       margin: 0 auto;
     }
 
-    /* ══════════════════════════════════════════════
-       SECTION CARDS
-       ══════════════════════════════════════════════ */
-    .content-section {
-      margin-bottom: 28px;
-    }
+    .content-section { margin-bottom: 28px; }
     .card {
       background: var(--bg-raised);
       border: 1px solid var(--border);
@@ -155,13 +46,11 @@
       padding: 36px 40px;
       transition: border-color 0.2s;
     }
-    .card:hover {
-      border-color: var(--border-hover);
-    }
+    .card:hover { border-color: var(--border-hover); }
     .card h2 {
       font-weight: 700;
       font-size: 24px;
-      color: #F5F5F3;
+      color: var(--text-bright);
       margin-bottom: 24px;
       padding-bottom: 16px;
       border-bottom: 1px solid var(--border);
@@ -169,13 +58,11 @@
     .card h3 {
       font-weight: 700;
       font-size: 18px;
-      color: #F5F5F3;
+      color: var(--text-bright);
       margin-top: 28px;
       margin-bottom: 12px;
     }
-    .card h3:first-of-type {
-      margin-top: 0;
-    }
+    .card h3:first-of-type { margin-top: 0; }
     .card p {
       font-size: 16px;
       color: var(--text);
@@ -204,14 +91,9 @@
       background: var(--accent);
       border-radius: 50%;
     }
-    .card a {
-      color: var(--accent);
-    }
-    .card a:hover {
-      color: #F5F5F3;
-    }
+    .card a { color: var(--accent); }
+    .card a:hover { color: var(--text-bright); }
 
-    /* ── Code blocks ── */
     .code-block {
       background: var(--bg-surface);
       border: 1px solid var(--border);
@@ -231,12 +113,8 @@
     .code-block .comment { color: var(--text-muted); }
     .code-block .cmd { color: var(--accent); }
 
-    /* ── Coding conventions list ── */
-    .conventions-list li {
-      padding: 8px 0 8px 22px !important;
-    }
+    .conventions-list li { padding: 8px 0 8px 22px !important; }
 
-    /* ── Project structure (file tree) ── */
     .file-tree {
       background: var(--bg-surface);
       border: 1px solid var(--border);
@@ -253,23 +131,10 @@
       font-size: 14px;
       line-height: 1.6;
     }
-    .file-tree-path {
-      color: var(--accent);
-      white-space: nowrap;
-      min-width: 220px;
-    }
-    .file-tree-desc {
-      color: var(--text-muted);
-      padding-left: 16px;
-    }
-    .file-tree-connector {
-      color: var(--text-muted);
-      opacity: 0.4;
-      user-select: none;
-      margin-right: 6px;
-    }
+    .file-tree-path { color: var(--accent); white-space: nowrap; min-width: 220px; }
+    .file-tree-desc { color: var(--text-muted); padding-left: 16px; }
+    .file-tree-connector { color: var(--text-muted); opacity: 0.4; user-select: none; margin-right: 6px; }
 
-    /* ── PR steps (numbered) ── */
     .pr-steps {
       list-style: none;
       padding: 0;
@@ -280,9 +145,7 @@
       padding: 14px 0 14px 56px !important;
       border-bottom: 1px solid var(--border);
     }
-    .pr-steps li:last-child {
-      border-bottom: none;
-    }
+    .pr-steps li:last-child { border-bottom: none; }
     .pr-steps li::before {
       counter-increment: pr-step;
       content: counter(pr-step);
@@ -305,18 +168,13 @@
       text-align: center;
       padding-top: 1px;
     }
-    .pr-steps li strong {
-      color: #F5F5F3;
-    }
+    .pr-steps li strong { color: var(--text-bright); }
 
-    /* ── Warning list (What NOT to Do) ── */
     .warning-list li {
       padding: 10px 0 10px 28px !important;
       border-bottom: 1px solid rgba(196, 48, 48, 0.1);
     }
-    .warning-list li:last-child {
-      border-bottom: none;
-    }
+    .warning-list li:last-child { border-bottom: none; }
     .warning-list li::before {
       width: 8px !important;
       height: 8px !important;
@@ -326,7 +184,6 @@
       left: 2px !important;
     }
 
-    /* ── License section ── */
     .license-text {
       font-size: 17px;
       color: var(--text-muted);
@@ -334,134 +191,50 @@
       text-align: center;
       padding: 8px 0;
     }
-    .license-text strong {
-      color: var(--text);
-    }
+    .license-text strong { color: var(--text); }
 
-    /* ══════════════════════════════════════════════
-       FOOTER
-       ══════════════════════════════════════════════ */
-    .footer {
-      border-top: 1px solid var(--border);
-      padding: 56px 24px 40px;
-      text-align: center;
-      margin-top: 48px;
-    }
-    .footer-logo {
-      font-family: var(--font-logo);
-      font-weight: 700;
-      font-size: 26px;
-      letter-spacing: -1px;
-      margin-bottom: 24px;
-      color: #F5F5F3;
-    }
-    .footer-cursor { color: var(--accent); }
-    .footer-links {
-      display: flex;
-      justify-content: center;
-      gap: 32px;
-      flex-wrap: wrap;
-      margin-bottom: 28px;
-    }
-    .footer-links a {
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-    .footer-links a:hover { color: #F5F5F3; }
-    .footer-copy {
-      font-size: 13px;
-      color: rgba(122, 122, 122, 0.5);
-    }
+    .footer { margin-top: 48px; }
 
-    /* ══════════════════════════════════════════════
-       RESPONSIVE
-       ══════════════════════════════════════════════ */
     @media (max-width: 768px) {
-      .card {
-        padding: 28px 24px;
-      }
-      .file-tree-path {
-        min-width: 160px;
-      }
-      .pr-steps li {
-        padding-left: 48px !important;
-      }
-      .navbar-links {
-        gap: 16px;
-      }
-      .navbar-links a {
-        font-size: 13px;
-      }
+      .card { padding: 28px 24px; }
+      .file-tree-path { min-width: 160px; }
+      .pr-steps li { padding-left: 48px !important; }
     }
 
     @media (max-width: 600px) {
       .hero { padding: 64px 20px 48px; }
       .hero p { font-size: 17px; }
-      .card {
-        padding: 24px 20px;
-        border-radius: 10px;
-      }
+      .card { padding: 24px 20px; border-radius: 10px; }
       .card h2 { font-size: 21px; }
-      .code-block {
-        padding: 14px 16px;
-      }
-      .code-block pre {
-        font-size: 13px;
-      }
-      .file-tree {
-        padding: 14px 16px;
-      }
-      .file-tree-item {
-        flex-direction: column;
-        font-size: 13px;
-      }
-      .file-tree-path {
-        min-width: auto;
-      }
-      .file-tree-desc {
-        padding-left: 20px;
-        font-size: 12px;
-      }
-      .pr-steps li {
-        padding-left: 44px !important;
-      }
-      .pr-steps li::before {
-        width: 32px;
-        height: 32px;
-        font-size: 13px;
-      }
-      .navbar-links {
-        gap: 12px;
-      }
-      .navbar-links a {
-        font-size: 12px;
-      }
-      .footer-links { gap: 16px; }
-    }
-
-    @media (max-width: 420px) {
-      .navbar-links {
-        gap: 10px;
-      }
-      .navbar-links a.hide-mobile {
-        display: none;
-      }
+      .code-block { padding: 14px 16px; }
+      .code-block pre { font-size: 13px; }
+      .file-tree { padding: 14px 16px; }
+      .file-tree-item { flex-direction: column; font-size: 13px; }
+      .file-tree-path { min-width: auto; }
+      .file-tree-desc { padding-left: 20px; font-size: 12px; }
+      .pr-steps li { padding-left: 44px !important; }
+      .pr-steps li::before { width: 32px; height: 32px; font-size: 13px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- NAVBAR -->
-  <nav class="navbar">
-    <div class="navbar-inner">
-      <a href="index.html" class="navbar-logo">human<span class="navbar-cursor">_</span></a>
-      <div class="navbar-links">
+  <!-- NAV -->
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">human<span class="nav-logo-cursor">_</span></a>
+      <div class="nav-links">
         <a href="getting-started.html">Get Started</a>
-        <a href="language-spec.html" class="hide-mobile">Language Spec</a>
-        <a href="roadmap.html" class="hide-mobile">Roadmap</a>
-        <a href="manifesto.html" class="hide-mobile">Manifesto</a>
+        <a href="cli-guide.html">CLI Guide</a>
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+        <a href="manifesto.html" class="nav-hide-mobile">Manifesto</a>
         <a href="contributing.html" class="active">Contributing</a>
-        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener" class="external">GitHub</a>
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+        <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
       </div>
     </div>
   </nav>
@@ -475,20 +248,17 @@
   </section>
 
   <!-- CONTENT -->
-  <main class="container">
+  <main class="container-narrow">
 
-    <!-- Setup -->
     <section class="content-section reveal">
       <div class="card">
         <h2>Setup</h2>
-
         <h3>Prerequisites</h3>
         <ul>
-          <li>Go 1.21 or later</li>
+          <li>Go 1.25 or later</li>
           <li>Git</li>
           <li>Make (optional, but recommended)</li>
         </ul>
-
         <h3>Getting Started</h3>
         <p>Clone the repository, build the compiler, and run the test suite to verify everything works.</p>
         <div class="code-block">
@@ -501,7 +271,6 @@
       </div>
     </section>
 
-    <!-- Coding Conventions -->
     <section class="content-section reveal reveal-delay-1">
       <div class="card">
         <h2>Coding Conventions</h2>
@@ -517,11 +286,9 @@
       </div>
     </section>
 
-    <!-- Running Tests -->
     <section class="content-section reveal reveal-delay-2">
       <div class="card">
         <h2>Running Tests</h2>
-
         <div class="code-block">
           <pre><span class="comment"># Run all tests</span>
 <span class="cmd">make</span> test
@@ -539,7 +306,6 @@
       </div>
     </section>
 
-    <!-- Linting -->
     <section class="content-section reveal reveal-delay-3">
       <div class="card">
         <h2>Linting</h2>
@@ -552,77 +318,30 @@
       </div>
     </section>
 
-    <!-- Project Structure -->
     <section class="content-section reveal reveal-delay-4">
       <div class="card">
         <h2>Project Structure</h2>
         <p>The compiler follows Go's standard project layout. Here's where everything lives.</p>
         <div class="file-tree">
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>cmd/human/</span>
-            <span class="file-tree-desc">CLI entry point</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>cmd/human-mcp/</span>
-            <span class="file-tree-desc">MCP server entry point</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/lexer/</span>
-            <span class="file-tree-desc">Tokenizer</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/parser/</span>
-            <span class="file-tree-desc">Recursive descent parser + AST</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/ir/</span>
-            <span class="file-tree-desc">Intent IR definitions and builder</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/analyzer/</span>
-            <span class="file-tree-desc">Semantic analysis</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/build/</span>
-            <span class="file-tree-desc">Shared build pipeline (used by CLI and MCP)</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/cli/</span>
-            <span class="file-tree-desc">CLI helpers (color output)</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/codegen/</span>
-            <span class="file-tree-desc">Code generators (per target)</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/config/</span>
-            <span class="file-tree-desc">Configuration loading</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/errors/</span>
-            <span class="file-tree-desc">Error types and messages</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/figma/</span>
-            <span class="file-tree-desc">Figma design import</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/llm/</span>
-            <span class="file-tree-desc">LLM connector (ask, suggest, edit)</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/mcp/</span>
-            <span class="file-tree-desc">MCP server protocol and tool handlers</span>
-          </div>
-          <div class="file-tree-item">
-            <span class="file-tree-path"><span class="file-tree-connector">  </span>internal/quality/</span>
-            <span class="file-tree-desc">Quality engine (tests, security, lint, QA)</span>
-          </div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>cmd/human/</span><span class="file-tree-desc">CLI entry point</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>cmd/human-mcp/</span><span class="file-tree-desc">MCP server entry point</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/lexer/</span><span class="file-tree-desc">Tokenizer</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/parser/</span><span class="file-tree-desc">Recursive descent parser + AST</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/ir/</span><span class="file-tree-desc">Intent IR definitions and builder</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/analyzer/</span><span class="file-tree-desc">Semantic analysis</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/build/</span><span class="file-tree-desc">Shared build pipeline (used by CLI and MCP)</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/cli/</span><span class="file-tree-desc">CLI helpers (color output)</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/codegen/</span><span class="file-tree-desc">Code generators (per target)</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/config/</span><span class="file-tree-desc">Configuration loading</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/errors/</span><span class="file-tree-desc">Error types and messages</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/figma/</span><span class="file-tree-desc">Figma design import</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/llm/</span><span class="file-tree-desc">LLM connector (ask, suggest, edit)</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/mcp/</span><span class="file-tree-desc">MCP server protocol and tool handlers</span></div>
+          <div class="file-tree-item"><span class="file-tree-path"><span class="file-tree-connector">  </span>internal/quality/</span><span class="file-tree-desc">Quality engine (tests, security, lint, QA)</span></div>
         </div>
       </div>
     </section>
 
-    <!-- Pull Request Guidelines -->
     <section class="content-section reveal reveal-delay-5">
       <div class="card">
         <h2>Pull Request Guidelines</h2>
@@ -637,7 +356,6 @@
       </div>
     </section>
 
-    <!-- What NOT to Do -->
     <section class="content-section reveal">
       <div class="card">
         <h2>What NOT to Do</h2>
@@ -651,7 +369,6 @@
       </div>
     </section>
 
-    <!-- License -->
     <section class="content-section reveal">
       <div class="card">
         <h2>License</h2>
@@ -668,6 +385,7 @@
       <nav class="footer-links">
         <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
         <a href="getting-started.html">Getting Started</a>
+        <a href="cli-guide.html">CLI Guide</a>
         <a href="contributing.html">Contributing</a>
         <a href="manifesto.html">Manifesto</a>
         <a href="language-spec.html">Language Spec</a>
@@ -677,20 +395,7 @@
     </div>
   </footer>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      var els = document.querySelectorAll('.reveal');
-      if (!('IntersectionObserver' in window)) {
-        els.forEach(function (el) { el.classList.add('visible'); });
-        return;
-      }
-      var obs = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
-        });
-      }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-      els.forEach(function (el) { obs.observe(el); });
-    });
-  </script>
+  <script src="theme.js"></script>
+  <script src="reveal.js"></script>
 </body>
 </html>

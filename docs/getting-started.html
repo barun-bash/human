@@ -12,96 +12,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
   <script src="version.js"></script>
+  <script>(function(){var t=localStorage.getItem('human-theme');if(t)document.documentElement.setAttribute('data-theme',t);else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:light)').matches)document.documentElement.setAttribute('data-theme','light')})()</script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-
-    :root {
-      --bg: #0D0D0D;
-      --bg-raised: #141414;
-      --bg-surface: #1A1A1A;
-      --text: #E8E8E4;
-      --text-muted: #7A7A7A;
-      --border: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.15);
-      --accent: #E85D3A;
-      --accent-dark: #C44A2D;
-      --success: #2D8C5A;
-      --font-logo: 'Nunito', sans-serif;
-      --font: 'Nunito Sans', system-ui, sans-serif;
-      --font-code: 'JetBrains Mono', monospace;
-    }
-
-    body {
-      font-family: var(--font);
-      font-size: 17px;
-      line-height: 1.65;
-      color: var(--text);
-      background: var(--bg);
-      -webkit-font-smoothing: antialiased;
-    }
-
-    a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
-    a:hover { color: #F5F5F3; }
-
-    /* ── Site Nav ── */
-    .site-nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      height: 60px;
-      display: flex;
-      align-items: center;
-      border-bottom: 1px solid var(--border);
-      background: rgba(13, 13, 13, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-    .nav-inner {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 24px;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .nav-logo {
-      font-family: var(--font-logo);
-      font-weight: 700;
-      font-size: 22px;
-      letter-spacing: -1px;
-      color: #F5F5F3;
-    }
-    .nav-logo:hover { color: #F5F5F3; }
-    .nav-logo span { color: var(--accent); }
-    .nav-links { display: flex; align-items: center; gap: 28px; }
-    .nav-links a {
-      color: var(--text-muted);
-      font-size: 14px;
-      font-weight: 600;
-      transition: color 0.2s;
-    }
-    .nav-links a:hover { color: #F5F5F3; }
-    .nav-links a.active { color: var(--accent); }
-
-    /* ── Animations ── */
-    .reveal {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
-
-    /* ── Hero ── */
+    /* ══════════════════════════════════════════════
+       Page-specific: Getting Started
+       ══════════════════════════════════════════════ */
     .hero {
-      padding: 140px 24px 80px;
+      padding: 120px 24px 80px;
       text-align: center;
     }
     .hero-inner { max-width: 680px; margin: 0 auto; }
@@ -110,7 +29,7 @@
       font-size: clamp(32px, 6vw, 48px);
       line-height: 1.2;
       margin-bottom: 16px;
-      color: #F5F5F3;
+      color: var(--text-bright);
     }
     .hero p {
       font-size: 20px;
@@ -125,14 +44,12 @@
       margin: 48px auto 0;
     }
 
-    /* ── Tutorial Container ── */
     .tutorial {
       max-width: 780px;
       margin: 0 auto;
       padding: 0 24px 96px;
     }
 
-    /* ── Step ── */
     .step {
       padding: 72px 0;
       border-top: 1px solid var(--border);
@@ -164,7 +81,7 @@
     .step-title {
       font-weight: 700;
       font-size: 28px;
-      color: #F5F5F3;
+      color: var(--text-bright);
       line-height: 1.3;
       padding-top: 6px;
     }
@@ -185,45 +102,8 @@
       color: var(--text);
     }
 
-    /* ── Code Window ── */
-    .code-window {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 24px;
-    }
-    .code-titlebar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--border);
-    }
-    .code-dot { width: 12px; height: 12px; border-radius: 50%; }
-    .code-dot-accent { background: var(--accent); opacity: 0.8; }
-    .code-dot-dim { background: var(--text-muted); opacity: 0.25; }
-    .code-filename {
-      font-family: var(--font-code);
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-left: 8px;
-    }
+    .code-window { margin-bottom: 24px; }
 
-    .code-body { padding: 24px; overflow-x: auto; }
-    .code-body pre {
-      font-family: var(--font-code);
-      font-size: 14px;
-      line-height: 1.7;
-      color: var(--text);
-      margin: 0;
-      white-space: pre;
-    }
-    .code-body .kw { color: var(--accent); }
-    .code-body .str { color: var(--success); }
-    .code-body .cm { color: var(--text-muted); font-style: italic; }
-
-    /* ── What This Does ── */
     .explanation {
       background: var(--bg-raised);
       border: 1px solid var(--border);
@@ -247,7 +127,6 @@
     .explanation p + p { margin-top: 10px; }
     .explanation strong { color: var(--text); font-weight: 600; }
 
-    /* ── Putting It Together ── */
     .together {
       padding: 72px 0;
       border-top: 1px solid var(--border);
@@ -255,7 +134,7 @@
     .together h2 {
       font-weight: 700;
       font-size: 28px;
-      color: #F5F5F3;
+      color: var(--text-bright);
       margin-bottom: 16px;
     }
     .together > p {
@@ -265,10 +144,7 @@
       margin-bottom: 32px;
     }
 
-    /* ── CLI Section ── */
-    .cli-block {
-      margin-top: 32px;
-    }
+    .cli-block { margin-top: 32px; }
     .cli-block p {
       font-size: 15px;
       color: var(--text-muted);
@@ -291,7 +167,6 @@
     .cli-commands .cm { color: var(--text-muted); font-style: italic; }
     .cli-commands .accent { color: var(--accent); }
 
-    /* ── What's Next ── */
     .whats-next {
       padding: 72px 0 0;
       border-top: 1px solid var(--border);
@@ -299,7 +174,7 @@
     .whats-next h2 {
       font-weight: 700;
       font-size: 28px;
-      color: #F5F5F3;
+      color: var(--text-bright);
       margin-bottom: 12px;
     }
     .whats-next > p {
@@ -328,7 +203,7 @@
     .next-card h3 {
       font-weight: 700;
       font-size: 17px;
-      color: #F5F5F3;
+      color: var(--text-bright);
       margin-bottom: 8px;
     }
     .next-card p {
@@ -345,59 +220,18 @@
       color: var(--accent);
     }
 
-    /* ── Footer ── */
-    .footer {
-      border-top: 1px solid var(--border);
-      padding: 56px 24px 40px;
-      text-align: center;
-    }
-    .footer-logo {
-      font-family: var(--font-logo);
-      font-weight: 700;
-      font-size: 26px;
-      letter-spacing: -1px;
-      margin-bottom: 24px;
-      color: #F5F5F3;
-    }
-    .footer-cursor { color: var(--accent); }
-
-    .footer-links {
-      display: flex;
-      justify-content: center;
-      gap: 32px;
-      flex-wrap: wrap;
-      margin-bottom: 28px;
-    }
-    .footer-links a {
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-    .footer-links a:hover { color: #F5F5F3; }
-
-    .footer-copy {
-      font-size: 13px;
-      color: rgba(122, 122, 122, 0.5);
-    }
-
-    /* ── Responsive ── */
     @media (max-width: 900px) {
       .next-grid { grid-template-columns: repeat(2, 1fr); }
     }
-
     @media (max-width: 600px) {
-      .nav-links { gap: 16px; }
-      .nav-links a { font-size: 13px; }
-      .hero { padding: 100px 20px 60px; }
+      .hero { padding: 80px 20px 60px; }
       .hero p { font-size: 17px; }
       .tutorial { padding: 0 20px 64px; }
       .step { padding: 48px 0; }
       .step-header { gap: 14px; }
       .step-number { width: 40px; height: 40px; font-size: 17px; border-radius: 11px; }
       .step-title { font-size: 22px; padding-top: 4px; }
-      .code-body { padding: 16px; }
-      .code-body pre { font-size: 13px; }
       .next-grid { grid-template-columns: 1fr; }
-      .footer-links { gap: 16px; }
     }
   </style>
 </head>
@@ -406,14 +240,19 @@
   <!-- NAV -->
   <nav class="site-nav">
     <div class="nav-inner">
-      <a href="index.html" class="nav-logo">human<span>_</span></a>
+      <a href="index.html" class="nav-logo">human<span class="nav-logo-cursor">_</span></a>
       <div class="nav-links">
         <a href="getting-started.html" class="active">Get Started</a>
+        <a href="cli-guide.html">CLI Guide</a>
         <a href="language-spec.html">Language Spec</a>
         <a href="roadmap.html">Roadmap</a>
-        <a href="manifesto.html">Manifesto</a>
-        <a href="contributing.html">Contributing</a>
+        <a href="manifesto.html" class="nav-hide-mobile">Manifesto</a>
+        <a href="contributing.html" class="nav-hide-mobile">Contributing</a>
         <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+        <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
       </div>
     </div>
   </nav>
@@ -430,15 +269,13 @@
   <!-- TUTORIAL -->
   <div class="tutorial">
 
-    <!-- ── Step 0: Install ── -->
+    <!-- Step 0: Install -->
     <div class="step reveal">
       <div class="step-header">
         <div class="step-number">0</div>
         <h2 class="step-title">Install</h2>
       </div>
-      <p class="step-text">
-        Human is distributed as a single Go binary. Install it with one command, then verify it's working.
-      </p>
+      <p class="step-text">Human is distributed as a single Go binary. Install it with one command, then verify it's working.</p>
       <div class="code-window">
         <div class="code-titlebar">
           <span class="code-dot code-dot-accent"></span>
@@ -464,15 +301,13 @@
       </div>
     </div>
 
-    <!-- ── Step 1: Your first app ── -->
+    <!-- Step 1: Your first app -->
     <div class="step reveal">
       <div class="step-header">
         <div class="step-number">1</div>
         <h2 class="step-title">Your first app</h2>
       </div>
-      <p class="step-text">
-        Every Human project starts with a single line: a declaration of what you are building. This tells the compiler the name of your application and what kind of platform it targets. No imports, no configuration files, no boilerplate. Just one sentence.
-      </p>
+      <p class="step-text">Every Human project starts with a single line: a declaration of what you are building. This tells the compiler the name of your application and what kind of platform it targets. No imports, no configuration files, no boilerplate. Just one sentence.</p>
       <div class="code-window">
         <div class="code-titlebar">
           <span class="code-dot code-dot-accent"></span>
@@ -488,15 +323,13 @@
       </div>
     </div>
 
-    <!-- ── Step 2: Define your data ── -->
+    <!-- Step 2: Define your data -->
     <div class="step reveal">
       <div class="step-header">
         <div class="step-number">2</div>
         <h2 class="step-title">Define your data</h2>
       </div>
-      <p class="step-text">
-        Data declarations describe the entities in your application &mdash; the things your users create, read, update, and delete. Each field has a type, and you can add modifiers like <code>unique</code>, <code>encrypted</code>, or <code>optional</code>. Relationships between entities are expressed as plain English: <strong>belongs to</strong>, <strong>has many</strong>.
-      </p>
+      <p class="step-text">Data declarations describe the entities in your application &mdash; the things your users create, read, update, and delete. Each field has a type, and you can add modifiers like <code>unique</code>, <code>encrypted</code>, or <code>optional</code>. Relationships between entities are expressed as plain English: <strong>belongs to</strong>, <strong>has many</strong>.</p>
       <div class="code-window">
         <div class="code-titlebar">
           <span class="code-dot code-dot-accent"></span>
@@ -527,15 +360,13 @@
       </div>
     </div>
 
-    <!-- ── Step 3: Create pages ── -->
+    <!-- Step 3: Create pages -->
     <div class="step reveal">
       <div class="step-header">
         <div class="step-number">3</div>
         <h2 class="step-title">Create pages</h2>
       </div>
-      <p class="step-text">
-        Pages describe what the user sees and how they interact with it. You write display statements, interaction handlers, input elements, and conditional states &mdash; all in English. The compiler turns these into fully functional frontend components with proper state management, event handling, and data fetching.
-      </p>
+      <p class="step-text">Pages describe what the user sees and how they interact with it. You write display statements, interaction handlers, input elements, and conditional states &mdash; all in English. The compiler turns these into fully functional frontend components with proper state management, event handling, and data fetching.</p>
       <div class="code-window">
         <div class="code-titlebar">
           <span class="code-dot code-dot-accent"></span>
@@ -567,15 +398,13 @@
       </div>
     </div>
 
-    <!-- ── Step 4: Build your API ── -->
+    <!-- Step 4: Build your API -->
     <div class="step reveal">
       <div class="step-header">
         <div class="step-number">4</div>
         <h2 class="step-title">Build your API</h2>
       </div>
-      <p class="step-text">
-        API declarations define your backend endpoints. Each one specifies what it accepts, what preconditions it requires, what logic it runs, and what it returns. Validation, authentication, and error handling are expressed inline. No route files, no middleware configuration &mdash; just describe the behavior.
-      </p>
+      <p class="step-text">API declarations define your backend endpoints. Each one specifies what it accepts, what preconditions it requires, what logic it runs, and what it returns. Validation, authentication, and error handling are expressed inline. No route files, no middleware configuration &mdash; just describe the behavior.</p>
       <div class="code-window">
         <div class="code-titlebar">
           <span class="code-dot code-dot-accent"></span>
@@ -608,15 +437,13 @@
       </div>
     </div>
 
-    <!-- ── Step 5: Add authentication and security ── -->
+    <!-- Step 5: Add authentication and security -->
     <div class="step reveal">
       <div class="step-header">
         <div class="step-number">5</div>
         <h2 class="step-title">Add authentication and security</h2>
       </div>
-      <p class="step-text">
-        Security in Human is not an afterthought. The <code>authentication</code> block configures your auth strategy, and <code>policy</code> blocks define role-based access control. The compiler enforces these rules across your entire application &mdash; if an API requires authentication but your security config is missing, the build fails with a helpful message.
-      </p>
+      <p class="step-text">Security in Human is not an afterthought. The <code>authentication</code> block configures your auth strategy, and <code>policy</code> blocks define role-based access control. The compiler enforces these rules across your entire application &mdash; if an API requires authentication but your security config is missing, the build fails with a helpful message.</p>
       <div class="code-window">
         <div class="code-titlebar">
           <span class="code-dot code-dot-accent"></span>
@@ -653,15 +480,13 @@
       </div>
     </div>
 
-    <!-- ── Step 6: Set up workflows ── -->
+    <!-- Step 6: Set up workflows -->
     <div class="step reveal">
       <div class="step-header">
         <div class="step-number">6</div>
         <h2 class="step-title">Set up workflows</h2>
       </div>
-      <p class="step-text">
-        Workflows describe what happens when events occur in your system. A user signs up, a task becomes overdue, a payment fails &mdash; each trigger starts a sequence of actions. These are compiled into event handlers, background jobs, and scheduled tasks with proper retry logic and error handling.
-      </p>
+      <p class="step-text">Workflows describe what happens when events occur in your system. A user signs up, a task becomes overdue, a payment fails &mdash; each trigger starts a sequence of actions. These are compiled into event handlers, background jobs, and scheduled tasks with proper retry logic and error handling.</p>
       <div class="code-window">
         <div class="code-titlebar">
           <span class="code-dot code-dot-accent"></span>
@@ -689,15 +514,13 @@
       </div>
     </div>
 
-    <!-- ── Step 7: Choose your stack and build ── -->
+    <!-- Step 7: Choose your stack and build -->
     <div class="step reveal">
       <div class="step-header">
         <div class="step-number">7</div>
         <h2 class="step-title">Choose your stack and build</h2>
       </div>
-      <p class="step-text">
-        The <code>build with</code> block tells the compiler what frameworks and tools to target. Your entire application &mdash; data models, pages, APIs, security, workflows &mdash; compiles to the stack you choose. Change the target later and recompile; your logic stays the same.
-      </p>
+      <p class="step-text">The <code>build with</code> block tells the compiler what frameworks and tools to target. Your entire application &mdash; data models, pages, APIs, security, workflows &mdash; compiles to the stack you choose. Change the target later and recompile; your logic stays the same.</p>
       <div class="code-window">
         <div class="code-titlebar">
           <span class="code-dot code-dot-accent"></span>
@@ -723,7 +546,46 @@
       </div>
     </div>
 
-    <!-- ── Putting it all together ── -->
+    <!-- Step 8: Use the CLI tools -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">8</div>
+        <h2 class="step-title">Use the CLI tools</h2>
+      </div>
+      <p class="step-text">The Human CLI is more than just a compiler. It includes tools to explore patterns, discover syntax, diagnose problems, and get instant explanations &mdash; all without leaving your terminal.</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">terminal &mdash; explore</span>
+        </div>
+        <div class="code-body"><pre><span class="cm"># Learn about any Human pattern</span>
+<span class="kw">$</span> human explain data
+<span class="cm"># Shows: field types, modifiers, relationships, examples</span>
+
+<span class="kw">$</span> human explain authentication
+<span class="cm"># Shows: JWT, OAuth, bcrypt, rate limiting patterns</span></pre></div>
+      </div>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">terminal &mdash; diagnose</span>
+        </div>
+        <div class="code-body"><pre><span class="cm"># Validate and fix your .human files</span>
+<span class="kw">$</span> human check app.human       <span class="cm"># Detailed validation report</span>
+<span class="kw">$</span> human fix app.human         <span class="cm"># Auto-fix common issues</span>
+<span class="kw">$</span> human doctor                <span class="cm"># Check your entire setup</span></pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this does</div>
+        <p><strong>human explain</strong> is a built-in reference &mdash; type any topic (data, page, api, authentication, etc.) to see the full pattern with examples. <strong>human fix</strong> detects and auto-corrects common issues like missing <code>build with</code> blocks. <strong>human doctor</strong> checks your Go version, PATH, and compiler installation. See the <a href="cli-guide.html">CLI Guide</a> for the complete command reference.</p>
+      </div>
+    </div>
+
+    <!-- Putting it all together -->
     <div class="together reveal">
       <h2>Putting it all together</h2>
       <p>Here is a complete, minimal Human application combining every concept from the tutorial. This single file produces a full-stack, tested, deployable task manager.</p>
@@ -792,11 +654,16 @@
       </div>
     </div>
 
-    <!-- ── What's Next ── -->
+    <!-- What's Next -->
     <div class="whats-next reveal">
       <h2>What's next?</h2>
       <p>You know the basics. Here is where to go from here.</p>
       <div class="next-grid">
+        <a href="cli-guide.html" class="next-card">
+          <h3>CLI Guide</h3>
+          <p>The complete reference for every Human CLI command, flag, and REPL command.</p>
+          <span class="arrow">Read the guide &rarr;</span>
+        </a>
         <a href="language-spec.html" class="next-card">
           <h3>Language Spec</h3>
           <p>The complete grammar reference. Every keyword, every type, every declaration &mdash; documented with examples.</p>
@@ -829,11 +696,12 @@
 
   <!-- FOOTER -->
   <footer class="footer">
-    <div>
+    <div class="container">
       <div class="footer-logo">human<span class="footer-cursor">_</span></div>
       <nav class="footer-links">
         <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
         <a href="getting-started.html">Getting Started</a>
+        <a href="cli-guide.html">CLI Guide</a>
         <a href="contributing.html">Contributing</a>
         <a href="manifesto.html">Manifesto</a>
         <a href="language-spec.html">Language Spec</a>
@@ -843,20 +711,7 @@
     </div>
   </footer>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      var els = document.querySelectorAll('.reveal');
-      if (!('IntersectionObserver' in window)) {
-        els.forEach(function (el) { el.classList.add('visible'); });
-        return;
-      }
-      var obs = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
-        });
-      }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-      els.forEach(function (el) { obs.observe(el); });
-    });
-  </script>
+  <script src="theme.js"></script>
+  <script src="reveal.js"></script>
 </body>
 </html>

@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLI Guide — human_</title>
+  <meta name="description" content="Complete reference for the Human CLI: build commands, REPL, code generation, diagnostics, and configuration.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230D0D0D'/><text x='4' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23F5F5F3'>h</text><text x='18' y='24' font-family='sans-serif' font-weight='700' font-size='22' fill='%23E85D3A'>_</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <script>(function(){var t=localStorage.getItem('human-theme');if(t)document.documentElement.setAttribute('data-theme',t);else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:light)').matches)document.documentElement.setAttribute('data-theme','light')})()</script>
+  <style>
+    /* ══════════════════════════════════════════════
+       Page-specific: CLI Guide
+       Nav override for wider layout
+       ══════════════════════════════════════════════ */
+    .site-nav .nav-inner { max-width: 1280px; }
+
+    /* ══════════════════════════════════════════════
+       LAYOUT: SIDEBAR + CONTENT
+       ══════════════════════════════════════════════ */
+    .page-layout {
+      display: flex;
+      max-width: 1280px;
+      margin: 0 auto;
+      min-height: calc(100vh - var(--nav-height));
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      flex-shrink: 0;
+      position: sticky;
+      top: var(--nav-height);
+      height: calc(100vh - var(--nav-height));
+      overflow-y: auto;
+      padding: 32px 24px 48px 24px;
+      border-right: 1px solid var(--border);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-hover) transparent;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 4px; }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .sidebar-group {
+      margin-bottom: 20px;
+    }
+    .sidebar-group-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      opacity: 0.6;
+      margin-bottom: 6px;
+      padding-left: 12px;
+    }
+    .sidebar-nav { list-style: none; }
+    .sidebar-nav li { margin-bottom: 2px; }
+    .sidebar-nav a {
+      display: block;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-muted);
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+      line-height: 1.45;
+    }
+    .sidebar-nav a:hover {
+      color: var(--text);
+      background: var(--bg-surface);
+    }
+    .sidebar-nav a.active {
+      color: var(--accent);
+      background: rgba(232, 93, 58, 0.08);
+    }
+    .sidebar-nav a code {
+      font-family: var(--font-code);
+      font-size: 12px;
+    }
+
+    /* Mobile TOC */
+    .mobile-toc {
+      display: none;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-raised);
+    }
+    .mobile-toc-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .mobile-toc-toggle:hover { border-color: var(--border-hover); }
+    .mobile-toc-toggle svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .mobile-toc.open .mobile-toc-toggle svg { transform: rotate(180deg); }
+    .mobile-toc-list {
+      list-style: none;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .mobile-toc.open .mobile-toc-list {
+      max-height: 800px;
+      margin-top: 12px;
+    }
+    .mobile-toc-list a {
+      display: block;
+      padding: 8px 12px;
+      font-size: 14px;
+      color: var(--text-muted);
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .mobile-toc-list a:hover {
+      color: var(--text);
+      background: var(--bg-surface);
+    }
+
+    /* Main content */
+    .content {
+      flex: 1;
+      min-width: 0;
+      max-width: 780px;
+      padding: 48px 48px 96px 48px;
+    }
+
+    /* ══════════════════════════════════════════════
+       TYPOGRAPHY
+       ══════════════════════════════════════════════ */
+    .content h1 {
+      font-weight: 700;
+      font-size: 38px;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      color: var(--text-bright);
+    }
+    .content .page-subtitle {
+      font-size: 17px;
+      color: var(--text-muted);
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+
+    .content h2 {
+      font-weight: 700;
+      font-size: 28px;
+      line-height: 1.25;
+      color: var(--text-bright);
+      margin-top: 64px;
+      margin-bottom: 20px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+    .content h2:first-of-type {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+
+    .content h3 {
+      font-weight: 700;
+      font-size: 22px;
+      line-height: 1.3;
+      color: var(--text-bright);
+      margin-top: 40px;
+      margin-bottom: 16px;
+    }
+
+    .content h4 {
+      font-weight: 700;
+      font-size: 17px;
+      line-height: 1.4;
+      color: var(--text);
+      margin-top: 32px;
+      margin-bottom: 12px;
+    }
+
+    .content p {
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .content p strong { color: var(--text-bright); }
+
+    .content ul, .content ol {
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+    .content li {
+      margin-bottom: 6px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .content li code, .content p code, .content td code, .content h4 code {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: var(--font-code);
+      font-size: 0.88em;
+      color: var(--accent);
+    }
+
+    .content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ══════════════════════════════════════════════
+       CODE BLOCKS
+       ══════════════════════════════════════════════ */
+    .code-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+    .code-block pre {
+      font-family: var(--font-code);
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      margin: 0;
+      white-space: pre;
+    }
+    .code-block .kw { color: var(--accent); }
+    .code-block .str { color: var(--success); }
+    .code-block .cmt { color: var(--text-muted); font-style: italic; }
+    .code-block .flag { color: #7FBBDA; }
+    .code-block .out { color: var(--text-muted); }
+
+    /* ══════════════════════════════════════════════
+       COMMAND REFERENCE CARDS
+       ══════════════════════════════════════════════ */
+    .cmd-card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .cmd-signature {
+      font-family: var(--font-code);
+      font-size: 15px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .cmd-desc {
+      color: var(--text);
+      margin-bottom: 12px;
+      font-size: 15px;
+    }
+    .cmd-desc:last-child { margin-bottom: 0; }
+
+    /* Flags table */
+    .flags-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .flags-table thead th {
+      background: var(--bg-surface);
+      padding: 8px 14px;
+      font-weight: 700;
+      text-align: left;
+      color: var(--text-bright);
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .flags-table tbody td {
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .flags-table tbody tr:last-child td { border-bottom: none; }
+    .flags-table code {
+      font-family: var(--font-code);
+      font-size: 13px;
+      color: var(--accent);
+    }
+
+    /* REPL command table */
+    .repl-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-bottom: 24px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .repl-table thead th {
+      background: var(--bg-raised);
+      padding: 10px 16px;
+      font-weight: 700;
+      font-size: 14px;
+      text-align: left;
+      color: var(--text-bright);
+      border-bottom: 1px solid var(--border);
+    }
+    .repl-table tbody td {
+      padding: 8px 16px;
+      font-size: 15px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .repl-table tbody tr:last-child td { border-bottom: none; }
+    .repl-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+    .repl-table code {
+      font-family: var(--font-code);
+      font-size: 13px;
+      color: var(--accent);
+    }
+    .repl-table .alias {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* Tip callout */
+    .tip-box {
+      font-size: 14px;
+      color: var(--text-muted);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+    }
+    .tip-box strong { color: var(--accent); }
+
+    /* Install code */
+    .install-block {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      font-family: var(--font-code);
+      font-size: 14px;
+      color: var(--text);
+      overflow-x: auto;
+    }
+    .install-block .prompt { color: var(--text-muted); user-select: none; }
+
+    /* ══════════════════════════════════════════════
+       RESPONSIVE
+       ══════════════════════════════════════════════ */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .mobile-toc { display: block; }
+      .content {
+        max-width: 100%;
+        padding: 32px 24px 64px 24px;
+      }
+      .content h1 { font-size: 30px; }
+      .content h2 { font-size: 24px; }
+      .content h3 { font-size: 20px; }
+    }
+
+    @media (max-width: 600px) {
+      .content { padding: 24px 16px 48px 16px; }
+      .content h1 { font-size: 26px; }
+      .content h2 { font-size: 22px; margin-top: 48px; }
+      .content h3 { font-size: 18px; }
+      .code-block { padding: 14px; }
+      .code-block pre { font-size: 13px; }
+      .cmd-card { padding: 18px; }
+      .flags-table { font-size: 13px; }
+      .repl-table { font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════
+       NAVIGATION BAR
+       ══════════════════════════════════════════════ -->
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">human<span class="nav-logo-cursor">_</span></a>
+      <div class="nav-links">
+        <a href="getting-started.html">Get Started</a>
+        <a href="cli-guide.html" class="active">CLI Guide</a>
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+        <a href="manifesto.html" class="nav-hide-mobile">Manifesto</a>
+        <a href="contributing.html" class="nav-hide-mobile">Contributing</a>
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+        <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════
+       MOBILE TABLE OF CONTENTS
+       ══════════════════════════════════════════════ -->
+  <div class="mobile-toc" id="mobileToc">
+    <button class="mobile-toc-toggle" onclick="document.getElementById('mobileToc').classList.toggle('open')">
+      Table of Contents
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <ul class="mobile-toc-list">
+      <li><a href="#overview" onclick="document.getElementById('mobileToc').classList.remove('open')">Overview</a></li>
+      <li><a href="#installation" onclick="document.getElementById('mobileToc').classList.remove('open')">Installation</a></li>
+      <li><a href="#project-commands" onclick="document.getElementById('mobileToc').classList.remove('open')">Project Commands</a></li>
+      <li><a href="#discovery" onclick="document.getElementById('mobileToc').classList.remove('open')">Discovery &amp; Reference</a></li>
+      <li><a href="#diagnostics" onclick="document.getElementById('mobileToc').classList.remove('open')">Diagnostics</a></li>
+      <li><a href="#deployment" onclick="document.getElementById('mobileToc').classList.remove('open')">Deployment</a></li>
+      <li><a href="#ai-commands" onclick="document.getElementById('mobileToc').classList.remove('open')">AI-Assisted Commands</a></li>
+      <li><a href="#repl" onclick="document.getElementById('mobileToc').classList.remove('open')">Interactive REPL</a></li>
+      <li><a href="#configuration" onclick="document.getElementById('mobileToc').classList.remove('open')">Configuration</a></li>
+      <li><a href="#coming-soon" onclick="document.getElementById('mobileToc').classList.remove('open')">Coming Soon</a></li>
+    </ul>
+  </div>
+
+  <div class="page-layout">
+
+    <!-- ══════════════════════════════════════════════
+         SIDEBAR TABLE OF CONTENTS
+         ══════════════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-title">CLI Guide</div>
+      <ul class="sidebar-nav" id="sidebarNav">
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Commands</div>
+        <ul class="sidebar-nav" id="sidebarNav2">
+          <li><a href="#project-commands">Project Commands</a></li>
+          <li><a href="#cmd-build"><code>build</code></a></li>
+          <li><a href="#cmd-check"><code>check</code></a></li>
+          <li><a href="#cmd-init"><code>init</code></a></li>
+          <li><a href="#cmd-run"><code>run</code></a></li>
+          <li><a href="#cmd-test"><code>test</code></a></li>
+          <li><a href="#discovery">Discovery &amp; Reference</a></li>
+          <li><a href="#cmd-explain"><code>explain</code></a></li>
+          <li><a href="#cmd-syntax"><code>syntax</code></a></li>
+          <li><a href="#diagnostics">Diagnostics</a></li>
+          <li><a href="#cmd-fix"><code>fix</code></a></li>
+          <li><a href="#cmd-doctor"><code>doctor</code></a></li>
+          <li><a href="#deployment">Deployment</a></li>
+          <li><a href="#cmd-deploy"><code>deploy</code></a></li>
+          <li><a href="#cmd-eject"><code>eject</code></a></li>
+          <li><a href="#cmd-storybook"><code>storybook</code></a></li>
+          <li><a href="#cmd-audit"><code>audit</code></a></li>
+          <li><a href="#ai-commands">AI-Assisted</a></li>
+          <li><a href="#cmd-ask"><code>ask</code></a></li>
+          <li><a href="#cmd-how"><code>how</code></a></li>
+          <li><a href="#cmd-suggest"><code>suggest</code></a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">REPL</div>
+        <ul class="sidebar-nav" id="sidebarNav3">
+          <li><a href="#repl">Interactive REPL</a></li>
+          <li><a href="#repl-commands">All Commands</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Setup</div>
+        <ul class="sidebar-nav" id="sidebarNav4">
+          <li><a href="#configuration">Configuration</a></li>
+          <li><a href="#env-vars">Environment Variables</a></li>
+          <li><a href="#coming-soon">Coming Soon</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- ══════════════════════════════════════════════
+         MAIN CONTENT
+         ══════════════════════════════════════════════ -->
+    <main class="content">
+
+      <h1 id="overview">CLI Guide</h1>
+      <p class="page-subtitle">Complete reference for the Human compiler CLI &mdash; every command, flag, and REPL feature.</p>
+
+      <div class="tip-box">
+        <strong>Quick start:</strong> Run <code>human</code> with no arguments to enter the interactive REPL, or <code>human build app.human</code> to compile a project.
+      </div>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> <span class="flag">--help</span>
+
+<span class="str">human</span> — compile structured English into full-stack applications
+
+<span class="kw">Usage:</span>
+  human &lt;command&gt; [arguments]
+
+<span class="kw">Commands:</span>
+  build &lt;file&gt;      Compile to IR and generate code
+  check &lt;file&gt;      Validate a .human file
+  init [name]       Create a new Human project
+  run               Start the development server
+  test              Run generated tests
+  explain [topic]   Learn Human syntax by topic
+  syntax [section]  Full syntax reference
+  fix &lt;file&gt;        Find and auto-fix common issues
+  doctor            Check environment health
+  deploy [file]     Deploy the application
+  eject [path]      Export as standalone code
+  storybook         Launch Storybook dev server
+  audit             Display security and quality report
+  ask &lt;desc&gt;        Generate .human from description
+  how &lt;question&gt;    Ask about Human language usage
+  suggest &lt;file&gt;    Get improvement suggestions
+  edit &lt;file&gt;       Open interactive TUI editor
+  version           Print the compiler version
+  help              Show this help message
+
+<span class="kw">Global flags:</span>
+  --no-color        Disable colored output</pre>
+      </div>
+
+
+      <!-- ── Installation ── -->
+      <h2 id="installation">Installation</h2>
+
+      <p>Install with Go (1.25+):</p>
+      <div class="install-block">
+        <span class="prompt">$ </span>go install github.com/barun-bash/human/cmd/human@v0.4.2
+      </div>
+
+      <p>Or build from source:</p>
+      <div class="code-block">
+        <pre><span class="out">$</span> git clone https://github.com/barun-bash/human.git
+<span class="out">$</span> cd human
+<span class="out">$</span> make build
+<span class="out">$</span> make install    <span class="cmt"># copies to /usr/local/bin</span></pre>
+      </div>
+
+      <p>Verify the installation:</p>
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> version
+<span class="out">human v0.4.2 (go1.25, darwin/arm64)</span></pre>
+      </div>
+
+
+      <!-- ══════════════════════════════════════════════
+           PROJECT COMMANDS
+           ══════════════════════════════════════════════ -->
+      <h2 id="project-commands">Project Commands</h2>
+      <p>Core commands for building, validating, and running Human projects.</p>
+
+      <!-- build -->
+      <h3 id="cmd-build"><code>human build</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human build &lt;file.human&gt; [flags]</div>
+        <p class="cmd-desc">Compile a <code>.human</code> file to full-stack application code. Output goes to <code>.human/output/</code>.</p>
+        <table class="flags-table">
+          <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>--inspect</code></td><td>Parse and print the Intent IR as YAML to stdout (no code generation)</td></tr>
+            <tr><td><code>--watch</code>, <code>-w</code></td><td>Watch for file changes and rebuild automatically</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> build app.human
+
+<span class="str">✓</span> Parsed app.human (0 errors, 0 warnings)
+<span class="str">✓</span> Generated 69 files across 4 targets
+<span class="str">✓</span> Quality: 14 tests, 0 security issues, 0 lint warnings
+<span class="str">✓</span> Output: .human/output/
+
+<span class="out">$</span> <span class="kw">human</span> build app.human <span class="flag">--inspect</span>
+<span class="cmt"># prints IR as YAML — useful for debugging</span></pre>
+      </div>
+
+      <!-- check -->
+      <h3 id="cmd-check"><code>human check</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human check &lt;file.human&gt;</div>
+        <p class="cmd-desc">Validate syntax and semantics without generating code. Catches errors and warnings early.</p>
+      </div>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> check app.human
+
+<span class="str">✓</span> app.human is valid (0 errors, 2 warnings)
+  <span class="out">W201: Missing "build with:" block — defaults will be used</span>
+  <span class="out">W301: Page "settings" has no navigation entry</span></pre>
+      </div>
+
+      <!-- init -->
+      <h3 id="cmd-init"><code>human init</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human init [name]</div>
+        <p class="cmd-desc">Create a new Human project with an interactive wizard. Scaffolds a starter <code>.human</code> file.</p>
+      </div>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> init my-app
+
+<span class="str">✓</span> Created my-app/app.human
+<span class="out">  Next: human build my-app/app.human</span></pre>
+      </div>
+
+      <!-- run -->
+      <h3 id="cmd-run"><code>human run</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human run</div>
+        <p class="cmd-desc">Start the development server. Auto-detects the build output and runs <code>start.sh</code> or <code>npm run dev</code>.</p>
+      </div>
+
+      <!-- test -->
+      <h3 id="cmd-test"><code>human test</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human test</div>
+        <p class="cmd-desc">Run the generated test suite. Executes <code>npm test</code> in the output directory.</p>
+      </div>
+
+
+      <!-- ══════════════════════════════════════════════
+           DISCOVERY & REFERENCE
+           ══════════════════════════════════════════════ -->
+      <h2 id="discovery">Discovery &amp; Reference</h2>
+      <p>Learn the Human language from the command line.</p>
+
+      <!-- explain -->
+      <h3 id="cmd-explain"><code>human explain</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human explain [topic]</div>
+        <p class="cmd-desc">Interactive syntax reference. Shows patterns and examples for any Human language topic.</p>
+      </div>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> explain pages
+
+<span class="kw">Pages</span>
+Define the screens of your application.
+
+<span class="str">Syntax:</span>
+  page &lt;name&gt;:
+    path: "/..."
+    layout: ...
+    sections:
+      ...
+
+<span class="str">Example:</span>
+  page Dashboard:
+    path: "/dashboard"
+    layout: sidebar
+    sections:
+      - hero: "Welcome back, {user.name}"
+      - stats grid showing active projects, completed tasks
+      - recent activity feed</pre>
+      </div>
+
+      <p>Topics include: <code>pages</code>, <code>apis</code>, <code>data</code>, <code>auth</code>, <code>events</code>, <code>roles</code>, <code>deploy</code>, <code>build</code>, <code>theme</code>, <code>testing</code>, <code>realtime</code>, and more. Run <code>human explain</code> without a topic to see the full list.</p>
+
+      <!-- syntax -->
+      <h3 id="cmd-syntax"><code>human syntax</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human syntax [section] [flags]</div>
+        <p class="cmd-desc">Full syntax reference, organized by section. Use <code>--search</code> to find specific patterns.</p>
+        <table class="flags-table">
+          <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>--search &lt;term&gt;</code></td><td>Search syntax patterns by keyword</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> syntax <span class="flag">--search</span> "authentication"
+<span class="cmt"># shows all syntax related to authentication</span></pre>
+      </div>
+
+
+      <!-- ══════════════════════════════════════════════
+           DIAGNOSTICS
+           ══════════════════════════════════════════════ -->
+      <h2 id="diagnostics">Diagnostics</h2>
+      <p>Find and fix problems in your code and environment.</p>
+
+      <!-- fix -->
+      <h3 id="cmd-fix"><code>human fix</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human fix [--dry-run] &lt;file.human&gt;</div>
+        <p class="cmd-desc">Analyze a <code>.human</code> file for common issues and auto-fix them. Handles indentation, missing blocks, deprecated syntax, and more.</p>
+        <table class="flags-table">
+          <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>--dry-run</code></td><td>Preview fixes without applying them to the file</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> fix app.human
+
+<span class="str">Found 3 fixable issues:</span>
+  1. Missing "build with:" block → added with defaults
+  2. Inconsistent indentation on line 14 → fixed
+  3. Deprecated "database:" → replaced with "data models:"
+
+<span class="str">✓</span> Applied 3 fixes to app.human</pre>
+      </div>
+
+      <!-- doctor -->
+      <h3 id="cmd-doctor"><code>human doctor</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human doctor</div>
+        <p class="cmd-desc">Check your environment health. Verifies required tools, project config, and <code>.human</code> files.</p>
+      </div>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> doctor
+
+<span class="str">✓</span> Human compiler v0.4.2
+<span class="str">✓</span> Go 1.25
+<span class="str">✓</span> Node.js 22.0.0
+<span class="str">✓</span> Docker 27.0.0
+<span class="out">⚠</span> Python not found — needed for Python backend targets
+<span class="out">⚠</span> Terraform not found — needed for infrastructure targets
+
+<span class="str">Environment:</span> 4/6 checks passed
+<span class="out">Run "human doctor" after installing missing tools.</span></pre>
+      </div>
+
+
+      <!-- ══════════════════════════════════════════════
+           DEPLOYMENT
+           ══════════════════════════════════════════════ -->
+      <h2 id="deployment">Deployment</h2>
+      <p>Deploy, export, and audit your generated application.</p>
+
+      <!-- deploy -->
+      <h3 id="cmd-deploy"><code>human deploy</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human deploy [file] [flags]</div>
+        <p class="cmd-desc">Deploy the application. Supports Docker, AWS (Terraform), and GCP (Terraform). Auto-detects the <code>.human</code> file if only one exists.</p>
+        <table class="flags-table">
+          <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>--dry-run</code></td><td>Show deployment steps without executing</td></tr>
+            <tr><td><code>--env &lt;name&gt;</code>, <code>-e &lt;name&gt;</code></td><td>Deploy with a specific environment</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- eject -->
+      <h3 id="cmd-eject"><code>human eject</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human eject [path]</div>
+        <p class="cmd-desc">Export the build output as standalone code. Copies to <code>./output/</code> by default, strips generated-by comments. No Human dependency required after ejecting.</p>
+      </div>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> eject ./my-standalone-app
+
+<span class="str">✓</span> Ejected to ./my-standalone-app
+<span class="out">  The project is now fully standalone — no Human dependency.</span></pre>
+      </div>
+
+      <!-- storybook -->
+      <h3 id="cmd-storybook"><code>human storybook</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human storybook</div>
+        <p class="cmd-desc">Launch the Storybook dev server from the build output. Auto-detects the framework (React, Vue, Angular, or Svelte). Runs on port 6006.</p>
+      </div>
+
+      <!-- audit -->
+      <h3 id="cmd-audit"><code>human audit</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human audit</div>
+        <p class="cmd-desc">Display the security and quality report from the last build. Shows the contents of <code>security-report.md</code>.</p>
+      </div>
+
+
+      <!-- ══════════════════════════════════════════════
+           AI-ASSISTED COMMANDS
+           ══════════════════════════════════════════════ -->
+      <h2 id="ai-commands">AI-Assisted Commands</h2>
+      <p>These commands require an LLM provider (Anthropic, OpenAI, Ollama, Groq, OpenRouter, Gemini, or custom). Configure with <code>human</code> → <code>/connect</code> in the REPL.</p>
+
+      <!-- ask -->
+      <h3 id="cmd-ask"><code>human ask</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human ask "&lt;description&gt;"</div>
+        <p class="cmd-desc">Generate a <code>.human</code> file from a natural language description. Streams the response, validates the output, and shows token usage.</p>
+      </div>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> ask <span class="str">"a task management app with kanban boards and team collaboration"</span>
+
+<span class="cmt">Generating .human file...</span>
+
+app "TaskFlow":
+  description: "Kanban-style task management with real-time collaboration"
+  ...
+
+<span class="str">✓</span> Generated taskflow.human (validated)
+<span class="out">  Tokens: 847 in / 1,203 out</span></pre>
+      </div>
+
+      <!-- how -->
+      <h3 id="cmd-how"><code>human how</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human how "&lt;question&gt;"</div>
+        <p class="cmd-desc">Ask about Human language usage. Get answers about syntax, patterns, and best practices.</p>
+      </div>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span> how <span class="str">"add drag and drop to a kanban board"</span></pre>
+      </div>
+
+      <!-- suggest -->
+      <h3 id="cmd-suggest"><code>human suggest</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human suggest &lt;file.human&gt;</div>
+        <p class="cmd-desc">Get AI-powered improvement suggestions for your <code>.human</code> file. Categorized by features, performance, security, and code quality.</p>
+      </div>
+
+
+      <!-- ══════════════════════════════════════════════
+           INTERACTIVE REPL
+           ══════════════════════════════════════════════ -->
+      <h2 id="repl">Interactive REPL</h2>
+      <p>Run <code>human</code> with no arguments to enter the interactive REPL. Provides tab completion, command history, and all CLI features in a persistent session.</p>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span>
+
+  <span class="str">human_</span> v0.4.2
+
+  Type <span class="kw">/help</span> for commands, <span class="kw">/open</span> to load a project.
+
+<span class="kw">human&gt;</span> /open examples/taskflow/app.human
+<span class="str">✓</span> Loaded app.human (TaskFlow)
+
+<span class="kw">human&gt;</span> /build
+<span class="str">✓</span> Built 69 files in 1.2s
+
+<span class="kw">human&gt;</span> /run
+<span class="out">Starting dev server on :3000...</span></pre>
+      </div>
+
+      <div class="tip-box">
+        <strong>Features:</strong> Tab completion for commands and files &middot; Command history with persistence across sessions &middot; Auto-detect <code>.human</code> files in the current directory &middot; 7 color themes &middot; Background update checks
+      </div>
+
+      <!-- All REPL Commands -->
+      <h3 id="repl-commands">All REPL Commands</h3>
+
+      <h4>Project Management</h4>
+      <table class="repl-table">
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/open &lt;file&gt;</code></td><td>Load a .human file</td></tr>
+          <tr><td><code>/new [name]</code></td><td>Create a new Human project</td></tr>
+          <tr><td><code>/review</code></td><td>Open project file in <code>$EDITOR</code></td></tr>
+          <tr><td><code>/examples</code></td><td>List available example projects</td></tr>
+        </tbody>
+      </table>
+
+      <h4>AI-Assisted Editing</h4>
+      <table class="repl-table">
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/ask &lt;description&gt;</code></td><td>Generate a .human file from description</td></tr>
+          <tr><td><code>/edit [instruction]</code> <span class="alias">(/e)</span></td><td>AI-assisted editing session — <code>save</code>, <code>show</code>, <code>quit</code></td></tr>
+          <tr><td><code>/undo</code></td><td>Revert the last /edit change</td></tr>
+          <tr><td><code>/suggest [apply &lt;n|all&gt;]</code></td><td>AI improvement suggestions; optionally apply</td></tr>
+          <tr><td><code>/rewrite &lt;approach&gt;</code></td><td>Regenerate file with a different approach</td></tr>
+          <tr><td><code>/add &lt;description&gt;</code></td><td>Add a new section to the loaded project</td></tr>
+          <tr><td><code>/import figma &lt;url&gt;</code></td><td>Import from Figma design</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Build &amp; Deploy</h4>
+      <table class="repl-table">
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/build</code> <span class="alias">(/b)</span></td><td>Compile the loaded project</td></tr>
+          <tr><td><code>/check</code></td><td>Validate the loaded project</td></tr>
+          <tr><td><code>/run</code></td><td>Start the development server</td></tr>
+          <tr><td><code>/test</code> <span class="alias">(/t)</span></td><td>Run generated tests</td></tr>
+          <tr><td><code>/deploy [--dry-run]</code></td><td>Deploy via Docker</td></tr>
+          <tr><td><code>/stop</code></td><td>Stop Docker containers</td></tr>
+          <tr><td><code>/status</code></td><td>Show project and Docker status</td></tr>
+          <tr><td><code>/audit</code></td><td>Display security and quality report</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Reference &amp; Help</h4>
+      <table class="repl-table">
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/explain [topic]</code></td><td>Learn Human syntax by topic</td></tr>
+          <tr><td><code>/syntax [section|--search &lt;term&gt;]</code></td><td>Full syntax reference with search</td></tr>
+          <tr><td><code>/fix [--dry-run]</code></td><td>Find and auto-fix common issues</td></tr>
+          <tr><td><code>/doctor</code></td><td>Check environment health</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Configuration</h4>
+      <table class="repl-table">
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/connect [provider|status]</code></td><td>Set up LLM provider</td></tr>
+          <tr><td><code>/disconnect</code></td><td>Remove saved LLM provider</td></tr>
+          <tr><td><code>/model [name|list]</code></td><td>Show or switch the LLM model</td></tr>
+          <tr><td><code>/mcp [list|add|remove|status]</code></td><td>Manage MCP server connections</td></tr>
+          <tr><td><code>/theme [name|list]</code></td><td>Show or change the color theme</td></tr>
+          <tr><td><code>/config [set &lt;key&gt; &lt;value&gt;]</code></td><td>View or change settings</td></tr>
+          <tr><td><code>/instructions [edit|init]</code></td><td>Manage project instructions (HUMAN.md)</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Navigation &amp; Utility</h4>
+      <table class="repl-table">
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>/cd [path]</code></td><td>Change working directory</td></tr>
+          <tr><td><code>/pwd</code></td><td>Print working directory</td></tr>
+          <tr><td><code>/history [clear|&lt;n&gt;]</code></td><td>Show or clear command history; re-run by number</td></tr>
+          <tr><td><code>/clear</code></td><td>Clear the screen</td></tr>
+          <tr><td><code>/version</code> <span class="alias">(/v)</span></td><td>Print the compiler version</td></tr>
+          <tr><td><code>/update</code></td><td>Check for and install updates</td></tr>
+          <tr><td><code>/help</code> <span class="alias">(/?)</span></td><td>Show help message</td></tr>
+          <tr><td><code>/quit</code> <span class="alias">(/exit, /q)</span></td><td>Exit the REPL</td></tr>
+        </tbody>
+      </table>
+
+
+      <!-- ══════════════════════════════════════════════
+           CONFIGURATION
+           ══════════════════════════════════════════════ -->
+      <h2 id="configuration">Configuration</h2>
+
+      <h3>Project Config</h3>
+      <p>Created automatically. Located at <code>.human/config.json</code> in your project directory.</p>
+
+      <div class="code-block">
+        <pre>{
+  <span class="str">"llm"</span>: {
+    <span class="str">"provider"</span>: <span class="str">"anthropic"</span>,
+    <span class="str">"model"</span>: <span class="str">"claude-sonnet-4-20250514"</span>,
+    <span class="str">"max_tokens"</span>: 4096,
+    <span class="str">"temperature"</span>: 0.0
+  }
+}</pre>
+      </div>
+
+      <h3>Global Config</h3>
+      <p>User-wide settings at <code>~/.human/config.json</code>. Stores LLM credentials (permissions: 0600) and MCP servers.</p>
+
+      <div class="code-block">
+        <pre>{
+  <span class="str">"llm"</span>: {
+    <span class="str">"provider"</span>: <span class="str">"anthropic"</span>,
+    <span class="str">"model"</span>: <span class="str">"claude-sonnet-4-20250514"</span>,
+    <span class="str">"api_key"</span>: <span class="str">"sk-ant-..."</span>
+  },
+  <span class="str">"mcp"</span>: [
+    {
+      <span class="str">"name"</span>: <span class="str">"figma"</span>,
+      <span class="str">"command"</span>: <span class="str">"npx"</span>,
+      <span class="str">"args"</span>: [<span class="str">"@anthropic/mcp-server-figma"</span>],
+      <span class="str">"env"</span>: { <span class="str">"FIGMA_ACCESS_TOKEN"</span>: <span class="str">"..."</span> }
+    }
+  ]
+}</pre>
+      </div>
+
+      <h3>Settings</h3>
+      <p>UI preferences at <code>~/.human/settings.json</code>. Change via <code>/config set &lt;key&gt; &lt;value&gt;</code> in the REPL.</p>
+
+      <table class="flags-table">
+        <thead><tr><th>Key</th><th>Values</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td><code>theme</code></td><td>default, dark, light, nord, solarized, monokai, gruvbox</td><td>default</td></tr>
+          <tr><td><code>animate</code></td><td>on / off</td><td>on</td></tr>
+          <tr><td><code>plan_mode</code></td><td>always / auto / off</td><td>always</td></tr>
+          <tr><td><code>auto_accept</code></td><td>on / off</td><td>off</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Project Instructions</h3>
+      <p>Create a <code>HUMAN.md</code> file in your project root for per-project instructions. These are automatically included as context for AI commands.</p>
+
+      <div class="code-block">
+        <pre><span class="out">$</span> <span class="kw">human</span>
+<span class="kw">human&gt;</span> /instructions init   <span class="cmt"># create template HUMAN.md</span>
+<span class="kw">human&gt;</span> /instructions edit   <span class="cmt"># open in $EDITOR</span></pre>
+      </div>
+
+
+      <!-- ── Environment Variables ── -->
+      <h3 id="env-vars">Environment Variables</h3>
+
+      <table class="flags-table">
+        <thead><tr><th>Variable</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Anthropic API key</td></tr>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI API key</td></tr>
+          <tr><td><code>GROQ_API_KEY</code></td><td>Groq API key</td></tr>
+          <tr><td><code>OPENROUTER_API_KEY</code></td><td>OpenRouter API key</td></tr>
+          <tr><td><code>GEMINI_API_KEY</code></td><td>Google Gemini API key</td></tr>
+          <tr><td><code>CUSTOM_API_KEY</code></td><td>Custom provider API key</td></tr>
+          <tr><td><code>FIGMA_ACCESS_TOKEN</code></td><td>Figma API token (for import)</td></tr>
+          <tr><td><code>EDITOR</code> / <code>VISUAL</code></td><td>Preferred text editor (for /review, /instructions edit)</td></tr>
+        </tbody>
+      </table>
+
+      <p>LLM providers supported: <strong>Anthropic</strong>, <strong>OpenAI</strong>, <strong>Ollama</strong> (local), <strong>Groq</strong>, <strong>OpenRouter</strong>, <strong>Gemini</strong>, and <strong>Custom</strong> (any OpenAI-compatible endpoint).</p>
+
+
+      <!-- ══════════════════════════════════════════════
+           COMING SOON
+           ══════════════════════════════════════════════ -->
+      <h2 id="coming-soon">Coming Soon</h2>
+      <p>These commands are planned for upcoming releases.</p>
+
+      <div class="cmd-card">
+        <div class="cmd-signature">human edit &lt;file.human&gt; <span class="badge-soon">Coming Soon</span></div>
+        <p class="cmd-desc">Full TUI editor with syntax highlighting, real-time validation, and structural editing. Currently available as a basic editor; the enhanced version with <code>-i "instruction"</code> for AI-assisted editing is in development.</p>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-signature">human import --figma &lt;url&gt; <span class="badge-soon">Coming Soon</span></div>
+        <p class="cmd-desc">Import Figma designs directly into <code>.human</code> files. Currently available via the REPL (<code>/import figma &lt;url&gt;</code>); standalone CLI command coming soon.</p>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-signature">human convert &lt;description&gt; <span class="badge-soon">Coming Soon</span></div>
+        <p class="cmd-desc">Convert natural language descriptions to <code>.human</code> files. Currently similar to <code>human ask</code>; will support additional input formats including design files.</p>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-signature">human describe &lt;file.human&gt; <span class="badge-soon">Coming Soon</span></div>
+        <p class="cmd-desc">Generate a natural language summary of what a <code>.human</code> file produces.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       FOOTER
+       ══════════════════════════════════════════════ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-logo">human<span class="footer-cursor">_</span></div>
+      <nav class="footer-links">
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+        <a href="getting-started.html">Getting Started</a>
+        <a href="cli-guide.html">CLI Guide</a>
+        <a href="contributing.html">Contributing</a>
+        <a href="manifesto.html">Manifesto</a>
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html">Roadmap</a>
+      </nav>
+      <p class="footer-copy">MIT License &middot; Built with intent.</p>
+    </div>
+  </footer>
+
+  <script src="theme.js"></script>
+  <script>
+    (function () {
+      // ── Sidebar active section tracking ──
+      var allNavs = document.querySelectorAll('#sidebarNav a, #sidebarNav2 a, #sidebarNav3 a, #sidebarNav4 a');
+      var sections = [];
+
+      allNavs.forEach(function (link) {
+        var id = link.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ id: id, el: el, link: link });
+      });
+
+      function updateActive() {
+        var scrollY = window.scrollY + 100;
+        var current = sections[0];
+
+        for (var i = 0; i < sections.length; i++) {
+          if (sections[i].el.offsetTop <= scrollY) {
+            current = sections[i];
+          }
+        }
+
+        allNavs.forEach(function (link) { link.classList.remove('active'); });
+        if (current) current.link.classList.add('active');
+      }
+
+      var ticking = false;
+      window.addEventListener('scroll', function () {
+        if (!ticking) {
+          window.requestAnimationFrame(function () {
+            updateActive();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      });
+
+      updateActive();
+    })();
+  </script>
+</body>
+</html>

@@ -9,96 +9,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Nunito:wght@700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <script>(function(){var t=localStorage.getItem('human-theme');if(t)document.documentElement.setAttribute('data-theme',t);else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:light)').matches)document.documentElement.setAttribute('data-theme','light')})()</script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-
-    :root {
-      --bg: #0D0D0D;
-      --bg-raised: #141414;
-      --bg-surface: #1A1A1A;
-      --text: #E8E8E4;
-      --text-muted: #7A7A7A;
-      --border: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.15);
-      --accent: #E85D3A;
-      --accent-dark: #C44A2D;
-      --success: #2D8C5A;
-      --font-logo: 'Nunito', sans-serif;
-      --font: 'Nunito Sans', system-ui, sans-serif;
-      --font-code: 'JetBrains Mono', monospace;
-      --nav-height: 60px;
-      --sidebar-width: 260px;
-    }
-
-    body {
-      font-family: var(--font);
-      font-size: 17px;
-      line-height: 1.65;
-      color: var(--text);
-      background: var(--bg);
-      -webkit-font-smoothing: antialiased;
-    }
-
-    a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
-    a:hover { color: #F5F5F3; }
-
     /* ══════════════════════════════════════════════
-       NAVIGATION BAR
+       Page-specific: Language Spec
+       Nav override for wider layout
        ══════════════════════════════════════════════ */
-    .navbar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      height: var(--nav-height);
-      display: flex;
-      align-items: center;
-      padding: 0 24px;
-    }
-    .navbar-inner {
-      max-width: 1280px;
-      width: 100%;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .navbar-logo {
-      font-family: var(--font-logo);
-      font-weight: 700;
-      font-size: 22px;
-      letter-spacing: -1px;
-      color: #F5F5F3;
-      text-decoration: none;
-    }
-    .navbar-logo:hover { color: #F5F5F3; }
-    .navbar-logo-cursor { color: var(--accent); }
-
-    .navbar-links {
-      display: flex;
-      align-items: center;
-      gap: 28px;
-    }
-    .navbar-links a {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      transition: color 0.2s;
-    }
-    .navbar-links a:hover { color: #F5F5F3; }
-    .navbar-links a.active { color: var(--accent); }
-    .navbar-links a.gh-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .navbar-links a.gh-link svg {
-      width: 16px;
-      height: 16px;
-      fill: currentColor;
-    }
+    .site-nav .nav-inner { max-width: 1280px; }
 
     /* ══════════════════════════════════════════════
        LAYOUT: SIDEBAR + CONTENT
@@ -226,7 +144,7 @@
       font-size: 38px;
       line-height: 1.2;
       margin-bottom: 12px;
-      color: #F5F5F3;
+      color: var(--text-bright);
     }
     .content .spec-version {
       font-size: 15px;
@@ -238,7 +156,7 @@
       font-weight: 700;
       font-size: 28px;
       line-height: 1.25;
-      color: #F5F5F3;
+      color: var(--text-bright);
       margin-top: 64px;
       margin-bottom: 20px;
       padding-top: 32px;
@@ -254,7 +172,7 @@
       font-weight: 700;
       font-size: 22px;
       line-height: 1.3;
-      color: #F5F5F3;
+      color: var(--text-bright);
       margin-top: 40px;
       margin-bottom: 16px;
     }
@@ -281,7 +199,7 @@
       margin-bottom: 16px;
       color: var(--text);
     }
-    .content p strong { color: #F5F5F3; }
+    .content p strong { color: var(--text-bright); }
 
     .content ul, .content ol {
       margin-bottom: 16px;
@@ -363,7 +281,7 @@
       font-weight: 700;
       font-size: 14px;
       text-align: left;
-      color: #F5F5F3;
+      color: var(--text-bright);
       border-bottom: 1px solid var(--border);
     }
     .spec-table tbody td {
@@ -469,42 +387,6 @@
     }
 
     /* ══════════════════════════════════════════════
-       FOOTER
-       ══════════════════════════════════════════════ */
-    .footer {
-      border-top: 1px solid var(--border);
-      padding: 56px 24px 40px;
-      text-align: center;
-    }
-    .footer-logo {
-      font-family: var(--font-logo);
-      font-weight: 700;
-      font-size: 26px;
-      letter-spacing: -1px;
-      margin-bottom: 24px;
-      color: #F5F5F3;
-    }
-    .footer-cursor { color: var(--accent); }
-
-    .footer-links {
-      display: flex;
-      justify-content: center;
-      gap: 32px;
-      flex-wrap: wrap;
-      margin-bottom: 28px;
-    }
-    .footer-links a {
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-    .footer-links a:hover { color: #F5F5F3; }
-
-    .footer-copy {
-      font-size: 13px;
-      color: rgba(122, 122, 122, 0.5);
-    }
-
-    /* ══════════════════════════════════════════════
        RESPONSIVE
        ══════════════════════════════════════════════ */
     @media (max-width: 900px) {
@@ -518,14 +400,9 @@
       .content h2 { font-size: 24px; }
       .content h3 { font-size: 20px; }
       .overview-meta { gap: 16px; }
-      .navbar-links { gap: 16px; }
-      .navbar-links a { font-size: 13px; }
     }
 
     @media (max-width: 600px) {
-      .navbar { padding: 0 16px; }
-      .navbar-links { gap: 12px; }
-      .navbar-links a.nav-contributing { display: none; }
       .content { padding: 24px 16px 48px 16px; }
       .content h1 { font-size: 26px; }
       .content h2 { font-size: 22px; margin-top: 48px; }
@@ -536,7 +413,6 @@
       .spec-table thead th { padding: 10px 12px; }
       .spec-table tbody td { padding: 8px 12px; }
       .overview-box { padding: 20px; }
-      .footer-links { gap: 16px; }
     }
   </style>
 </head>
@@ -545,19 +421,21 @@
   <!-- ══════════════════════════════════════════════
        NAVIGATION BAR
        ══════════════════════════════════════════════ -->
-  <nav class="navbar">
-    <div class="navbar-inner">
-      <a href="index.html" class="navbar-logo">human<span class="navbar-logo-cursor">_</span></a>
-      <div class="navbar-links">
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">human<span class="nav-logo-cursor">_</span></a>
+      <div class="nav-links">
         <a href="getting-started.html">Get Started</a>
+        <a href="cli-guide.html">CLI Guide</a>
         <a href="language-spec.html" class="active">Language Spec</a>
         <a href="roadmap.html">Roadmap</a>
-        <a href="manifesto.html">Manifesto</a>
-        <a href="contributing.html" class="nav-contributing">Contributing</a>
-        <a href="https://github.com/barun-bash/human" class="gh-link" target="_blank" rel="noopener">
-          <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-          GitHub
-        </a>
+        <a href="manifesto.html" class="nav-hide-mobile">Manifesto</a>
+        <a href="contributing.html" class="nav-hide-mobile">Contributing</a>
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+        <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
       </div>
     </div>
   </nav>
@@ -625,6 +503,10 @@
           <div class="overview-meta-item"><strong>Compiler:</strong> Go</div>
         </div>
       </div>
+
+      <p style="font-size: 14px; color: var(--text-muted); background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 32px;">
+        <strong style="color: var(--accent);">Tip:</strong> Explore patterns interactively with <code style="background: var(--bg-raised); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-family: var(--font-code); font-size: 0.88em;">human explain &lt;topic&gt;</code> &mdash; see the <a href="cli-guide.html" style="color: var(--accent);">CLI Guide</a> for all commands.
+      </p>
 
       <!-- ── 1. Core Principles ── -->
       <h2 id="core-principles">1. Core Principles</h2>
@@ -1632,6 +1514,7 @@ monolith, microservices, <span class="kw">serverless</span>, <span class="kw">ga
       <nav class="footer-links">
         <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
         <a href="getting-started.html">Getting Started</a>
+        <a href="cli-guide.html">CLI Guide</a>
         <a href="contributing.html">Contributing</a>
         <a href="manifesto.html">Manifesto</a>
         <a href="language-spec.html">Language Spec</a>
@@ -1641,6 +1524,7 @@ monolith, microservices, <span class="kw">serverless</span>, <span class="kw">ga
     </div>
   </footer>
 
+  <script src="theme.js"></script>
   <script>
     (function () {
       // ── Sidebar active section tracking ──

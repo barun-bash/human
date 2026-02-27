@@ -4,7 +4,7 @@ var HUMAN_VERSION = "0.4.2";
 var HUMAN_VERSION_TAG = "v" + HUMAN_VERSION;
 var HUMAN_RELEASE_URL = "https://github.com/barun-bash/human/releases/tag/" + HUMAN_VERSION_TAG;
 var HUMAN_INSTALL_CMD = "go install github.com/barun-bash/human/cmd/human@" + HUMAN_VERSION_TAG;
-var HUMAN_STATUS = "Language spec, LLM prompt, 12 examples, 14 generators, interactive REPL. 85+ files per build.";
+var HUMAN_STATUS = "Language spec, LLM prompt, 13 examples, 16 generators, CLI tools, Figma import. 85+ files per build.";
 
 document.addEventListener("DOMContentLoaded", function () {
   // Populate elements with data-version attributes
