@@ -1,209 +1,106 @@
-# CLAUDE.md — Project Context for Claude Code
+# Human Compiler
 
-## What is this project?
+Go compiler that turns structured English (.human files) into full-stack applications.
 
-Human is a programming language where you write in structured English and the compiler produces production-ready, full-stack applications. The compiler is written in Go.
+## Quick Reference
 
-**One sentence:** English in → production-ready code out.
+```bash
+make build          # Build binary (embeds version via ldflags)
+make test           # Run all tests
+make mcp            # Build MCP server (embeds spec + examples)
+make install        # Install to /usr/local/bin
+make clean          # Remove build artifacts
+go test ./...       # Run tests without Make
+go vet ./...        # Lint
+go test ./internal/codegen/react/...  # Single package
+```
+
+## Architecture
+
+```
+.human file → Lexer → Parser → IR (Intent IR) → Analyzer → Code Generators → Output
+```
+
+The **Intent IR** is the key abstraction — a typed, serializable, framework-agnostic intermediate representation. Same IR compiles to any target framework.
+
+## Project Structure
+
+```
+cmd/human/            CLI entry point (main.go)
+cmd/human-mcp/        MCP server (needs `make mcp-embed` first)
+internal/
+  lexer/              Tokenizer (.human → tokens)
+  parser/             Parser (tokens → AST → IR)
+  ir/                 Intent IR types and serialization
+  analyzer/           Semantic analysis, warnings (W201-W503)
+  codegen/            16 code generators:
+    react/              React + TypeScript
+    vue/                Vue 3 + TypeScript
+    angular/            Angular + TypeScript
+    svelte/             SvelteKit + TypeScript
+    node/               Node.js (Express/Fastify)
+    python/             Python (FastAPI/Django)
+    gobackend/          Go (Gin/Fiber)
+    postgres/           PostgreSQL migrations + seeds
+    docker/             Dockerfile + docker-compose (nginx inline)
+    terraform/          AWS ECS/RDS, GCP Cloud Run/SQL
+    cicd/               GitHub Actions workflows
+    architecture/       Monolith / microservices / serverless
+    storybook/          Storybook stories per framework
+    scaffold/           package.json, README, start scripts
+    monitoring/         Prometheus + Grafana
+    themes/             7 design systems (Material, Shadcn, Ant, Chakra, Bootstrap, Tailwind, Untitled)
+  quality/            Tests, security audit, lint, QA trail
+  build/              Orchestrates full build pipeline
+  repl/               Interactive REPL (32 commands, readline, tab completion)
+  readline/           Terminal input with history + completion
+  cli/                Terminal UI/UX (colors, themes, banners, spinners)
+  cmdutil/            Shared CLI command utilities
+  config/             Project + global config, settings
+  version/            Version + build metadata (ldflags)
+  llm/                LLM connector (Anthropic, OpenAI, Ollama, Groq, Gemini, OpenRouter, custom)
+  mcp/                MCP server protocol handlers
+  figma/              Figma design → .human mapping intelligence
+  errors/             Error types with fix suggestions
+examples/             13 example .human apps
+```
+
+## Key Patterns
+
+- IR is the single source of truth between parser and codegen
+- Every generator reads IR, never raw AST
+- `build with:` block in .human is REQUIRED (analyzer W201 if missing)
+- Quality system (tests/security/lint) runs on every build, cannot be skipped
+- Design system flow: .human `theme:` block → IR → `codegen/themes` → package.json deps
+- Figma import wired to REPL via `/import` command (`figma_bridge.go` + `import.go`)
+- `/ask` includes validation retry loop (up to 3 attempts, feeds errors back to LLM)
+- Angular/Svelte Storybook deps injected in `workspace_gen.go`, not `packagejson.go`
+
+## What NOT to Do
+
+- Don't modify IR types without updating ALL generators
+- Don't add npm deps to scaffold without matching ALL framework paths
+- Don't hardcode framework-specific logic in shared codegen utilities
+- Don't skip `go vet` — it catches real issues in template code
+- Don't use `go run` for testing — always `go build` then execute the binary
+- Don't add AI/LLM deps to core compiler — LLM connector is separate, optional
+
+## Agent Coordination
+
+After completing any workplan part, append to `.claude/STATUS.md`:
+```
+[date] Part N: [status] — [summary] — [test results]
+```
+Always read `.claude/STATUS.md` before starting work.
+
+## Current State
+
+Phases 1-12 complete. 1,185+ tests across 34 packages.
+Active work: `WORKPLAN.md` (Figma pipeline), `CLAUDE_CODE_ORG.md` (Claude Code setup).
 
 ## Repository
 
 - **Repo:** https://github.com/barun-bash/human
-- **Language:** Go (1.25+)
-- **Module path:** `github.com/barun-bash/human`
+- **Module:** `github.com/barun-bash/human`
+- **Go:** 1.25+
 - **License:** MIT
-
-## Key Documents (read these first)
-
-- `README.md` — Project overview, quick example, how it works
-- `LANGUAGE_SPEC.md` — Complete grammar reference for the Human language
-- `MANIFESTO.md` — Why this project exists
-- `ARCHITECTURE.md` — Compiler design, directory structure, phase details
-- `ROADMAP.md` — 52-week development plan across 14 phases
-
-## Architecture Overview
-
-```
-.human files + designs
-    ↓
-Lexer (tokenize English into tokens)
-    ↓
-Parser (build AST from tokens)
-    ↓
-Analyzer (validate semantics, resolve references)
-    ↓
-IR Generator (AST → Intent IR, framework-agnostic)
-    ↓
-Code Generators (IR → React/Node/Python/Go/Docker/etc.)
-    ↓
-Quality Engine (tests + security + lint + QA — mandatory, cannot skip)
-    ↓
-Output: production-ready, deployable code
-```
-
-The **Intent IR** is the key innovation — a typed, serializable, framework-agnostic intermediate representation. Same IR compiles to any target framework.
-
-## Directory Structure
-
-```
-human/
-├── cmd/
-│   ├── human/main.go                # CLI entry point
-│   └── human-mcp/                   # MCP server (JSON-RPC 2.0, 6 tools)
-├── internal/
-│   ├── lexer/                       # Tokenizer (token.go, lexer.go)
-│   ├── parser/                      # Recursive descent parser (ast.go, parser.go)
-│   ├── analyzer/                    # Semantic analysis + validation
-│   ├── ir/                          # Intent IR types, AST→IR builder, YAML/JSON serialization
-│   ├── codegen/                     # 16 code generators:
-│   │   ├── react/                   #   React, Angular, Vue, Svelte (frontend)
-│   │   ├── angular/, vue/, svelte/
-│   │   ├── node/, python/, gobackend/ # Node+Express, FastAPI, Go+Gin (backend)
-│   │   ├── postgres/                #   PostgreSQL migrations + seeds
-│   │   ├── docker/                  #   Dockerfiles + docker-compose
-│   │   ├── terraform/               #   AWS ECS/RDS, GCP Cloud Run/SQL
-│   │   ├── cicd/                    #   GitHub Actions workflows
-│   │   ├── monitoring/              #   Prometheus + Grafana
-│   │   ├── architecture/            #   Monolith/microservices/serverless topology
-│   │   ├── scaffold/                #   Project scaffolding (package.json, configs)
-│   │   ├── storybook/               #   Storybook stories
-│   │   └── themes/                  #   7 design systems (Material, Shadcn, Chakra, etc.)
-│   ├── quality/                     # Quality engine (tests, security, lint reports)
-│   ├── build/                       # Build pipeline orchestrator
-│   ├── cli/                         # Terminal output (colors, themes, banners, spinners)
-│   ├── cmdutil/                     # Shared CLI command utilities
-│   ├── repl/                        # Interactive REPL (20+ commands, readline, tab completion)
-│   ├── readline/                    # Line editor with history + completion
-│   ├── config/                      # Project + global config, settings
-│   ├── version/                     # SemVer parsing, build metadata (ldflags)
-│   ├── llm/                         # LLM connector (Anthropic, OpenAI, Ollama, Groq, Gemini)
-│   ├── mcp/                         # MCP client for external tool servers
-│   ├── figma/                       # Figma design → .human mapping intelligence
-│   └── errors/                      # Error types with fix suggestions
-├── examples/                        # 13 example apps (taskflow, blog, ecommerce, saas, ...)
-├── docs/                            # Website (GitHub Pages)
-├── brand/                           # Logos and assets
-├── go.mod
-├── Makefile                         # build, test, install (with ldflags for version embedding)
-├── LANGUAGE_SPEC.md
-├── ARCHITECTURE.md
-├── ROADMAP.md
-├── MANIFESTO.md
-└── README.md
-```
-
-## Current Status
-
-**Phases 1–12 complete.** The compiler is fully functional: lexer, parser, analyzer, IR, 16 code generators, quality engine, interactive REPL, LLM connector, MCP server, and 13 example apps. 1,185+ tests across 34 packages.
-
-What's next:
-- **Phase 13** — Plugin ecosystem (community-extensible generators)
-- **Phase 14** — Polish + launch (performance, tutorials, v1.0)
-
-## Language Design Decisions
-
-- **File extension:** `.human`
-- **Indentation-based scoping** (like Python, no curly braces)
-- **Keywords are case-insensitive** (`Page` = `page` = `PAGE`)
-- **Strings** enclosed in double quotes
-- **Comments** start with `#`
-- **Section headers** use `── name ──` format
-- **English connectors** (`is`, `has`, `which`, `the`, `a`) are part of the grammar
-
-## Token Categories
-
-Declarations: app, data, page, component, api, service, policy, workflow, theme, architecture, environment, integrate, database, authentication, build
-
-Types: text, number, decimal, boolean, date, datetime, email, url, file, image, json
-
-Actions: show, fetch, create, update, delete, send, respond, navigate, check, validate, filter, sort, paginate, search
-
-Conditions: if, when, while, unless, until, after, before, every
-
-Connectors: is, are, has, with, from, to, in, on, for, by, as, and, or, not, the, a, an, which, that, either
-
-Modifiers: requires, accepts, only, every, each, all, optional, unique, encrypted
-
-## Coding Conventions
-
-- Go standard project layout (`cmd/`, `internal/`, `pkg/`)
-- All compiler internals in `internal/` (not importable by external packages)
-- Every package has `*_test.go` files
-- Error messages must be in plain English and suggest fixes in Human language
-- Use Go's `testing` package, no external test frameworks
-- Run `go vet` and `go test ./...` before committing
-
-## Build Commands
-
-```bash
-make build       # Build the compiler binary
-make test        # Run all tests
-make install     # Install to /usr/local/bin
-make clean       # Remove build artifacts
-make lint        # Run go vet
-```
-
-Or without Make (note: `make build` embeds version via ldflags):
-```bash
-go build -o human ./cmd/human/
-go test ./...
-go vet ./...
-```
-
-## Testing Strategy
-
-- Lexer tests: Feed .human source strings, verify token sequences
-- Parser tests: Feed token streams, verify AST structure
-- IR tests: Feed ASTs, verify IR output matches expected YAML/JSON
-- Integration tests: Feed .human files end-to-end, verify final output
-- Use `examples/taskflow/app.human` as the primary integration test target
-
-## The Example Application
-
-`examples/taskflow/app.human` is a complete task management application that exercises every language feature:
-- App declaration and theme
-- Pages (Home, Dashboard, Profile) with display/interaction/conditional statements
-- Data models (User, Task, Tag, TaskTag) with all field types and relationships
-- APIs (SignUp, Login, CRUD operations) with auth, validation, and logic
-- Security (JWT, OAuth, rate limiting, CORS)
-- Policies (FreeUser, ProUser, Admin)
-- Workflows (signup sequence, overdue notifications, completion tracking)
-- Error handling (database retry, validation feedback)
-- Database configuration with indexes
-- Integrations (SendGrid, AWS S3, Slack)
-- DevOps (Git branches, CI/CD pipelines, environments, monitoring)
-- Build target specification
-
-**When building any compiler phase, test it against this file.** If the lexer can tokenize it, the parser can parse it, and the IR can represent it — the phase is complete.
-
-## What NOT to do
-
-- Do not add any AI/LLM dependency to the core compiler. LLM connector is a separate, optional package.
-- Do not use external Go dependencies unless absolutely necessary. Standard library preferred.
-- Do not generate code that requires a Human runtime. Generated code must be standalone.
-- Do not skip quality checks in the compiler. If we enforce quality on users, we enforce it on ourselves.
-- Do not make error messages technical. They should read like advice from a helpful colleague.
-
-## Interactive REPL
-
-The CLI includes a full interactive REPL (`internal/repl/`) with 32 commands:
-
-**Core:** `/open`, `/new`, `/check`, `/build`, `/deploy`, `/stop`, `/status`, `/run`, `/test`, `/audit`, `/eject`
-**AI-assisted:** `/ask`, `/edit`, `/suggest`, `/connect`, `/disconnect`, `/model`, `/import`
-**Design:** `/import figma <url>` — Figma MCP bridge with design system picker (7 systems + custom)
-**System:** `/theme`, `/config`, `/history`, `/update`, `/version`, `/clear`, `/undo`, `/help`, `/quit`
-**Navigation:** `/cd`, `/pwd`, `/examples`, `/instructions`, `/review`, `/mcp`
-
-Features: readline with tab completion, command history, plan mode, auto-detect project, MCP server connections, self-update via GitHub releases.
-
-## Figma Design Conversion
-
-When converting Figma designs to `.human` files, scope to 1-3 screens at a time (larger imports exceed context limits). Use Figma MCP tools: `get_metadata` → `get_screenshot` + `get_design_context` → write `.human` → `human_validate` → `human_build`.
-
-Docker port convention: frontend `73xx`, backend `74xx`, database `74xx` range.
-
-The `/import` command bridges Figma MCP responses (3 JSON formats: document tree, flat node list, single node) into `figma.FigmaFile` structs, then generates `.human` files via LLM or deterministic pipeline. The `/ask` command includes a validation retry loop that feeds parse errors back to the LLM (up to 3 attempts).
-
-## Version & Build
-
-Version is embedded via ldflags at build time (`make build`). The `internal/version/` package provides SemVer parsing and comparison. The REPL checks GitHub releases on startup (24h cache) and shows update notifications.
