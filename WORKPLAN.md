@@ -544,43 +544,43 @@ If no Figma token is available, test the design system picker standalone:
 ## Validation Checklist
 
 ### Part 1 — Storybook
-- [ ] Storybook `.storybook/main.ts` exists for React with `@storybook/react-vite`
-- [ ] Storybook `.storybook/main.ts` exists for Vue with `@storybook/vue3-vite`
-- [ ] Storybook `.storybook/main.ts` exists for Angular with `@storybook/angular`
-- [ ] Storybook `.storybook/main.ts` exists for Svelte with `@storybook/sveltekit`
-- [ ] React `package.json` includes storybook scripts and devDeps ✅ (already works)
-- [ ] Vue `package.json` includes storybook scripts and devDeps ✅ (already works)
-- [ ] Angular `package.json` includes storybook scripts and devDeps (FIX NEEDED)
-- [ ] Svelte `package.json` includes storybook scripts and devDeps (FIX NEEDED)
-- [ ] `human storybook` CLI subcommand launches Storybook dev server (NEW)
-- [ ] Story file extensions correct: `.stories.tsx` (React), `.stories.ts` (Vue/Angular/Svelte)
+- [x] Storybook `.storybook/main.ts` exists for React with `@storybook/react-vite`
+- [x] Storybook `.storybook/main.ts` exists for Vue with `@storybook/vue3-vite`
+- [x] Storybook `.storybook/main.ts` exists for Angular with `@storybook/angular`
+- [x] Storybook `.storybook/main.ts` exists for Svelte with `@storybook/sveltekit`
+- [x] React `package.json` includes storybook scripts and devDeps
+- [x] Vue `package.json` includes storybook scripts and devDeps
+- [x] Angular `package.json` includes storybook scripts and devDeps
+- [x] Svelte `package.json` includes storybook scripts and devDeps
+- [x] `human storybook` CLI subcommand launches Storybook dev server
+- [x] Story file extensions correct: `.stories.tsx` (React), `.stories.ts` (Vue/Angular/Svelte)
 
 ### Part 2 — Design System
-- [ ] Interactive design system picker displays 7 options + Custom
-- [ ] Custom option prompts for color, font, radius, spacing
-- [ ] Framework-design system compatibility warning on mismatch (e.g., Chakra + Vue)
-- [ ] Selected design system reflected in generated theme files
-- [ ] Selected design system reflected in package.json dependencies
-- [ ] Design system picker wired into `/ask` flow (optional prompt)
+- [x] Interactive design system picker displays 7 options + Custom
+- [x] Custom option prompts for color, font, radius, spacing
+- [x] Framework-design system compatibility warning on mismatch (e.g., Chakra + Vue)
+- [x] Selected design system reflected in generated theme files
+- [x] Selected design system reflected in package.json dependencies
+- [x] Design system picker wired into `/ask` flow (optional prompt)
 
 ### Part 3 — Figma Import + LLM
-- [ ] `/import` command registered in REPL
-- [ ] `/import figma <url>` parses fileKey and nodeId from URL
-- [ ] Requires Figma MCP connection (`/mcp add figma`), shows clear error if not connected
-- [ ] Calls Figma MCP tools to fetch design context
-- [ ] Bridges MCP response → `internal/figma/` package structs
-- [ ] Offers design system selection during import flow
-- [ ] Offers optional plain English description to enrich generation
-- [ ] Generates .human file (via figma package or LLM, depending on context)
-- [ ] Validation retry loop: up to 3 attempts with error feedback to LLM
-- [ ] Prompts to save file and auto-build
+- [x] `/import` command registered in REPL
+- [x] `/import figma <url>` parses fileKey and nodeId from URL
+- [x] Requires Figma MCP connection (`/mcp add figma`), shows clear error if not connected
+- [x] Calls Figma MCP tools to fetch design context
+- [x] Bridges MCP response → `internal/figma/` package structs
+- [x] Offers design system selection during import flow
+- [x] Offers optional plain English description to enrich generation
+- [x] Generates .human file (via figma package or LLM, depending on context)
+- [x] Validation retry loop: up to 3 attempts with error feedback to LLM
+- [x] Prompts to save file and auto-build
 
 ### Part 4 — Tests
-- [ ] `go vet ./...` clean
-- [ ] `go test ./...` all pass
-- [ ] E2E: all 4 framework builds produce Storybook output
-- [ ] E2E: design system switching changes package.json deps
-- [ ] E2E: `human storybook` launches dev server from build output
+- [x] `go vet ./...` clean
+- [x] `go test ./...` all pass
+- [x] E2E: all 4 framework builds produce Storybook output
+- [x] E2E: design system switching changes package.json deps
+- [x] E2E: `human storybook` launches dev server from build output
 
 ---
 
