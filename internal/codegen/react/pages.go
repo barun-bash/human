@@ -2,6 +2,7 @@ package react
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/barun-bash/human/internal/ir"
@@ -111,6 +112,20 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		fmt.Fprintf(&b, "import { %s } from '../types/models';\n", modelName)
 	}
 
+	// Import API client function if we have a matching list endpoint
+	var listEp *ir.Endpoint
+	if needsEffect && modelName != "" {
+		listEp = findListEndpoint(app, modelName)
+		if listEp != nil {
+			fmt.Fprintf(&b, "import { %s } from '../api/client';\n", toCamelCase(listEp.Name))
+		}
+	}
+
+	// Component imports
+	for _, comp := range detectUsedComponents(page) {
+		fmt.Fprintf(&b, "import %s from '../components/%s';\n", comp, comp)
+	}
+
 	b.WriteString("\n")
 
 	// Component function
@@ -149,11 +164,17 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 			setterName = "set" + capitalize(varName)
 		}
 		b.WriteString("\n  useEffect(() => {\n")
-		b.WriteString("    // TODO: replace with actual API call\n")
-		fmt.Fprintf(&b, "    fetch('/api/%s')\n", toKebabCase(varName))
-		b.WriteString("      .then(res => res.json())\n")
-		fmt.Fprintf(&b, "      .then(res => { %s(res.data ?? []); setLoading(false); })\n", setterName)
-		b.WriteString("      .catch(() => setLoading(false));\n")
+		if listEp != nil {
+			fmt.Fprintf(&b, "    %s()\n", toCamelCase(listEp.Name))
+			fmt.Fprintf(&b, "      .then(res => { %s(res.data ?? []); setLoading(false); })\n", setterName)
+			b.WriteString("      .catch(() => setLoading(false));\n")
+		} else {
+			b.WriteString("    // TODO: replace with actual API call\n")
+			fmt.Fprintf(&b, "    fetch('/api/%s')\n", toKebabCase(varName))
+			b.WriteString("      .then(res => res.json())\n")
+			fmt.Fprintf(&b, "      .then(res => { %s(res.data ?? []); setLoading(false); })\n", setterName)
+			b.WriteString("      .catch(() => setLoading(false));\n")
+		}
 		b.WriteString("  }, []);\n")
 	}
 
@@ -397,6 +418,12 @@ func writeInputJSX(b *strings.Builder, text string, indent string, ctx *pageCont
 		fmt.Fprintf(b, "%s  <label>%s</label>\n", indent, label)
 		fmt.Fprintf(b, "%s  <input type=\"file\" accept=\"image/*\" onChange={() => {/* TODO: handle upload */}} />\n", indent)
 		fmt.Fprintf(b, "%s</div>\n", indent)
+	} else if strings.Contains(lower, "button") {
+		label := extractQuotedText(text)
+		if label == "" {
+			label = extractButtonPurpose(lower)
+		}
+		fmt.Fprintf(b, "%s<button className=\"btn\">%s</button>\n", indent, label)
 	} else {
 		fmt.Fprintf(b, "%s<input type=\"text\" placeholder=\"%s\" />\n", indent, text)
 	}
@@ -689,12 +716,53 @@ func detectPageModel(page *ir.Page, app *ir.Application) (modelName, varName, it
 				lowerText := strings.ToLower(a.Text)
 				lowerModel := strings.ToLower(m.Name)
 				if strings.Contains(lowerText, lowerModel+"s") || strings.Contains(lowerText, lowerModel) {
-					return m.Name, strings.ToLower(m.Name) + "s", strings.ToLower(m.Name)
+					return m.Name, strings.ToLower(pluralize(m.Name)), strings.ToLower(m.Name)
 				}
 			}
 		}
 	}
 	return "", "data", "item"
+}
+
+// findListEndpoint finds an API endpoint that lists items for the given model.
+func findListEndpoint(app *ir.Application, modelName string) *ir.Endpoint {
+	if modelName == "" {
+		return nil
+	}
+	lowerModel := strings.ToLower(modelName)
+	// Priority 1: "ListTasks" or "ListTask"
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "list") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
+		}
+	}
+	// Priority 2: "GetTasks"
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "get") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
+		}
+	}
+	return nil
+}
+
+// detectUsedComponents scans page actions for component references (e.g. "as a TaskCard").
+func detectUsedComponents(page *ir.Page) []string {
+	seen := make(map[string]bool)
+	for _, a := range page.Content {
+		if a.Type == "loop" {
+			if ref := extractComponentRef(a.Text); ref != "" {
+				seen[ref] = true
+			}
+		}
+	}
+	sorted := make([]string, 0, len(seen))
+	for k := range seen {
+		sorted = append(sorted, k)
+	}
+	sort.Strings(sorted)
+	return sorted
 }
 
 // findModel looks up a data model by name.

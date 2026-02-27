@@ -376,7 +376,7 @@ func TestGenerateTailwindConfig(t *testing.T) {
 		"--font-body":       "Inter",
 	}
 
-	output := GenerateTailwindConfig(theme, tokens)
+	output := GenerateTailwindConfig(theme, tokens, "react")
 
 	if !strings.Contains(output, "theme.extend.colors") || !strings.Contains(output, "colors: {") {
 		// Check for "colors:" inside theme.extend

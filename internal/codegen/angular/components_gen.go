@@ -2,6 +2,7 @@ package angular
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/barun-bash/human/internal/ir"
@@ -103,6 +104,13 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		fmt.Fprintf(&b, "import type { %s } from '../../models/types';\n", modelName)
 	}
 
+	// Component imports
+	usedComponents := detectUsedComponents(page)
+	for _, comp := range usedComponents {
+		kebab := toKebabCase(comp)
+		fmt.Fprintf(&b, "import { %sComponent } from '../../components/%s/%s.component';\n", comp, kebab, kebab)
+	}
+
 	compName := toPascalCase(page.Name) + "Component"
 	selector := "app-" + toKebabCase(page.Name)
 
@@ -115,6 +123,9 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	}
 	if needsForm {
 		importsList = append(importsList, "ReactiveFormsModule")
+	}
+	for _, comp := range usedComponents {
+		importsList = append(importsList, comp+"Component")
 	}
 	fmt.Fprintf(&b, "  imports: [%s],\n", strings.Join(importsList, ", "))
 	b.WriteString("  template: `\n")
@@ -192,16 +203,28 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 
 	// ngOnInit
 	if needsEffect {
-		apiPath := "/api/" + toKebabCase(varName)
+		listEp := findListEndpoint(app, modelName)
 		b.WriteString("\n  ngOnInit() {\n")
-		fmt.Fprintf(&b, "    fetch('%s')\n", apiPath)
-		b.WriteString("      .then(res => res.json())\n")
-		if modelName != "" {
-			fmt.Fprintf(&b, "      .then(res => { this.%s.set(res.data ?? []); this.loading.set(false); })\n", varName)
+		if listEp != nil {
+			fmt.Fprintf(&b, "    this.api.%s().subscribe({\n", toCamelCase(listEp.Name))
+			if modelName != "" {
+				fmt.Fprintf(&b, "      next: (res) => { this.%s.set(res.data ?? []); this.loading.set(false); },\n", varName)
+			} else {
+				b.WriteString("      next: (res) => { this.data.set(res.data ?? []); this.loading.set(false); },\n")
+			}
+			b.WriteString("      error: () => this.loading.set(false),\n")
+			b.WriteString("    });\n")
 		} else {
-			b.WriteString("      .then(res => { this.data.set(res.data ?? []); this.loading.set(false); })\n")
+			apiPath := "/api/" + toKebabCase(varName)
+			fmt.Fprintf(&b, "    fetch('%s')\n", apiPath)
+			b.WriteString("      .then(res => res.json())\n")
+			if modelName != "" {
+				fmt.Fprintf(&b, "      .then(res => { this.%s.set(res.data ?? []); this.loading.set(false); })\n", varName)
+			} else {
+				b.WriteString("      .then(res => { this.data.set(res.data ?? []); this.loading.set(false); })\n")
+			}
+			b.WriteString("      .catch(() => this.loading.set(false));\n")
 		}
-		b.WriteString("      .catch(() => this.loading.set(false));\n")
 		b.WriteString("  }\n")
 	} else {
 		b.WriteString("\n  ngOnInit() {}\n")
@@ -614,6 +637,14 @@ func writeInputNG(b *strings.Builder, text string, indent string, ctx *pageConte
 		fmt.Fprintf(b, "%s</div>\n", indent)
 		return
 	}
+	if strings.Contains(lower, "button") {
+		label := extractQuotedText(text)
+		if label == "" {
+			label = extractButtonPurpose(lower)
+		}
+		fmt.Fprintf(b, "%s<button class=\"btn\">%s</button>\n", indent, label)
+		return
+	}
 	fmt.Fprintf(b, "%s<input type=\"text\" placeholder=\"%s\" />\n", indent, text)
 }
 
@@ -948,7 +979,7 @@ func detectPageModel(page *ir.Page, app *ir.Application) (modelName, varName, it
 				lowerText := strings.ToLower(a.Text)
 				lowerModel := strings.ToLower(m.Name)
 				if strings.Contains(lowerText, lowerModel+"s") || strings.Contains(lowerText, lowerModel) {
-					return m.Name, strings.ToLower(m.Name) + "s", strings.ToLower(m.Name)
+					return m.Name, strings.ToLower(pluralize(m.Name)), strings.ToLower(m.Name)
 				}
 			}
 		}
@@ -960,6 +991,46 @@ func findModel(app *ir.Application, name string) *ir.DataModel {
 	for _, m := range app.Data {
 		if strings.EqualFold(m.Name, name) {
 			return m
+		}
+	}
+	return nil
+}
+
+// detectUsedComponents scans page actions for component references (e.g. "as a ProductCard").
+func detectUsedComponents(page *ir.Page) []string {
+	seen := make(map[string]bool)
+	for _, a := range page.Content {
+		if a.Type == "loop" {
+			if ref := extractComponentRef(a.Text); ref != "" {
+				seen[ref] = true
+			}
+		}
+	}
+	sorted := make([]string, 0, len(seen))
+	for k := range seen {
+		sorted = append(sorted, k)
+	}
+	sort.Strings(sorted)
+	return sorted
+}
+
+func findListEndpoint(app *ir.Application, modelName string) *ir.Endpoint {
+	if modelName == "" {
+		return nil
+	}
+	lowerModel := strings.ToLower(modelName)
+	// Priority 1: "ListTasks" or "ListTask"
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "list") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
+		}
+	}
+	// Priority 2: "GetTasks"
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "get") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
 		}
 	}
 	return nil

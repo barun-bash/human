@@ -2,6 +2,7 @@ package vue
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/barun-bash/human/internal/ir"
@@ -98,6 +99,20 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		fmt.Fprintf(&b, "import type { %s } from '../types/models';\n", modelName)
 	}
 
+	// Import API client function if we have a matching list endpoint
+	var listEp *ir.Endpoint
+	if needsEffect && modelName != "" {
+		listEp = findListEndpoint(app, modelName)
+		if listEp != nil {
+			fmt.Fprintf(&b, "import { %s } from '../api/client';\n", toCamelCase(listEp.Name))
+		}
+	}
+
+	// Component imports
+	for _, comp := range detectUsedComponents(page) {
+		fmt.Fprintf(&b, "import %s from '../components/%s.vue';\n", comp, comp)
+	}
+
 	b.WriteString("\n")
 
 	if needsNavigate {
@@ -125,16 +140,26 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	}
 
 	if needsEffect {
-		apiPath := "/api/" + toKebabCase(varName)
 		b.WriteString("\nonMounted(() => {\n")
-		fmt.Fprintf(&b, "  fetch('%s')\n", apiPath)
-		b.WriteString("    .then(res => res.json())\n")
-		if modelName != "" {
-			fmt.Fprintf(&b, "    .then(res => { %s.value = res.data ?? []; loading.value = false; })\n", varName)
+		if listEp != nil {
+			fmt.Fprintf(&b, "  %s()\n", toCamelCase(listEp.Name))
+			if modelName != "" {
+				fmt.Fprintf(&b, "    .then(res => { %s.value = res.data ?? []; loading.value = false; })\n", varName)
+			} else {
+				b.WriteString("    .then(res => { data.value = res.data ?? []; loading.value = false; })\n")
+			}
+			b.WriteString("    .catch(() => loading.value = false);\n")
 		} else {
-			b.WriteString("    .then(res => { data.value = res.data ?? []; loading.value = false; })\n")
+			apiPath := "/api/" + toKebabCase(varName)
+			fmt.Fprintf(&b, "  fetch('%s')\n", apiPath)
+			b.WriteString("    .then(res => res.json())\n")
+			if modelName != "" {
+				fmt.Fprintf(&b, "    .then(res => { %s.value = res.data ?? []; loading.value = false; })\n", varName)
+			} else {
+				b.WriteString("    .then(res => { data.value = res.data ?? []; loading.value = false; })\n")
+			}
+			b.WriteString("    .catch(() => loading.value = false);\n")
 		}
-		b.WriteString("    .catch(() => loading.value = false);\n")
 		b.WriteString("});\n")
 	}
 
@@ -467,6 +492,14 @@ func writeInputVue(b *strings.Builder, text string, indent string, ctx *pageCont
 		fmt.Fprintf(b, "%s</div>\n", indent)
 		return
 	}
+	if strings.Contains(lower, "button") {
+		label := extractQuotedText(text)
+		if label == "" {
+			label = extractButtonPurpose(lower)
+		}
+		fmt.Fprintf(b, "%s<button class=\"btn\">%s</button>\n", indent, label)
+		return
+	}
 	fmt.Fprintf(b, "%s<input type=\"text\" placeholder=\"%s\" />\n", indent, text)
 }
 
@@ -782,12 +815,50 @@ func detectPageModel(page *ir.Page, app *ir.Application) (modelName, varName, it
 				lowerText := strings.ToLower(a.Text)
 				lowerModel := strings.ToLower(m.Name)
 				if strings.Contains(lowerText, lowerModel+"s") || strings.Contains(lowerText, lowerModel) {
-					return m.Name, strings.ToLower(m.Name) + "s", strings.ToLower(m.Name)
+					return m.Name, strings.ToLower(pluralize(m.Name)), strings.ToLower(m.Name)
 				}
 			}
 		}
 	}
 	return "", "data", "item"
+}
+
+func findListEndpoint(app *ir.Application, modelName string) *ir.Endpoint {
+	if modelName == "" {
+		return nil
+	}
+	lowerModel := strings.ToLower(modelName)
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "list") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
+		}
+	}
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "get") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
+		}
+	}
+	return nil
+}
+
+// detectUsedComponents scans page actions for component references (e.g. "as a PostCard").
+func detectUsedComponents(page *ir.Page) []string {
+	seen := make(map[string]bool)
+	for _, a := range page.Content {
+		if a.Type == "loop" {
+			if ref := extractComponentRef(a.Text); ref != "" {
+				seen[ref] = true
+			}
+		}
+	}
+	sorted := make([]string, 0, len(seen))
+	for k := range seen {
+		sorted = append(sorted, k)
+	}
+	sort.Strings(sorted)
+	return sorted
 }
 
 func findModel(app *ir.Application, name string) *ir.DataModel {

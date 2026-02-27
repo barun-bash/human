@@ -55,7 +55,7 @@ func writeInterface(b *strings.Builder, model *ir.DataModel, app *ir.Application
 			fmt.Fprintf(b, "  %sId: string;\n", toCamelCase(rel.Target))
 			fmt.Fprintf(b, "  %s?: %s;\n", toCamelCase(rel.Target), rel.Target)
 		case "has_many", "has_many_through":
-			fmt.Fprintf(b, "  %s?: %s[];\n", toCamelCase(rel.Target)+"s", rel.Target)
+			fmt.Fprintf(b, "  %s?: %s[];\n", pluralize(toCamelCase(rel.Target)), rel.Target)
 		}
 	}
 

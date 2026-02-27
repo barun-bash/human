@@ -90,6 +90,15 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		fmt.Fprintf(&b, "  import type { %s } from '$lib/types';\n", modelName)
 	}
 
+	// Import API client function if we have a matching list endpoint
+	var listEp *ir.Endpoint
+	if needsEffect && modelName != "" {
+		listEp = findListEndpoint(app, modelName)
+		if listEp != nil {
+			fmt.Fprintf(&b, "  import { %s } from '$lib/api';\n", toCamelCase(listEp.Name))
+		}
+	}
+
 	// Component imports
 	usedComponents := make(map[string]bool)
 	for _, a := range page.Content {
@@ -137,16 +146,26 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	}
 
 	if needsEffect {
-		apiPath := "/api/" + toKebabCase(varName)
 		b.WriteString("\n  $effect(() => {\n")
-		fmt.Fprintf(&b, "    fetch('%s')\n", apiPath)
-		b.WriteString("      .then(res => res.json())\n")
-		if modelName != "" {
-			fmt.Fprintf(&b, "      .then(res => { %s = res.data ?? []; loading = false; })\n", varName)
+		if listEp != nil {
+			fmt.Fprintf(&b, "    %s()\n", toCamelCase(listEp.Name))
+			if modelName != "" {
+				fmt.Fprintf(&b, "      .then(res => { %s = res.data ?? []; loading = false; })\n", varName)
+			} else {
+				b.WriteString("      .then(res => { data = res.data ?? []; loading = false; })\n")
+			}
+			b.WriteString("      .catch(() => loading = false);\n")
 		} else {
-			b.WriteString("      .then(res => { data = res.data ?? []; loading = false; })\n")
+			apiPath := "/api/" + toKebabCase(varName)
+			fmt.Fprintf(&b, "    fetch('%s')\n", apiPath)
+			b.WriteString("      .then(res => res.json())\n")
+			if modelName != "" {
+				fmt.Fprintf(&b, "      .then(res => { %s = res.data ?? []; loading = false; })\n", varName)
+			} else {
+				b.WriteString("      .then(res => { data = res.data ?? []; loading = false; })\n")
+			}
+			b.WriteString("      .catch(() => loading = false);\n")
 		}
-		b.WriteString("      .catch(() => loading = false);\n")
 		b.WriteString("  });\n")
 	}
 
@@ -569,6 +588,14 @@ func writeInputSvelte(b *strings.Builder, text string, indent string, ctx *pageC
 		fmt.Fprintf(b, "%s</div>\n", indent)
 		return
 	}
+	if strings.Contains(lower, "button") {
+		label := extractQuotedText(text)
+		if label == "" {
+			label = extractButtonPurpose(lower)
+		}
+		fmt.Fprintf(b, "%s<button class=\"btn\">%s</button>\n", indent, label)
+		return
+	}
 	fmt.Fprintf(b, "%s<input type=\"text\" placeholder=\"%s\" bind:value={%s} />\n", indent, text, toCamelCase(text))
 }
 
@@ -913,12 +940,32 @@ func detectPageModel(page *ir.Page, app *ir.Application) (modelName, varName, it
 				lowerText := strings.ToLower(a.Text)
 				lowerModel := strings.ToLower(m.Name)
 				if strings.Contains(lowerText, lowerModel+"s") || strings.Contains(lowerText, lowerModel) {
-					return m.Name, strings.ToLower(m.Name) + "s", strings.ToLower(m.Name)
+					return m.Name, strings.ToLower(pluralize(m.Name)), strings.ToLower(m.Name)
 				}
 			}
 		}
 	}
 	return "", "data", "item"
+}
+
+func findListEndpoint(app *ir.Application, modelName string) *ir.Endpoint {
+	if modelName == "" {
+		return nil
+	}
+	lowerModel := strings.ToLower(modelName)
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "list") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
+		}
+	}
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "get") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
+		}
+	}
+	return nil
 }
 
 func findModel(app *ir.Application, name string) *ir.DataModel {

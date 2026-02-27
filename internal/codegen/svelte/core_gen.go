@@ -36,7 +36,7 @@ func generateTypes(app *ir.Application) string {
 				fmt.Fprintf(&b, "  %sId: string;\n", toCamelCase(rel.Target))
 				fmt.Fprintf(&b, "  %s?: %s;\n", toCamelCase(rel.Target), rel.Target)
 			case "has_many", "has_many_through":
-				fmt.Fprintf(&b, "  %s?: %s[];\n", toCamelCase(rel.Target)+"s", rel.Target)
+				fmt.Fprintf(&b, "  %s?: %s[];\n", pluralize(toCamelCase(rel.Target)), rel.Target)
 			}
 		}
 		b.WriteString("}\n")
@@ -95,7 +95,8 @@ async function request<T>(
 			paramType := fmt.Sprintf("{ %s }", strings.Join(paramFields, "; "))
 			fmt.Fprintf(&b, "export async function %s(params: %s): Promise<ApiResponse<unknown>> {\n", funcName, paramType)
 			if method == "GET" {
-				fmt.Fprintf(&b, "  return request<unknown>('%s', '%s');\n", method, path)
+				b.WriteString("  const qs = new URLSearchParams(params as unknown as Record<string, string>).toString();\n")
+				fmt.Fprintf(&b, "  return request<unknown>('%s', `%s?${qs}`);\n", method, path)
 			} else {
 				fmt.Fprintf(&b, "  return request<unknown>('%s', '%s', params as unknown as Record<string, unknown>);\n", method, path)
 			}

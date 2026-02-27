@@ -70,7 +70,8 @@ func writeEndpointFunction(b *strings.Builder, ep *ir.Endpoint) {
 
 		fmt.Fprintf(b, "export async function %s(params: %s) {\n", funcName, paramType)
 		if method == "GET" {
-			fmt.Fprintf(b, "  return request<unknown>('%s', '%s');\n", method, path)
+			b.WriteString("  const qs = new URLSearchParams(params as unknown as Record<string, string>).toString();\n")
+			fmt.Fprintf(b, "  return request<unknown>('%s', `%s?${qs}`);\n", method, path)
 		} else {
 			fmt.Fprintf(b, "  return request<unknown>('%s', '%s', params as unknown as Record<string, unknown>);\n", method, path)
 		}

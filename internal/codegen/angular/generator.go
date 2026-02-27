@@ -155,7 +155,10 @@ func tsEnumType(values []string) string {
 func httpMethod(name string) string {
 	lower := strings.ToLower(name)
 	switch {
-	case strings.HasPrefix(lower, "get"):
+	case strings.HasPrefix(lower, "get"),
+		strings.HasPrefix(lower, "list"),
+		strings.HasPrefix(lower, "search"),
+		strings.HasPrefix(lower, "fetch"):
 		return "GET"
 	case strings.HasPrefix(lower, "delete"):
 		return "DELETE"
@@ -168,11 +171,28 @@ func httpMethod(name string) string {
 
 func apiPath(name string) string {
 	stripped := name
-	for _, prefix := range []string{"Get", "Create", "Update", "Delete"} {
+	for _, prefix := range []string{"Get", "List", "Search", "Fetch", "Create", "Update", "Delete"} {
 		if strings.HasPrefix(name, prefix) && len(name) > len(prefix) {
 			stripped = name[len(prefix):]
 			break
 		}
 	}
 	return "/api/" + toKebabCase(stripped)
+}
+
+func pluralize(s string) string {
+	if s == "" {
+		return s
+	}
+	lower := strings.ToLower(s)
+	if strings.HasSuffix(lower, "s") || strings.HasSuffix(lower, "sh") || strings.HasSuffix(lower, "ch") || strings.HasSuffix(lower, "x") || strings.HasSuffix(lower, "z") {
+		return s + "es"
+	}
+	if strings.HasSuffix(lower, "y") && len(lower) > 1 {
+		prev := lower[len(lower)-2]
+		if prev != 'a' && prev != 'e' && prev != 'i' && prev != 'o' && prev != 'u' {
+			return s[:len(s)-1] + "ies"
+		}
+	}
+	return s + "s"
 }
