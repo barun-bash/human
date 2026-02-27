@@ -118,6 +118,8 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		listEp = findListEndpoint(app, modelName)
 		if listEp != nil {
 			fmt.Fprintf(&b, "import { %s } from '../api/client';\n", toCamelCase(listEp.Name))
+		} else {
+			b.WriteString("import { request } from '../api/client';\n")
 		}
 	}
 
@@ -169,9 +171,8 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 			fmt.Fprintf(&b, "      .then(res => { %s(res.data ?? []); setLoading(false); })\n", setterName)
 			b.WriteString("      .catch(() => setLoading(false));\n")
 		} else {
-			b.WriteString("    // TODO: replace with actual API call\n")
-			fmt.Fprintf(&b, "    fetch('/api/%s')\n", toKebabCase(varName))
-			b.WriteString("      .then(res => res.json())\n")
+			b.WriteString("    // TODO: replace with a dedicated API endpoint\n")
+			fmt.Fprintf(&b, "    request('GET', '/api/%s')\n", toKebabCase(varName))
 			fmt.Fprintf(&b, "      .then(res => { %s(res.data ?? []); setLoading(false); })\n", setterName)
 			b.WriteString("      .catch(() => setLoading(false));\n")
 		}

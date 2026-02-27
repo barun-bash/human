@@ -8,18 +8,24 @@ import (
 	"github.com/barun-bash/human/internal/ir"
 )
 
-func generateMockData(app *ir.Application) string {
+func generateMockData(app *ir.Application, fw string) string {
 	var b strings.Builder
 
 	b.WriteString("// Auto-generated mock data factories based on Human IR Data Models\n\n")
 
-	// Import model types
+	// Import model types — path varies by framework
 	if len(app.Data) > 0 {
 		names := make([]string, len(app.Data))
 		for i, m := range app.Data {
 			names[i] = m.Name
 		}
-		fmt.Fprintf(&b, "import type { %s } from '../types/models';\n\n", strings.Join(names, ", "))
+		typesImportPath := "../types/models"
+		if fw == "angular" {
+			typesImportPath = "../app/models/types"
+		} else if fw == "svelte" {
+			typesImportPath = "$lib/types"
+		}
+		fmt.Fprintf(&b, "import type { %s } from '%s';\n\n", strings.Join(names, ", "), typesImportPath)
 	}
 
 	for _, model := range app.Data {

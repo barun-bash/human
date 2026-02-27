@@ -98,6 +98,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		b.WriteString("import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';\n")
 	}
 	if needsDataState || needsEffect {
+		b.WriteString("import { HttpClient } from '@angular/common/http';\n")
 		b.WriteString("import { ApiService } from '../../services/api.service';\n")
 	}
 	if modelName != "" {
@@ -170,6 +171,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		b.WriteString("  private router = inject(Router);\n")
 	}
 	if needsDataState || needsEffect {
+		b.WriteString("  private http = inject(HttpClient);\n")
 		b.WriteString("  private api = inject(ApiService);\n")
 	}
 	if needsForm {
@@ -216,14 +218,15 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 			b.WriteString("    });\n")
 		} else {
 			apiPath := "/api/" + toKebabCase(varName)
-			fmt.Fprintf(&b, "    fetch('%s')\n", apiPath)
-			b.WriteString("      .then(res => res.json())\n")
+			b.WriteString("    // TODO: replace with a dedicated API method\n")
+			fmt.Fprintf(&b, "    this.http.get<any>('%s').subscribe({\n", apiPath)
 			if modelName != "" {
-				fmt.Fprintf(&b, "      .then(res => { this.%s.set(res.data ?? []); this.loading.set(false); })\n", varName)
+				fmt.Fprintf(&b, "      next: (res) => { this.%s.set(res.data ?? []); this.loading.set(false); },\n", varName)
 			} else {
-				b.WriteString("      .then(res => { this.data.set(res.data ?? []); this.loading.set(false); })\n")
+				b.WriteString("      next: (res) => { this.data.set(res.data ?? []); this.loading.set(false); },\n")
 			}
-			b.WriteString("      .catch(() => this.loading.set(false));\n")
+			b.WriteString("      error: () => this.loading.set(false),\n")
+			b.WriteString("    });\n")
 		}
 		b.WriteString("  }\n")
 	} else {

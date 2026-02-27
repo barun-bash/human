@@ -20,7 +20,7 @@ func generateAPIClient(app *ir.Application) string {
 `)
 
 	b.WriteString(`
-async function request<T>(
+export async function request<T>(
   method: string,
   path: string,
   body?: Record<string, unknown>,

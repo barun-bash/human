@@ -59,7 +59,7 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	files := map[string]string{
 		filepath.Join(outputDir, ".storybook", "main.ts"):    generateMainTs(fw),
 		filepath.Join(outputDir, ".storybook", "preview.ts"): generatePreviewTs(fw),
-		filepath.Join(outputDir, "src", "mocks", "data.ts"):  generateMockData(app),
+		filepath.Join(outputDir, "src", "mocks", "data.ts"):  generateMockData(app, fw),
 	}
 
 	for _, comp := range inventory.Components {

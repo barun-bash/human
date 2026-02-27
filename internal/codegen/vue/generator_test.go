@@ -427,8 +427,8 @@ func TestFullIntegration(t *testing.T) {
 	}
 	client := string(clientContent)
 	funcCount := strings.Count(client, "export async function ")
-	if funcCount != 8 {
-		t.Errorf("client.ts: expected 8 functions, got %d", funcCount)
+	if funcCount != 9 {
+		t.Errorf("client.ts: expected 9 functions (8 endpoints + request helper), got %d", funcCount)
 	}
 
 	routerContent, err := os.ReadFile(filepath.Join(dir, "src", "router.ts"))

@@ -65,7 +65,7 @@ func TestGenerateMockData(t *testing.T) {
 		},
 	}
 
-	out := generateMockData(app)
+	out := generateMockData(app, "react")
 	if !strings.Contains(out, "export const mockUser") {
 		t.Error("missing mock factory")
 	}
