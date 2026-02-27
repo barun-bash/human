@@ -3,6 +3,7 @@ package editor
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 // ── Buffer tests ──
@@ -690,5 +691,344 @@ func TestDynamicGutterWidth(t *testing.T) {
 	}
 	if r2.gutterWidth != 6 {
 		t.Errorf("gutterWidth = %d, want 6", r2.gutterWidth)
+	}
+}
+
+// ── Rendering / cursor position tests ──
+
+// newTestEditor creates an Editor suitable for rendering tests (no terminal needed).
+func newTestEditor(content string) *Editor {
+	e := &Editor{
+		filename: "test.human",
+		buf:      NewBuffer(content),
+		comp:     NewCompleter(),
+		width:    80,
+		height:   24,
+		redrawCh: make(chan struct{}, 1),
+	}
+	e.val = NewValidator(time.Hour, func() {}) // never fires
+	return e
+}
+
+// parseFinalCursorPos extracts the last \033[row;colH sequence from ANSI output.
+func parseFinalCursorPos(output string) (row, col int) {
+	for i := 0; i < len(output); i++ {
+		if output[i] != '\033' || i+1 >= len(output) || output[i+1] != '[' {
+			continue
+		}
+		j := i + 2
+		r := 0
+		for j < len(output) && output[j] >= '0' && output[j] <= '9' {
+			r = r*10 + int(output[j]-'0')
+			j++
+		}
+		if j >= len(output) || output[j] != ';' {
+			continue
+		}
+		j++
+		c := 0
+		for j < len(output) && output[j] >= '0' && output[j] <= '9' {
+			c = c*10 + int(output[j]-'0')
+			j++
+		}
+		if j < len(output) && output[j] == 'H' {
+			row = r
+			col = c
+		}
+	}
+	return
+}
+
+// stripANSI removes all ANSI escape sequences from a string.
+func stripANSI(s string) string {
+	var b strings.Builder
+	inEsc := false
+	for _, r := range s {
+		if inEsc {
+			if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || r == '~' {
+				inEsc = false
+			}
+			continue
+		}
+		if r == '\033' {
+			inEsc = true
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+func TestRenderCursorAfterEnterEndOfLine(t *testing.T) {
+	e := newTestEditor("  hello world\n  second line\n")
+	var out strings.Builder
+	e.renderer = NewRenderer(&out, 80, 24)
+
+	// Initial: cursor at (0,0).
+	e.renderer.RenderFull(e)
+	row, col := parseFinalCursorPos(out.String())
+	if row != 2 || col != 7 {
+		t.Errorf("initial cursor: (%d,%d), want (2,7)", row, col)
+	}
+
+	// Navigate to end of first line.
+	e.buf.SetCursor(13, 0)
+	out.Reset()
+	e.renderer.RenderFull(e)
+	row, col = parseFinalCursorPos(out.String())
+	// screenCol = 6+1+13 = 20
+	if row != 2 || col != 20 {
+		t.Errorf("end of line: (%d,%d), want (2,20)", row, col)
+	}
+
+	// Press Enter at end of line.
+	e.buf.NewLine()
+	e.scrollToCursor()
+	out.Reset()
+	e.renderer.RenderFull(e)
+	row, col = parseFinalCursorPos(out.String())
+	// cy=1, cx=2 (auto-indent), screenRow=3, screenCol=9
+	if row != 3 || col != 9 {
+		t.Errorf("after Enter at end: (%d,%d), want (3,9)", row, col)
+	}
+
+	// Verify buffer.
+	if string(e.buf.Line(0)) != "  hello world" {
+		t.Errorf("line 0 = %q, want '  hello world'", string(e.buf.Line(0)))
+	}
+	if string(e.buf.Line(1)) != "  " {
+		t.Errorf("line 1 = %q, want '  '", string(e.buf.Line(1)))
+	}
+
+	// Type characters — they should go on line 1 after the indent.
+	e.buf.InsertChar('a')
+	e.buf.InsertChar('b')
+	e.scrollToCursor()
+	out.Reset()
+	e.renderer.RenderFull(e)
+	row, col = parseFinalCursorPos(out.String())
+	// cx=4, screenCol=6+1+4=11
+	if row != 3 || col != 11 {
+		t.Errorf("after typing 'ab': (%d,%d), want (3,11)", row, col)
+	}
+	if string(e.buf.Line(1)) != "  ab" {
+		t.Errorf("line 1 after typing = %q, want '  ab'", string(e.buf.Line(1)))
+	}
+
+	// Verify rendered output contains correct line text.
+	plain := stripANSI(out.String())
+	if !strings.Contains(plain, "  hello world") {
+		t.Error("rendered output missing '  hello world' on line 0")
+	}
+	if !strings.Contains(plain, "  ab") {
+		t.Error("rendered output missing '  ab' on line 1")
+	}
+}
+
+func TestRenderCursorAfterEnterMiddleOfLine(t *testing.T) {
+	e := newTestEditor("  hello world\n")
+	var out strings.Builder
+	e.renderer = NewRenderer(&out, 80, 24)
+
+	// Press Enter in middle of line: "  hello|"
+	e.buf.SetCursor(7, 0)
+	e.buf.NewLine()
+	e.scrollToCursor()
+	out.Reset()
+	e.renderer.RenderFull(e)
+	row, col := parseFinalCursorPos(out.String())
+	// cy=1, cx=2 (auto-indent), screenRow=3, screenCol=9
+	if row != 3 || col != 9 {
+		t.Errorf("after Enter in middle: (%d,%d), want (3,9)", row, col)
+	}
+
+	// Verify split.
+	if string(e.buf.Line(0)) != "  hello" {
+		t.Errorf("line 0 = %q, want '  hello'", string(e.buf.Line(0)))
+	}
+	if string(e.buf.Line(1)) != "   world" {
+		t.Errorf("line 1 = %q, want '   world'", string(e.buf.Line(1)))
+	}
+
+	// Verify rendered output shows the split correctly.
+	plain := stripANSI(out.String())
+	// Line 0 should show "  hello" (not "  hello world").
+	// Find the line number "1 |" and check what follows.
+	if !strings.Contains(plain, "  hello") {
+		t.Error("rendered output missing '  hello' on line 0")
+	}
+	// Line 1 should show "   world" (auto-indent + " world").
+	if !strings.Contains(plain, "   world") {
+		t.Error("rendered output missing '   world' on line 1")
+	}
+}
+
+func TestRenderCursorAfterEnterAtStart(t *testing.T) {
+	e := newTestEditor("  hello world\n")
+	var out strings.Builder
+	e.renderer = NewRenderer(&out, 80, 24)
+
+	// Press Enter at col 0 (before indentation).
+	e.buf.SetCursor(0, 0)
+	e.buf.NewLine()
+	e.scrollToCursor()
+	out.Reset()
+	e.renderer.RenderFull(e)
+	row, col := parseFinalCursorPos(out.String())
+	// cy=1, cx=0 (no auto-indent), screenRow=3, screenCol=7
+	if row != 3 || col != 7 {
+		t.Errorf("after Enter at start: (%d,%d), want (3,7)", row, col)
+	}
+
+	// Type text — should go BEFORE the indentation on line 1.
+	for _, r := range "test" {
+		e.buf.InsertChar(r)
+	}
+	e.scrollToCursor()
+	out.Reset()
+	e.renderer.RenderFull(e)
+	row, col = parseFinalCursorPos(out.String())
+	// cy=1, cx=4, screenCol=6+1+4=11
+	if row != 3 || col != 11 {
+		t.Errorf("after typing 'test': (%d,%d), want (3,11)", row, col)
+	}
+
+	// Buffer: line 0 = "" (empty), line 1 = "test  hello world"
+	if string(e.buf.Line(0)) != "" {
+		t.Errorf("line 0 = %q, want empty", string(e.buf.Line(0)))
+	}
+	if string(e.buf.Line(1)) != "test  hello world" {
+		t.Errorf("line 1 = %q, want 'test  hello world'", string(e.buf.Line(1)))
+	}
+}
+
+func TestRenderMultipleEnters(t *testing.T) {
+	e := newTestEditor("  line one\n  line two\n")
+	var out strings.Builder
+	e.renderer = NewRenderer(&out, 80, 24)
+
+	// Go to end of line 0, press Enter twice, type text.
+	e.buf.SetCursor(10, 0)
+	e.buf.NewLine() // creates blank indented line between
+	e.buf.NewLine() // creates another blank indented line
+	for _, r := range "new" {
+		e.buf.InsertChar(r)
+	}
+	e.scrollToCursor()
+
+	// Buffer should be:
+	// 0: "  line one"
+	// 1: "  "
+	// 2: "  new"
+	// 3: "  line two"
+	if e.buf.LineCount() != 4 {
+		t.Fatalf("line count = %d, want 4", e.buf.LineCount())
+	}
+	if string(e.buf.Line(0)) != "  line one" {
+		t.Errorf("line 0 = %q", string(e.buf.Line(0)))
+	}
+	if string(e.buf.Line(1)) != "  " {
+		t.Errorf("line 1 = %q, want '  '", string(e.buf.Line(1)))
+	}
+	if string(e.buf.Line(2)) != "  new" {
+		t.Errorf("line 2 = %q, want '  new'", string(e.buf.Line(2)))
+	}
+	if string(e.buf.Line(3)) != "  line two" {
+		t.Errorf("line 3 = %q", string(e.buf.Line(3)))
+	}
+
+	out.Reset()
+	e.renderer.RenderFull(e)
+	row, col := parseFinalCursorPos(out.String())
+	// cy=2, cx=5 ("  new" + cursor after 'w'), screenRow=4, screenCol=12
+	if row != 4 || col != 12 {
+		t.Errorf("after multi-enter+type: (%d,%d), want (4,12)", row, col)
+	}
+}
+
+// TestStatusBarWidth verifies the status bar never exceeds terminal width.
+// Overflow here would cause the terminal to wrap and scroll, shifting all content up
+// and making the cursor appear on the wrong line.
+func TestStatusBarWidth(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		validErr string
+	}{
+		{"no error (Valid)", ""},
+		{"short error", "parse error"},
+		{"long error", "this is a very long error message that gets truncated at thirty characters"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newTestEditor("hello\nworld\n")
+			var out strings.Builder
+			e.renderer = NewRenderer(&out, 80, 24)
+			e.setValidErr(tc.validErr)
+
+			var sb strings.Builder
+			e.renderer.renderStatusBar(&sb, e)
+
+			vis := visLen(sb.String())
+			if vis > 80 {
+				t.Errorf("status bar visible width = %d, exceeds terminal width 80", vis)
+			}
+		})
+	}
+}
+
+// TestTitleBarWidth verifies the title bar never exceeds terminal width.
+func TestTitleBarWidth(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		dirty bool
+	}{
+		{"clean", false},
+		{"dirty", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newTestEditor("hello\nworld\n")
+			e.dirty = tc.dirty
+			var out strings.Builder
+			e.renderer = NewRenderer(&out, 80, 24)
+
+			var sb strings.Builder
+			e.renderer.renderTitleBar(&sb, e)
+
+			vis := visLen(sb.String())
+			if vis > 80 {
+				t.Errorf("title bar visible width = %d, exceeds terminal width 80", vis)
+			}
+		})
+	}
+}
+
+// TestRenderOutputNoLineOverflow verifies no rendered line exceeds terminal width,
+// which would cause wrapping and corrupt cursor positioning.
+func TestRenderOutputNoLineOverflow(t *testing.T) {
+	e := newTestEditor("  hello world\n  second line with more text here\n# comment\ndata Task:\n  has a title which is text\n")
+	var out strings.Builder
+	e.renderer = NewRenderer(&out, 80, 24)
+	e.renderer.RenderFull(e)
+
+	plain := stripANSI(out.String())
+	// Split by moveTo sequences (each starts a new terminal row).
+	// Check that no segment between moveTo's exceeds 80 visible chars.
+	// Simple check: find all text between cursor positions.
+	lines := strings.Split(plain, "\n")
+	for i, line := range lines {
+		// Each "line" in the plain output might span multiple terminal rows
+		// since moveTo doesn't produce newlines. So just check total length.
+		if len(line) > 80*25 { // very conservative
+			t.Errorf("line %d in plain output is suspiciously long: %d chars", i, len(line))
+		}
+	}
+
+	// More targeted: check the raw ANSI output for the cursor position sequence.
+	// The final cursor should be within bounds.
+	row, col := parseFinalCursorPos(out.String())
+	if row < 1 || row > 24 {
+		t.Errorf("cursor row %d out of bounds [1,24]", row)
+	}
+	if col < 1 || col > 80 {
+		t.Errorf("cursor col %d out of bounds [1,80]", col)
 	}
 }

@@ -156,30 +156,24 @@ func (r *Renderer) RenderFull(e *Editor) {
 func (r *Renderer) renderTitleBar(b *strings.Builder, e *Editor) {
 	b.WriteString(moveTo(1, 1))
 	b.WriteString(colorTitleBar)
+	b.WriteString(escClearLine) // fill row with bg color
 
 	left := fmt.Sprintf(" %s ", e.filename)
-	right := ""
+	rightText := ""
+	rightVisLen := 0
 	if e.dirty {
-		right = colorModified + " Modified " + colorTitleBar
+		rightText = colorModified + " Modified " + colorTitleBar
+		rightVisLen = 10 // " Modified "
 	}
 
 	b.WriteString(left)
-	// Pad middle.
-	padLen := r.width - visLen(left) - 10
-	if e.dirty {
-		padLen -= 1
-	}
+
+	// Pad between filename and right label.
+	padLen := r.width - visLen(left) - rightVisLen
 	if padLen > 0 {
 		b.WriteString(strings.Repeat(" ", padLen))
 	}
-	b.WriteString(right)
-
-	// Fill remaining.
-	remaining := r.width - visLen(left) - padLen
-	if remaining > 0 && !e.dirty {
-		b.WriteString(strings.Repeat(" ", remaining))
-	}
-
+	b.WriteString(rightText)
 	b.WriteString(ansiReset)
 }
 
@@ -243,6 +237,7 @@ func (r *Renderer) renderCodeLine(b *strings.Builder, e *Editor, lineIdx int, bl
 func (r *Renderer) renderStatusBar(b *strings.Builder, e *Editor) {
 	b.WriteString(moveTo(r.height, 1))
 	b.WriteString(colorStatusBar)
+	b.WriteString(escClearLine) // fill row with bg color, prevent overflow artifacts
 
 	cx, cy := e.buf.Cursor()
 	left := fmt.Sprintf(" Ln %d, Col %d", cy+1, cx+1)
@@ -250,15 +245,18 @@ func (r *Renderer) renderStatusBar(b *strings.Builder, e *Editor) {
 	// Validation status (read once, mutex-protected).
 	validErrMsg := e.getValidErr()
 	var validStr string
+	var validVisLen int // track visible width of validation text
 	switch {
 	case validErrMsg == "":
 		validStr = colorValid + " Valid" + colorStatusBar
+		validVisLen = 6 // " Valid"
 	default:
 		errMsg := validErrMsg
 		if len(errMsg) > 30 {
 			errMsg = errMsg[:30] + "..."
 		}
 		validStr = colorInvalid + " " + errMsg + colorStatusBar
+		validVisLen = 1 + len(errMsg) // " " + errMsg
 	}
 
 	hints := " ESC:menu  Ctrl+S:save  Ctrl+Q:quit"
@@ -267,15 +265,15 @@ func (r *Renderer) renderStatusBar(b *strings.Builder, e *Editor) {
 	b.WriteString(" ")
 	b.WriteString(validStr)
 
-	padLen := r.width - visLen(left) - visLen(validErrMsg) - visLen(hints) - 4
-	if padLen < 1 {
-		padLen = 1
+	// Only show hints if there's room. escClearLine handles bg fill.
+	leftUsed := visLen(left) + 1 + validVisLen
+	hintsLen := visLen(hints)
+	remaining := r.width - leftUsed
+	if remaining > hintsLen {
+		padLen := remaining - hintsLen
+		b.WriteString(strings.Repeat(" ", padLen))
+		b.WriteString(hints)
 	}
-	b.WriteString(strings.Repeat(" ", padLen))
-	b.WriteString(hints)
-
-	// Fill to edge.
-	b.WriteString(strings.Repeat(" ", 2))
 	b.WriteString(ansiReset)
 }
 
