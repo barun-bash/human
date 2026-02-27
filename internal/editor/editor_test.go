@@ -402,3 +402,123 @@ func TestCompleterNextPrev(t *testing.T) {
 		t.Errorf("expected selected=0 after Prev, got %d", c.Selected())
 	}
 }
+
+// ── NewLine edge case tests ──
+
+func TestNewLineAtEndOfLine(t *testing.T) {
+	b := NewBuffer("  hello world")
+	b.SetCursor(13, 0) // end of line (len("  hello world") = 13)
+	b.NewLine()
+
+	if b.LineCount() != 2 {
+		t.Fatalf("expected 2 lines, got %d", b.LineCount())
+	}
+	if string(b.Line(0)) != "  hello world" {
+		t.Errorf("line 0 = %q, want %q", string(b.Line(0)), "  hello world")
+	}
+	// New line should have auto-indent (2 spaces).
+	if string(b.Line(1)) != "  " {
+		t.Errorf("line 1 = %q, want %q (auto-indent)", string(b.Line(1)), "  ")
+	}
+	cx, cy := b.Cursor()
+	if cy != 1 || cx != 2 {
+		t.Errorf("cursor = (%d, %d), want (2, 1)", cx, cy)
+	}
+}
+
+func TestNewLineAtStartOfLine(t *testing.T) {
+	b := NewBuffer("  hello world")
+	b.SetCursor(0, 0) // position 0 — before indentation
+	b.NewLine()
+
+	if b.LineCount() != 2 {
+		t.Fatalf("expected 2 lines, got %d", b.LineCount())
+	}
+	// Line 0 should be empty (before part).
+	if string(b.Line(0)) != "" {
+		t.Errorf("line 0 = %q, want empty", string(b.Line(0)))
+	}
+	// Line 1 should have original content UNCHANGED (no double-indent).
+	if string(b.Line(1)) != "  hello world" {
+		t.Errorf("line 1 = %q, want %q (no double-indent)", string(b.Line(1)), "  hello world")
+	}
+	// Cursor on line 1, col 0.
+	cx, cy := b.Cursor()
+	if cy != 1 || cx != 0 {
+		t.Errorf("cursor = (%d, %d), want (0, 1)", cx, cy)
+	}
+}
+
+func TestNewLineInMiddleOfLine(t *testing.T) {
+	b := NewBuffer("  hello world")
+	b.SetCursor(7, 0) // after "  hello" (position 7)
+	b.NewLine()
+
+	if b.LineCount() != 2 {
+		t.Fatalf("expected 2 lines, got %d", b.LineCount())
+	}
+	if string(b.Line(0)) != "  hello" {
+		t.Errorf("line 0 = %q, want %q", string(b.Line(0)), "  hello")
+	}
+	// After split: " world", with auto-indent prepended: "   world"
+	if string(b.Line(1)) != "   world" {
+		t.Errorf("line 1 = %q, want %q", string(b.Line(1)), "   world")
+	}
+	cx, cy := b.Cursor()
+	if cy != 1 || cx != 2 {
+		t.Errorf("cursor = (%d, %d), want (2, 1)", cx, cy)
+	}
+}
+
+func TestNewLineAtStartThenType(t *testing.T) {
+	// Simulates the user's bug: Enter at col 0, then type text.
+	b := NewBuffer("  there is a date range picker")
+	b.SetCursor(0, 0)
+	b.NewLine()
+
+	// Now type "helloworld" on the current line.
+	for _, r := range "helloworld" {
+		b.InsertChar(r)
+	}
+
+	if b.LineCount() != 2 {
+		t.Fatalf("expected 2 lines, got %d", b.LineCount())
+	}
+	// Line 0: empty (the blank line created by Enter).
+	if string(b.Line(0)) != "" {
+		t.Errorf("line 0 = %q, want empty", string(b.Line(0)))
+	}
+	// Line 1: "helloworld" followed by original content.
+	// Cursor was at col 0, so text goes before the indentation.
+	expected := "helloworld  there is a date range picker"
+	if string(b.Line(1)) != expected {
+		t.Errorf("line 1 = %q, want %q", string(b.Line(1)), expected)
+	}
+}
+
+func TestNewLineUndoPreservesAutoIndent(t *testing.T) {
+	b := NewBuffer("  indented line")
+	b.SetCursor(15, 0) // end of line
+	b.NewLine()
+	b.InsertChar('x')
+
+	// Line 1 should be "  x" (auto-indent + typed char).
+	if string(b.Line(1)) != "  x" {
+		t.Errorf("line 1 = %q, want %q", string(b.Line(1)), "  x")
+	}
+
+	// Undo the char.
+	b.Undo()
+	if string(b.Line(1)) != "  " {
+		t.Errorf("after undo char: line 1 = %q, want %q", string(b.Line(1)), "  ")
+	}
+
+	// Undo the newline.
+	b.Undo()
+	if b.LineCount() != 1 {
+		t.Errorf("after undo newline: expected 1 line, got %d", b.LineCount())
+	}
+	if string(b.Line(0)) != "  indented line" {
+		t.Errorf("after undo: line 0 = %q, want %q", string(b.Line(0)), "  indented line")
+	}
+}

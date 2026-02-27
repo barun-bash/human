@@ -163,10 +163,24 @@ func (b *Buffer) DeleteChar() {
 
 // NewLine splits the current line at the cursor.
 func (b *Buffer) NewLine() {
-	b.pushUndo(action{kind: actNewline, line: b.cy, col: b.cx, oldCx: b.cx, oldCy: b.cy})
+	line := b.lines[b.cy]
+
+	// Capture indent from the ORIGINAL line before any modification.
+	indent := b.leadingWhitespace(b.cy)
+
+	// Determine auto-indent: only apply when cursor is at or past the
+	// indentation. When cursor is within/before indent (e.g. Enter at col 0),
+	// the 'after' part already has the correct indentation.
+	var autoIndent []rune
+	if b.cx >= len(indent) && len(indent) > 0 {
+		autoIndent = make([]rune, len(indent))
+		copy(autoIndent, indent)
+	}
+
+	// Store auto-indent in action.text so undo/redo can handle it correctly.
+	b.pushUndo(action{kind: actNewline, line: b.cy, col: b.cx, text: autoIndent, oldCx: b.cx, oldCy: b.cy})
 	b.redoStack = nil
 
-	line := b.lines[b.cy]
 	before := make([]rune, b.cx)
 	copy(before, line[:b.cx])
 	after := make([]rune, len(line)-b.cx)
@@ -180,14 +194,13 @@ func (b *Buffer) NewLine() {
 	copy(newLines[b.cy+2:], b.lines[b.cy+1:])
 	b.lines = newLines
 
-	// Auto-indent: copy leading whitespace from current line.
-	indent := b.leadingWhitespace(b.cy)
-	if len(indent) > 0 {
-		newLines[b.cy+1] = append(indent, newLines[b.cy+1]...)
+	// Prepend auto-indent to the new line.
+	if len(autoIndent) > 0 {
+		newLines[b.cy+1] = append(autoIndent, newLines[b.cy+1]...)
 	}
 
 	b.cy++
-	b.cx = len(indent)
+	b.cx = len(autoIndent)
 }
 
 // leadingWhitespace returns the leading spaces/tabs of line y.
@@ -253,9 +266,14 @@ func (b *Buffer) applyReverse(a action) {
 		copy(newLine[a.col+len(a.text):], line[a.col:])
 		b.lines[a.line] = newLine
 	case actNewline:
-		// Reverse of newline = join lines.
+		// Reverse of newline = join lines, stripping auto-indent from new line.
 		if a.line+1 < len(b.lines) {
-			b.lines[a.line] = append(b.lines[a.line][:a.col], b.lines[a.line+1]...)
+			newLine := b.lines[a.line+1]
+			// Strip the auto-indent that was prepended during NewLine.
+			if len(a.text) > 0 && len(newLine) >= len(a.text) {
+				newLine = newLine[len(a.text):]
+			}
+			b.lines[a.line] = append(b.lines[a.line][:a.col], newLine...)
 			b.lines = append(b.lines[:a.line+1], b.lines[a.line+2:]...)
 		}
 	case actJoinLine:
@@ -304,8 +322,12 @@ func (b *Buffer) applyForward(a action) {
 		newLines[a.line+1] = after
 		copy(newLines[a.line+2:], b.lines[a.line+1:])
 		b.lines = newLines
+		// Re-apply auto-indent stored in action.text.
+		if len(a.text) > 0 {
+			newLines[a.line+1] = append(a.text, newLines[a.line+1]...)
+		}
 		b.cy = a.line + 1
-		b.cx = 0
+		b.cx = len(a.text)
 	case actJoinLine:
 		if a.line+1 < len(b.lines) {
 			b.lines[a.line] = append(b.lines[a.line], b.lines[a.line+1]...)

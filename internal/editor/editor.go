@@ -32,7 +32,8 @@ type Editor struct {
 	renderer *Renderer
 	comp     *Completer
 	val      *Validator
-	input    *inputReader // channel-based non-blocking key reader
+	input    *inputReader   // channel-based non-blocking key reader
+	keyCh    chan KeyEvent   // single key channel — all reads MUST go through this
 
 	viewY int // first visible line (vertical scroll)
 	viewX int // first visible column (horizontal scroll)
@@ -106,12 +107,13 @@ func (e *Editor) Run() error {
 	// Start channel-based input reader (background goroutine reads stdin bytes).
 	e.input = newInputReader(e.stdinFd)
 
-	// Parse keys in a goroutine and send to channel.
-	keyCh := make(chan KeyEvent, 16)
+	// Parse keys in a goroutine and send to the single key channel.
+	// ALL key reads (main loop, menu, goto-line) MUST use e.keyCh to avoid races.
+	e.keyCh = make(chan KeyEvent, 16)
 	go func() {
 		for {
 			key := e.input.ReadKey()
-			keyCh <- key
+			e.keyCh <- key
 		}
 	}()
 
@@ -143,7 +145,7 @@ func (e *Editor) Run() error {
 			e.renderer.RenderFull(e)
 			continue
 
-		case key := <-keyCh:
+		case key := <-e.keyCh:
 			if key.Key == KeyNone {
 				continue
 			}
@@ -336,7 +338,7 @@ func (e *Editor) gotoLine() {
 	fmt.Fprint(e.out, escShowCursor)
 
 	for {
-		key := e.input.ReadKey()
+		key := <-e.keyCh // read from the single key channel (no race)
 		switch key.Key {
 		case KeyEnter:
 			lineNum := 0
@@ -380,7 +382,7 @@ func (e *Editor) showMenu() {
 	for {
 		e.renderer.RenderMenu(e, items, selected)
 
-		key := e.input.ReadKey()
+		key := <-e.keyCh // read from the single key channel (no race)
 		switch key.Key {
 		case KeyUp:
 			selected--
