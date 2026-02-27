@@ -42,6 +42,7 @@ type Editor struct {
 	dirty    bool   // unsaved changes
 	validMu  sync.Mutex
 	validErr string // last validation error (protected by validMu)
+	statusMsg string // transient status message (protected by validMu)
 
 	width  int // terminal width
 	height int // terminal height
@@ -288,6 +289,31 @@ func (e *Editor) getValidErr() string {
 	return e.validErr
 }
 
+func (e *Editor) setStatusMsg(msg string) {
+	e.validMu.Lock()
+	e.statusMsg = msg
+	e.validMu.Unlock()
+
+	// Auto-clear after 2 seconds and trigger redraw.
+	time.AfterFunc(2*time.Second, func() {
+		e.validMu.Lock()
+		if e.statusMsg == msg {
+			e.statusMsg = ""
+		}
+		e.validMu.Unlock()
+		select {
+		case e.redrawCh <- struct{}{}:
+		default:
+		}
+	})
+}
+
+func (e *Editor) getStatusMsg() string {
+	e.validMu.Lock()
+	defer e.validMu.Unlock()
+	return e.statusMsg
+}
+
 // scrollToCursor adjusts viewport to keep cursor on screen.
 func (e *Editor) scrollToCursor() {
 	rows := e.renderer.codeRows()
@@ -319,6 +345,7 @@ func (e *Editor) save() {
 		return
 	}
 	e.dirty = false
+	e.setStatusMsg("Saved.")
 	// Re-validate after save.
 	e.val.Schedule(content)
 }

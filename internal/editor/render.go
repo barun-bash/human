@@ -261,12 +261,22 @@ func (r *Renderer) renderStatusBar(b *strings.Builder, e *Editor) {
 
 	hints := " ESC:menu  Ctrl+S:save  Ctrl+Q:quit"
 
+	// Transient status message (e.g. "Saved.").
+	statusMsg := e.getStatusMsg()
+	var statusStr string
+	var statusVisLen int
+	if statusMsg != "" {
+		statusStr = colorValid + " " + statusMsg + colorStatusBar
+		statusVisLen = 1 + len(statusMsg)
+	}
+
 	b.WriteString(left)
 	b.WriteString(" ")
 	b.WriteString(validStr)
+	b.WriteString(statusStr)
 
 	// Only show hints if there's room. escClearLine handles bg fill.
-	leftUsed := visLen(left) + 1 + validVisLen
+	leftUsed := visLen(left) + 1 + validVisLen + statusVisLen
 	hintsLen := visLen(hints)
 	remaining := r.width - leftUsed
 	if remaining > hintsLen {
