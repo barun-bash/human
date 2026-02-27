@@ -37,12 +37,13 @@ var (
 
 // Renderer handles all screen drawing for the editor.
 type Renderer struct {
-	out          io.Writer
-	width        int
-	height       int
-	gutterWidth  int // line number column width
-	annotWidth   int // right annotation column width
-	codeWidth    int // available width for code
+	out         io.Writer
+	width       int
+	height      int
+	digitWidth  int // digits for line numbers (min 4)
+	gutterWidth int // line number column width (digitWidth + 2)
+	annotWidth  int // right annotation column width
+	codeWidth   int // available width for code
 }
 
 // NewRenderer creates a renderer for the given terminal dimensions.
@@ -58,11 +59,29 @@ func NewRenderer(out io.Writer, width, height int) *Renderer {
 }
 
 func (r *Renderer) recalc() {
-	r.gutterWidth = 6 // " NNN |"
+	if r.digitWidth < 4 {
+		r.digitWidth = 4
+	}
+	r.gutterWidth = r.digitWidth + 2 // digits + space + pipe
 	r.codeWidth = r.width - r.gutterWidth - r.annotWidth
 	if r.codeWidth < 20 {
 		r.annotWidth = 0
 		r.codeWidth = r.width - r.gutterWidth
+	}
+}
+
+// updateGutter adjusts gutter width for the current file line count.
+func (r *Renderer) updateGutter(lineCount int) {
+	digits := 1
+	for n := lineCount; n >= 10; n /= 10 {
+		digits++
+	}
+	if digits < 4 {
+		digits = 4
+	}
+	if digits != r.digitWidth {
+		r.digitWidth = digits
+		r.recalc()
 	}
 }
 
@@ -80,6 +99,8 @@ func (r *Renderer) codeRows() int {
 
 // RenderFull draws the entire screen.
 func (r *Renderer) RenderFull(e *Editor) {
+	r.updateGutter(e.buf.LineCount())
+
 	var b strings.Builder
 
 	b.WriteString(escHideCursor)
@@ -108,7 +129,7 @@ func (r *Renderer) RenderFull(e *Editor) {
 		} else {
 			// Empty line (after file end).
 			b.WriteString(colorLineNum)
-			b.WriteString("    ~ ")
+			b.WriteString(fmt.Sprintf("%*s ", r.digitWidth, "~"))
 			b.WriteString(ansiReset)
 			b.WriteString(colorGutter)
 			b.WriteString("|")
@@ -168,7 +189,7 @@ func (r *Renderer) renderCodeLine(b *strings.Builder, e *Editor, lineIdx int, bl
 
 	// Line number.
 	b.WriteString(colorLineNum)
-	b.WriteString(fmt.Sprintf("%4d ", lineIdx+1))
+	b.WriteString(fmt.Sprintf("%*d ", r.digitWidth, lineIdx+1))
 	b.WriteString(ansiReset)
 	b.WriteString(colorGutter)
 	b.WriteString("|")
@@ -226,13 +247,14 @@ func (r *Renderer) renderStatusBar(b *strings.Builder, e *Editor) {
 	cx, cy := e.buf.Cursor()
 	left := fmt.Sprintf(" Ln %d, Col %d", cy+1, cx+1)
 
-	// Validation status.
+	// Validation status (read once, mutex-protected).
+	validErrMsg := e.getValidErr()
 	var validStr string
 	switch {
-	case e.validErr == "":
+	case validErrMsg == "":
 		validStr = colorValid + " Valid" + colorStatusBar
 	default:
-		errMsg := e.validErr
+		errMsg := validErrMsg
 		if len(errMsg) > 30 {
 			errMsg = errMsg[:30] + "..."
 		}
@@ -245,7 +267,7 @@ func (r *Renderer) renderStatusBar(b *strings.Builder, e *Editor) {
 	b.WriteString(" ")
 	b.WriteString(validStr)
 
-	padLen := r.width - visLen(left) - visLen(e.validErr) - visLen(hints) - 4
+	padLen := r.width - visLen(left) - visLen(validErrMsg) - visLen(hints) - 4
 	if padLen < 1 {
 		padLen = 1
 	}

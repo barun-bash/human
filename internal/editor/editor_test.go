@@ -522,3 +522,173 @@ func TestNewLineUndoPreservesAutoIndent(t *testing.T) {
 		t.Errorf("after undo: line 0 = %q, want %q", string(b.Line(0)), "  indented line")
 	}
 }
+
+// ── CR+LF input tests ──
+
+func TestCRLFProducesSingleEnter(t *testing.T) {
+	ir := &inputReader{
+		byteCh: make(chan byte, 16),
+	}
+	// Send CR+LF (the pair some terminals send).
+	ir.byteCh <- 13
+	ir.byteCh <- 10
+
+	key := ir.ReadKey()
+	if key.Key != KeyEnter {
+		t.Errorf("expected KeyEnter, got %v", key.Key)
+	}
+
+	// Should not produce a second KeyEnter — the LF was consumed.
+	ir.byteCh <- 'a'
+	key = ir.ReadKey()
+	if key.Key != KeyChar || key.Rune != 'a' {
+		t.Errorf("expected KeyChar 'a', got key=%v rune=%c", key.Key, key.Rune)
+	}
+}
+
+func TestCRWithoutLF(t *testing.T) {
+	ir := &inputReader{
+		byteCh: make(chan byte, 16),
+	}
+	// Send CR followed by a different character.
+	ir.byteCh <- 13
+	ir.byteCh <- 'b'
+
+	key := ir.ReadKey()
+	if key.Key != KeyEnter {
+		t.Errorf("expected KeyEnter from CR, got %v", key.Key)
+	}
+
+	// 'b' should be preserved via pushback.
+	key = ir.ReadKey()
+	if key.Key != KeyChar || key.Rune != 'b' {
+		t.Errorf("expected KeyChar 'b' after CR pushback, got key=%v rune=%c", key.Key, key.Rune)
+	}
+}
+
+func TestBareLF(t *testing.T) {
+	ir := &inputReader{
+		byteCh: make(chan byte, 16),
+	}
+	ir.byteCh <- 10 // bare LF
+
+	key := ir.ReadKey()
+	if key.Key != KeyEnter {
+		t.Errorf("expected KeyEnter from LF, got %v", key.Key)
+	}
+}
+
+// ── KillToEnd / KillToStart tests ──
+
+func TestKillToEnd(t *testing.T) {
+	b := NewBuffer("hello world")
+	b.SetCursor(5, 0) // after "hello"
+	b.KillToEnd()
+
+	if string(b.Line(0)) != "hello" {
+		t.Errorf("after KillToEnd: line = %q, want %q", string(b.Line(0)), "hello")
+	}
+	cx, _ := b.Cursor()
+	if cx != 5 {
+		t.Errorf("cursor col = %d, want 5", cx)
+	}
+}
+
+func TestKillToStart(t *testing.T) {
+	b := NewBuffer("hello world")
+	b.SetCursor(5, 0) // after "hello"
+	b.KillToStart()
+
+	if string(b.Line(0)) != " world" {
+		t.Errorf("after KillToStart: line = %q, want %q", string(b.Line(0)), " world")
+	}
+	cx, _ := b.Cursor()
+	if cx != 0 {
+		t.Errorf("cursor col = %d, want 0", cx)
+	}
+}
+
+func TestKillToEndUndo(t *testing.T) {
+	b := NewBuffer("hello world")
+	b.SetCursor(5, 0)
+	b.KillToEnd()
+	b.Undo()
+
+	if string(b.Line(0)) != "hello world" {
+		t.Errorf("after undo KillToEnd: line = %q, want %q", string(b.Line(0)), "hello world")
+	}
+	cx, _ := b.Cursor()
+	if cx != 5 {
+		t.Errorf("cursor col after undo = %d, want 5", cx)
+	}
+}
+
+func TestKillToStartUndo(t *testing.T) {
+	b := NewBuffer("hello world")
+	b.SetCursor(5, 0)
+	b.KillToStart()
+	b.Undo()
+
+	if string(b.Line(0)) != "hello world" {
+		t.Errorf("after undo KillToStart: line = %q, want %q", string(b.Line(0)), "hello world")
+	}
+	cx, _ := b.Cursor()
+	if cx != 5 {
+		t.Errorf("cursor col after undo = %d, want 5", cx)
+	}
+}
+
+func TestKillToEndAtEOL(t *testing.T) {
+	b := NewBuffer("hello")
+	b.SetCursor(5, 0) // at end of line
+	b.KillToEnd()
+
+	// Should be a no-op.
+	if string(b.Line(0)) != "hello" {
+		t.Errorf("KillToEnd at EOL should be no-op, got %q", string(b.Line(0)))
+	}
+}
+
+func TestKillToStartAtBOL(t *testing.T) {
+	b := NewBuffer("hello")
+	b.SetCursor(0, 0) // at start of line
+	b.KillToStart()
+
+	// Should be a no-op.
+	if string(b.Line(0)) != "hello" {
+		t.Errorf("KillToStart at BOL should be no-op, got %q", string(b.Line(0)))
+	}
+}
+
+// ── Dynamic gutter width test ──
+
+func TestDynamicGutterWidth(t *testing.T) {
+	// Build a buffer with > 9999 lines to trigger wider gutter.
+	lines := make([]string, 10001)
+	for i := range lines {
+		lines[i] = "x"
+	}
+	buf := NewBuffer(strings.Join(lines, "\n"))
+
+	var out strings.Builder
+	r := NewRenderer(&out, 80, 24)
+	r.updateGutter(buf.LineCount())
+
+	// 10001 lines = 5 digits → gutterWidth should be 7 (5 + 2).
+	if r.digitWidth != 5 {
+		t.Errorf("digitWidth = %d, want 5 for %d lines", r.digitWidth, buf.LineCount())
+	}
+	if r.gutterWidth != 7 {
+		t.Errorf("gutterWidth = %d, want 7", r.gutterWidth)
+	}
+
+	// Small file: 100 lines → digitWidth=4 (minimum), gutterWidth=6.
+	r2 := NewRenderer(&out, 80, 24)
+	r2.updateGutter(100)
+	if r2.digitWidth != 4 {
+		t.Errorf("digitWidth = %d, want 4 for 100 lines", r2.digitWidth)
+	}
+	if r2.gutterWidth != 6 {
+		t.Errorf("gutterWidth = %d, want 6", r2.gutterWidth)
+	}
+}

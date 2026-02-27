@@ -15,9 +15,8 @@ type actionKind int
 const (
 	actInsert     actionKind = iota // inserted rune(s) at position
 	actDelete                       // deleted rune(s) at position
-	actNewline                      // split line at position
-	actJoinLine                     // joined line with next (reverse of newline)
-	actDeleteLine                   // deleted entire line
+	actNewline  // split line at position
+	actJoinLine // joined line with next (reverse of newline)
 )
 
 type action struct {
@@ -201,6 +200,31 @@ func (b *Buffer) NewLine() {
 
 	b.cy++
 	b.cx = len(autoIndent)
+}
+
+// KillToEnd deletes from cursor to end of line as a single undoable action.
+func (b *Buffer) KillToEnd() {
+	if b.cx >= len(b.lines[b.cy]) {
+		return
+	}
+	deleted := make([]rune, len(b.lines[b.cy])-b.cx)
+	copy(deleted, b.lines[b.cy][b.cx:])
+	b.pushUndo(action{kind: actDelete, line: b.cy, col: b.cx, text: deleted, oldCx: b.cx, oldCy: b.cy})
+	b.redoStack = nil
+	b.lines[b.cy] = b.lines[b.cy][:b.cx]
+}
+
+// KillToStart deletes from start of line to cursor as a single undoable action.
+func (b *Buffer) KillToStart() {
+	if b.cx == 0 {
+		return
+	}
+	deleted := make([]rune, b.cx)
+	copy(deleted, b.lines[b.cy][:b.cx])
+	b.pushUndo(action{kind: actDelete, line: b.cy, col: 0, text: deleted, oldCx: b.cx, oldCy: b.cy})
+	b.redoStack = nil
+	b.lines[b.cy] = b.lines[b.cy][b.cx:]
+	b.cx = 0
 }
 
 // leadingWhitespace returns the leading spaces/tabs of line y.

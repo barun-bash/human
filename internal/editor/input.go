@@ -48,8 +48,10 @@ type KeyEvent struct {
 // provides them via a buffered channel. This ensures the editor main loop
 // never blocks on I/O and escape sequence parsing can use real timeouts.
 type inputReader struct {
-	byteCh chan byte
-	fd     int
+	byteCh   chan byte
+	fd       int
+	pushback byte // single byte pushback for CR+LF handling
+	hasPush  bool
 }
 
 func newInputReader(fd int) *inputReader {
@@ -78,12 +80,20 @@ func (ir *inputReader) readLoop() {
 
 // getByte blocks until a byte is available.
 func (ir *inputReader) getByte() (byte, bool) {
+	if ir.hasPush {
+		ir.hasPush = false
+		return ir.pushback, true
+	}
 	b, ok := <-ir.byteCh
 	return b, ok
 }
 
 // getByteTimeout waits up to d for a byte. Returns (0, false) on timeout.
 func (ir *inputReader) getByteTimeout(d time.Duration) (byte, bool) {
+	if ir.hasPush {
+		ir.hasPush = false
+		return ir.pushback, true
+	}
 	select {
 	case b, ok := <-ir.byteCh:
 		return b, ok
@@ -119,7 +129,13 @@ func (ir *inputReader) ReadKey() KeyEvent {
 		return KeyEvent{Key: KeyBackspace}
 	case 9: // Tab
 		return KeyEvent{Key: KeyTab}
-	case 10, 13: // Enter
+	case 10: // LF — Enter
+		return KeyEvent{Key: KeyEnter}
+	case 13: // CR — Enter (consume trailing LF from CR+LF pair)
+		if b2, ok := ir.getByteTimeout(5 * time.Millisecond); ok && b2 != 10 {
+			ir.pushback = b2
+			ir.hasPush = true
+		}
 		return KeyEvent{Key: KeyEnter}
 	case 11: // Ctrl+K
 		return KeyEvent{Key: KeyCtrlK}

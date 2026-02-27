@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -39,7 +40,8 @@ type Editor struct {
 	viewX int // first visible column (horizontal scroll)
 
 	dirty    bool   // unsaved changes
-	validErr string // last validation error
+	validMu  sync.Mutex
+	validErr string // last validation error (protected by validMu)
 
 	width  int // terminal width
 	height int // terminal height
@@ -78,7 +80,7 @@ func Open(filepath string) (*Editor, error) {
 
 	// Set up validator with 300ms debounce.
 	e.val = NewValidator(300*time.Millisecond, func() {
-		e.validErr = e.val.Error()
+		e.setValidErr(e.val.Error())
 		// Signal redraw needed.
 		select {
 		case e.redrawCh <- struct{}{}:
@@ -218,17 +220,12 @@ func (e *Editor) handleKey(key KeyEvent) {
 			e.markDirty()
 		}
 	case KeyCtrlK:
-		// Kill to end of line.
-		line := e.buf.Line(e.buf.cy)
-		for e.buf.cx < len(line) {
-			e.buf.DeleteChar()
-		}
+		// Kill to end of line (single undo action).
+		e.buf.KillToEnd()
 		e.markDirty()
 	case KeyCtrlU:
-		// Kill to start of line.
-		for e.buf.cx > 0 {
-			e.buf.Backspace()
-		}
+		// Kill to start of line (single undo action).
+		e.buf.KillToStart()
 		e.markDirty()
 
 	// Commands.
@@ -279,6 +276,18 @@ func (e *Editor) markDirty() {
 	e.val.Schedule(e.buf.Content())
 }
 
+func (e *Editor) setValidErr(msg string) {
+	e.validMu.Lock()
+	e.validErr = msg
+	e.validMu.Unlock()
+}
+
+func (e *Editor) getValidErr() string {
+	e.validMu.Lock()
+	defer e.validMu.Unlock()
+	return e.validErr
+}
+
 // scrollToCursor adjusts viewport to keep cursor on screen.
 func (e *Editor) scrollToCursor() {
 	rows := e.renderer.codeRows()
@@ -306,7 +315,7 @@ func (e *Editor) save() {
 	content := e.buf.Content()
 	err := os.WriteFile(e.filepath, []byte(content), 0644)
 	if err != nil {
-		e.validErr = "Save failed: " + err.Error()
+		e.setValidErr("Save failed: " + err.Error())
 		return
 	}
 	e.dirty = false
