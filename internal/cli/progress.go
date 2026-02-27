@@ -17,6 +17,7 @@ type ProgressBox struct {
 	stages []string
 	done   []bool
 	active int // index of currently running stage (-1 if none)
+	failed int // index of failed stage (-1 if none)
 	mu     sync.Mutex
 	tty    bool
 	lines  int // number of lines drawn (for cursor rewind)
@@ -41,6 +42,7 @@ func NewProgressBox(out io.Writer, title string, stages []string) *ProgressBox {
 		stages:  stages,
 		done:    make([]bool, len(stages)),
 		active:  -1,
+		failed:  -1,
 		tty:     tty,
 		stop:    make(chan struct{}),
 		stopped: make(chan struct{}),
@@ -95,6 +97,30 @@ func (p *ProgressBox) Update(stageName string) {
 			}
 		}
 		fmt.Fprintf(p.out, "  [%d/%d] %s\n", doneCount+1, len(p.stages), stageName)
+	}
+}
+
+// FailStage marks the named stage as failed and stops the progress display.
+func (p *ProgressBox) FailStage(name string) {
+	if p.tty {
+		close(p.stop)
+		<-p.stopped
+	}
+
+	p.mu.Lock()
+	for i, s := range p.stages {
+		if s == name {
+			p.failed = i
+			break
+		}
+	}
+	p.active = -1
+	p.mu.Unlock()
+
+	if p.tty {
+		p.draw()
+		fmt.Fprint(p.out, "\033[?25h")
+		fmt.Fprintln(p.out)
 	}
 }
 
@@ -216,10 +242,18 @@ func (p *ProgressBox) draw() {
 	}
 	lines++
 
+	errorColor := themeColor(RoleError, fallbackRed)
+
 	// Stage list.
 	for i, stage := range p.stages {
 		var marker string
-		if p.done[i] {
+		if i == p.failed {
+			if ColorEnabled {
+				marker = errorColor + "✗" + reset
+			} else {
+				marker = "✗"
+			}
+		} else if p.done[i] {
 			if ColorEnabled {
 				marker = successColor + "✓" + reset
 			} else {
@@ -271,4 +305,32 @@ func (p *ProgressBox) draw() {
 	lines++
 
 	p.lines = lines
+}
+
+// Step represents a named step to execute with a progress display.
+type Step struct {
+	Name string
+	Fn   func() error
+}
+
+// WithSteps runs a sequence of steps with a progress box.
+func WithSteps(out io.Writer, title string, steps []Step) error {
+	names := make([]string, len(steps))
+	for i, s := range steps {
+		names[i] = s.Name
+	}
+
+	box := NewProgressBox(out, title, names)
+	box.Start()
+
+	for _, step := range steps {
+		box.Update(step.Name)
+		if err := step.Fn(); err != nil {
+			box.FailStage(step.Name)
+			return err
+		}
+	}
+
+	box.Finish()
+	return nil
 }

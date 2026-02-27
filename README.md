@@ -210,9 +210,15 @@ my-app/
 | `human audit` | Run security audit |
 | `human deploy` | Deploy to configured environment |
 | `human eject` | Export generated code as standalone project |
-| `human` (no args) | Launch interactive REPL with 20+ commands |
+| `human explain [topic]` | Learn Human syntax by topic |
+| `human syntax [--search term]` | Full syntax reference with search |
+| `human fix [--dry-run] <file>` | Find and auto-fix common issues |
+| `human doctor` | Check environment health |
+| `human` (no args) | Launch interactive REPL with 30+ commands |
 
-The interactive REPL includes `/ask`, `/edit`, `/suggest` (LLM-powered), `/update` (self-update), `/build`, `/check`, `/version`, tab completion, and command history.
+The interactive REPL includes `/ask`, `/edit`, `/suggest` (LLM-powered), `/explain`, `/syntax`, `/fix`, `/doctor`, `/update` (self-update), `/build`, `/check`, tab completion, and command history.
+
+See [CLI_REFERENCE.md](CLI_REFERENCE.md) for the full command reference, [GETTING_STARTED.md](GETTING_STARTED.md) for a tutorial, and [SYNTAX_QUICK_REFERENCE.md](SYNTAX_QUICK_REFERENCE.md) for a one-page cheat sheet.
 
 ---
 

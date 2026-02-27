@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/barun-bash/human/internal/cli"
+	"github.com/barun-bash/human/internal/cmdutil"
 	"github.com/barun-bash/human/internal/llm"
+	"github.com/barun-bash/human/internal/syntax"
 )
 
 // buildCompleter returns a readline CompleteFunc that dispatches tab
@@ -223,4 +225,21 @@ func completeBuild(_ *REPL, args []string, partial string) []string {
 
 func completeHistory(_ *REPL, args []string, partial string) []string {
 	return completeFromList([]string{"clear"}, partial)
+}
+
+func completeExplain(_ *REPL, args []string, partial string) []string {
+	return completeFromList(cmdutil.ExplainTopicNames(), partial)
+}
+
+func completeSyntax(_ *REPL, args []string, partial string) []string {
+	if len(args) == 0 {
+		// Complete with category names + --search flag.
+		choices := make([]string, 0, len(syntax.AllCategories())+1)
+		choices = append(choices, "--search")
+		for _, cat := range syntax.AllCategories() {
+			choices = append(choices, string(cat))
+		}
+		return completeFromList(choices, partial)
+	}
+	return nil
 }

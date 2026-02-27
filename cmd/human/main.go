@@ -16,6 +16,7 @@ import (
 	"github.com/barun-bash/human/internal/cli"
 	"github.com/barun-bash/human/internal/cmdutil"
 	"github.com/barun-bash/human/internal/config"
+	"github.com/barun-bash/human/internal/fixer"
 	"github.com/barun-bash/human/internal/ir"
 	"github.com/barun-bash/human/internal/llm"
 	_ "github.com/barun-bash/human/internal/llm/providers" // register providers
@@ -64,6 +65,14 @@ func main() {
 		cmdConvert()
 	case "storybook":
 		cmdStorybook()
+	case "explain":
+		cmdExplainCLI()
+	case "syntax":
+		cmdSyntaxCLI()
+	case "fix":
+		cmdFixCLI()
+	case "doctor":
+		cmdutil.RunDoctor(os.Stdout)
 	default:
 		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Unknown command: %s", args[0])))
 		fmt.Fprintln(os.Stderr)
@@ -947,6 +956,97 @@ func cmdStorybook() {
 	os.Exit(1)
 }
 
+// ── explain ──
+
+func cmdExplainCLI() {
+	topic := ""
+	if len(os.Args) >= 3 {
+		topic = strings.Join(os.Args[2:], " ")
+	}
+	cmdutil.RunExplain(os.Stdout, topic)
+}
+
+// ── syntax ──
+
+func cmdSyntaxCLI() {
+	section := ""
+	search := ""
+	args := os.Args[2:]
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--search" && i+1 < len(args) {
+			search = strings.Join(args[i+1:], " ")
+			break
+		}
+		if !strings.HasPrefix(args[i], "-") && section == "" {
+			section = args[i]
+		}
+	}
+	cmdutil.RunSyntax(os.Stdout, section, search)
+}
+
+// ── fix ──
+
+func cmdFixCLI() {
+	dryRun := false
+	var file string
+	for _, arg := range os.Args[2:] {
+		switch arg {
+		case "--dry-run":
+			dryRun = true
+		default:
+			if !strings.HasPrefix(arg, "-") {
+				file = arg
+			}
+		}
+	}
+
+	if file == "" {
+		// Auto-detect.
+		matches, _ := filepath.Glob("*.human")
+		var files []string
+		for _, m := range matches {
+			info, err := os.Stat(m)
+			if err == nil && !info.IsDir() {
+				files = append(files, m)
+			}
+		}
+		if len(files) == 1 {
+			file = files[0]
+		} else {
+			fmt.Fprintln(os.Stderr, "Usage: human fix [--dry-run] <file.human>")
+			os.Exit(1)
+		}
+	}
+
+	result, err := fixer.Analyze([]string{file})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+		os.Exit(1)
+	}
+
+	fixer.PrintResult(os.Stdout, result, file)
+
+	if dryRun || len(result.Fixes) == 0 {
+		return
+	}
+
+	// Ask user.
+	fmt.Printf("\nAuto-fix %d issue(s)? [y/n] ", len(result.Fixes))
+	scanner := bufio.NewScanner(os.Stdin)
+	if scanner.Scan() {
+		answer := strings.ToLower(strings.TrimSpace(scanner.Text()))
+		if answer == "y" || answer == "yes" {
+			if err := fixer.ApplyAll(result.Fixes); err != nil {
+				fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+				os.Exit(1)
+			}
+			fmt.Println(cli.Success(fmt.Sprintf("Applied %d fix(es). Backup saved as %s.bak", len(result.Fixes), file)))
+		} else {
+			fmt.Println(cli.Info("No changes made."))
+		}
+	}
+}
+
 // ── Helpers ──
 
 func printUsage() {
@@ -969,6 +1069,13 @@ Commands:
   deploy --env <name> [file]  Deploy with a specific environment
   eject [path]              Export as standalone code (default: ./output/)
   storybook                 Launch Storybook dev server from build output
+
+Reference & Diagnostics:
+  explain [topic]           Learn Human syntax by topic
+  syntax [section]          Full syntax reference
+  syntax --search <term>    Search syntax patterns
+  fix [--dry-run] <file>    Find and auto-fix common issues
+  doctor                    Check environment health
 
 AI-Assisted (optional, requires API key or Ollama):
   ask "<description>"       Generate .human code from English

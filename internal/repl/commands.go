@@ -171,6 +171,32 @@ func (r *REPL) registerCommands() {
 			Complete:    completeMCP,
 		},
 		{
+			Name:        "/explain",
+			Description: "Learn Human syntax by topic",
+			Usage:       "/explain [topic]",
+			Handler:     cmdExplain,
+			Complete:    completeExplain,
+		},
+		{
+			Name:        "/syntax",
+			Description: "Full syntax reference",
+			Usage:       "/syntax [section|--search <term>]",
+			Handler:     cmdSyntax,
+			Complete:    completeSyntax,
+		},
+		{
+			Name:        "/fix",
+			Description: "Find and auto-fix common issues",
+			Usage:       "/fix [--dry-run]",
+			Handler:     cmdFix,
+		},
+		{
+			Name:        "/doctor",
+			Description: "Check environment health",
+			Usage:       "/doctor",
+			Handler:     cmdDoctor,
+		},
+		{
 			Name:        "/theme",
 			Description: "Show or change the color theme",
 			Usage:       "/theme [name|list]",
@@ -740,6 +766,7 @@ func cmdHelp(r *REPL, args []string) {
 	order := []string{
 		"/open", "/new", "/ask", "/import", "/edit", "/undo", "/suggest", "/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
+		"/explain", "/syntax", "/fix", "/doctor",
 		"/instructions", "/connect", "/disconnect", "/model", "/mcp", "/theme", "/config",
 		"/history", "/cd", "/pwd", "/clear", "/version", "/update", "/help", "/quit",
 	}
