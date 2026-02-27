@@ -414,18 +414,25 @@
   <nav class="site-nav">
     <div class="nav-inner">
       <a href="index.html" class="nav-logo">human<span class="nav-logo-cursor">_</span></a>
-      <div class="nav-links">
+      <div class="nav-right">
+        <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <button id="navToggle" class="hamburger-toggle" aria-label="Toggle menu">
+          <span class="hamburger-icon"></span>
+          <span class="hamburger-icon"></span>
+          <span class="hamburger-icon"></span>
+        </button>
+      </div>
+      <div class="nav-links" id="navLinks">
         <a href="getting-started.html">Get Started</a>
         <a href="cli-guide.html" class="active">CLI Guide</a>
         <a href="language-spec.html">Language Spec</a>
         <a href="roadmap.html">Roadmap</a>
-        <a href="manifesto.html" class="nav-hide-mobile">Manifesto</a>
-        <a href="contributing.html" class="nav-hide-mobile">Contributing</a>
+        <a href="manifesto.html">Manifesto</a>
+        <a href="contributing.html">Contributing</a>
         <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
-        <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
-          <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-          <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
       </div>
     </div>
   </nav>
@@ -446,6 +453,7 @@
       <li><a href="#diagnostics" onclick="document.getElementById('mobileToc').classList.remove('open')">Diagnostics</a></li>
       <li><a href="#deployment" onclick="document.getElementById('mobileToc').classList.remove('open')">Deployment</a></li>
       <li><a href="#ai-commands" onclick="document.getElementById('mobileToc').classList.remove('open')">AI-Assisted Commands</a></li>
+      <li><a href="#editor-import" onclick="document.getElementById('mobileToc').classList.remove('open')">Editor &amp; Import</a></li>
       <li><a href="#repl" onclick="document.getElementById('mobileToc').classList.remove('open')">Interactive REPL</a></li>
       <li><a href="#configuration" onclick="document.getElementById('mobileToc').classList.remove('open')">Configuration</a></li>
       <li><a href="#coming-soon" onclick="document.getElementById('mobileToc').classList.remove('open')">Coming Soon</a></li>
@@ -488,6 +496,10 @@
           <li><a href="#cmd-ask"><code>ask</code></a></li>
           <li><a href="#cmd-how"><code>how</code></a></li>
           <li><a href="#cmd-suggest"><code>suggest</code></a></li>
+          <li><a href="#editor-import">Editor &amp; Import</a></li>
+          <li><a href="#cmd-edit"><code>edit</code></a></li>
+          <li><a href="#cmd-import"><code>import</code></a></li>
+          <li><a href="#cmd-convert"><code>convert</code></a></li>
         </ul>
       </div>
 
@@ -881,7 +893,7 @@ app "TaskFlow":
       </div>
 
       <div class="tip-box">
-        <strong>Features:</strong> Tab completion for commands and files &middot; Command history with persistence across sessions &middot; Auto-detect <code>.human</code> files in the current directory &middot; 7 color themes &middot; Background update checks
+        <strong>Features:</strong> 38 commands with tab completion &middot; Command history with persistence across sessions &middot; Auto-detect <code>.human</code> files in the current directory &middot; 7 color themes &middot; Background update checks
       </div>
 
       <!-- All REPL Commands -->
@@ -1052,25 +1064,38 @@ app "TaskFlow":
 
 
       <!-- ══════════════════════════════════════════════
+           EDITOR & IMPORT
+           ══════════════════════════════════════════════ -->
+      <h2 id="editor-import">Editor &amp; Import</h2>
+      <p>Built-in TUI editor and design import tools.</p>
+
+      <!-- edit -->
+      <h3 id="cmd-edit"><code>human edit</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human edit &lt;file.human&gt;</div>
+        <p class="cmd-desc">Full TUI editor with syntax highlighting, real-time validation, and structural editing. Supports keyboard shortcuts, undo/redo, and inline diagnostics.</p>
+      </div>
+
+      <!-- import -->
+      <h3 id="cmd-import"><code>human import</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human import --figma &lt;url&gt;</div>
+        <p class="cmd-desc">Import Figma designs directly into <code>.human</code> files. Components are classified, data models inferred, and code generated. Also available via the REPL as <code>/import figma &lt;url&gt;</code>.</p>
+      </div>
+
+      <!-- convert -->
+      <h3 id="cmd-convert"><code>human convert</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human convert &lt;description&gt;</div>
+        <p class="cmd-desc">Convert natural language descriptions to <code>.human</code> files. Supports additional input formats including design files. Similar to <code>human ask</code> with extended format support.</p>
+      </div>
+
+
+      <!-- ══════════════════════════════════════════════
            COMING SOON
            ══════════════════════════════════════════════ -->
       <h2 id="coming-soon">Coming Soon</h2>
       <p>These commands are planned for upcoming releases.</p>
-
-      <div class="cmd-card">
-        <div class="cmd-signature">human edit &lt;file.human&gt; <span class="badge-soon">Coming Soon</span></div>
-        <p class="cmd-desc">Full TUI editor with syntax highlighting, real-time validation, and structural editing. Currently available as a basic editor; the enhanced version with <code>-i "instruction"</code> for AI-assisted editing is in development.</p>
-      </div>
-
-      <div class="cmd-card">
-        <div class="cmd-signature">human import --figma &lt;url&gt; <span class="badge-soon">Coming Soon</span></div>
-        <p class="cmd-desc">Import Figma designs directly into <code>.human</code> files. Currently available via the REPL (<code>/import figma &lt;url&gt;</code>); standalone CLI command coming soon.</p>
-      </div>
-
-      <div class="cmd-card">
-        <div class="cmd-signature">human convert &lt;description&gt; <span class="badge-soon">Coming Soon</span></div>
-        <p class="cmd-desc">Convert natural language descriptions to <code>.human</code> files. Currently similar to <code>human ask</code>; will support additional input formats including design files.</p>
-      </div>
 
       <div class="cmd-card">
         <div class="cmd-signature">human describe &lt;file.human&gt; <span class="badge-soon">Coming Soon</span></div>

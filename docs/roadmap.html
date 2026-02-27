@@ -401,18 +401,25 @@
   <nav class="site-nav">
     <div class="nav-inner">
       <a href="index.html" class="nav-logo">human<span class="nav-logo-cursor">_</span></a>
-      <div class="nav-links">
-        <a href="getting-started.html">Get Started</a>
-        <a href="cli-guide.html">CLI Guide</a>
-        <a href="language-spec.html">Language Spec</a>
-        <a href="roadmap.html" class="active">Roadmap</a>
-        <a href="manifesto.html" class="nav-hide-mobile">Manifesto</a>
-        <a href="contributing.html" class="nav-hide-mobile">Contributing</a>
-        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
+      <div class="nav-right">
         <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
           <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
           <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
+        <button id="navToggle" class="hamburger-toggle" aria-label="Toggle menu">
+          <span class="hamburger-icon"></span>
+          <span class="hamburger-icon"></span>
+          <span class="hamburger-icon"></span>
+        </button>
+      </div>
+      <div class="nav-links" id="navLinks">
+        <a href="getting-started.html">Get Started</a>
+        <a href="cli-guide.html">CLI Guide</a>
+        <a href="language-spec.html">Language Spec</a>
+        <a href="roadmap.html" class="active">Roadmap</a>
+        <a href="manifesto.html">Manifesto</a>
+        <a href="contributing.html">Contributing</a>
+        <a href="https://github.com/barun-bash/human" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
   </nav>
@@ -658,7 +665,7 @@
               <li class="task-item done"><span class="task-checkbox"></span>Colored terminal output with 6 themes</li>
               <li class="task-item done"><span class="task-checkbox"></span>Progress indicators (spinners, progress boxes)</li>
               <li class="task-item done"><span class="task-checkbox"></span>Watch mode (<code>human build --watch</code>)</li>
-              <li class="task-item done"><span class="task-checkbox"></span>Interactive REPL with 20+ commands</li>
+              <li class="task-item done"><span class="task-checkbox"></span>Interactive REPL with 38 commands</li>
               <li class="task-item done"><span class="task-checkbox"></span>Readline with tab completion and command history</li>
               <li class="task-item done"><span class="task-checkbox"></span>AI-assisted commands (<code>/ask</code>, <code>/edit</code>, <code>/suggest</code>)</li>
               <li class="task-item done"><span class="task-checkbox"></span>Self-update via GitHub releases (<code>/update</code>)</li>
@@ -879,7 +886,7 @@
             <ul class="task-list">
               <li class="task-item done"><span class="task-checkbox"></span>Project website (6 pages: landing, getting started, language spec, roadmap, manifesto, contributing)</li>
               <li class="task-item"><span class="task-checkbox"></span>Tutorial: &ldquo;Build your first app in Human&rdquo;</li>
-              <li class="task-item done"><span class="task-checkbox"></span>12 example applications (taskflow, blog, ecommerce, saas, api-only, test-app, recipes, projects, events, fitness, inventory, figma-demo)</li>
+              <li class="task-item done"><span class="task-checkbox"></span>13 example applications (taskflow, blog, ecommerce, saas, api-only, test-app, recipes, projects, events, fitness, inventory, figma-demo, timekeeper-signin)</li>
               <li class="task-item"><span class="task-checkbox"></span>Performance optimization</li>
               <li class="task-item done"><span class="task-checkbox"></span>Semantic error messages with codes and fix suggestions (17 errors, 10 warnings)</li>
               <li class="task-item done"><span class="task-checkbox"></span>Installation scripts (install.sh, Homebrew formula, GoReleaser cross-platform binaries)</li>

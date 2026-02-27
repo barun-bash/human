@@ -28,4 +28,39 @@
     localStorage.setItem('human-theme', next);
     setFavicon(next);
   });
+
+  // ── Hamburger menu ──
+  var hamburger = document.getElementById('navToggle');
+  var navLinks = document.getElementById('navLinks');
+
+  if (hamburger && navLinks) {
+    hamburger.addEventListener('click', function () {
+      hamburger.classList.toggle('active');
+      navLinks.classList.toggle('mobile-menu-open');
+    });
+
+    // Close on link click
+    navLinks.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function () {
+        hamburger.classList.remove('active');
+        navLinks.classList.remove('mobile-menu-open');
+      });
+    });
+
+    // Close on outside click
+    document.addEventListener('click', function (e) {
+      if (!hamburger.contains(e.target) && !navLinks.contains(e.target)) {
+        hamburger.classList.remove('active');
+        navLinks.classList.remove('mobile-menu-open');
+      }
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        hamburger.classList.remove('active');
+        navLinks.classList.remove('mobile-menu-open');
+      }
+    });
+  }
 })();
