@@ -268,7 +268,7 @@
   <section class="hero">
     <div class="hero-inner reveal">
       <h1>Getting Started</h1>
-      <p>Build your first application in Human &mdash; step by step.</p>
+      <p>Build your first app in 5 minutes.</p>
       <div class="hero-divider"></div>
     </div>
   </section>
@@ -282,7 +282,7 @@
         <div class="step-number">0</div>
         <h2 class="step-title">Install</h2>
       </div>
-      <p class="step-text">Human is distributed as a single Go binary. Install it with one command, then verify it's working.</p>
+      <p class="step-text">Human is a single Go binary. Install it, add it to your PATH, and verify.</p>
       <div class="code-window">
         <div class="code-titlebar">
           <span class="code-dot code-dot-accent"></span>
@@ -290,312 +290,23 @@
           <span class="code-dot code-dot-dim"></span>
           <span class="code-filename">terminal</span>
         </div>
-        <div class="code-body"><pre><span class="cm"># Install the compiler</span>
-<span class="kw">$</span> <span data-version="install">go install github.com/barun-bash/human/cmd/human@v0.4.2</span>
-
-<span class="cm"># Make sure Go binaries are in your PATH</span>
+        <div class="code-body"><pre><span class="kw">$</span> <span data-version="install">go install github.com/barun-bash/human/cmd/human@v0.4.2</span>
 <span class="kw">$</span> export PATH="$PATH:$(go env GOPATH)/bin"
-
-<span class="cm"># Verify it's installed</span>
 <span class="kw">$</span> human version</pre></div>
       </div>
       <div class="explanation">
         <div class="explanation-label">Requirements</div>
-        <p><strong>Go 1.25+</strong> is required. If you don't have Go installed, get it from <a href="https://go.dev/dl/" target="_blank" rel="noopener">go.dev/dl</a>.</p>
-        <p><strong>GOPATH/bin in PATH</strong> is required. Go installs binaries to <code>$GOPATH/bin</code> (usually <code>~/go/bin</code>), but this directory is not in your <code>PATH</code> by default. Run the <code>export</code> command above, then add it to your shell config to make it permanent:</p>
-        <p><code>echo 'export PATH="$PATH:$(go env GOPATH)/bin"' >> ~/.zshrc</code></p>
-        <p>On Linux or if you use bash, replace <code>~/.zshrc</code> with <code>~/.bashrc</code>.</p>
+        <p><strong>Go 1.25+</strong> is required. Get it from <a href="https://go.dev/dl/" target="_blank" rel="noopener">go.dev/dl</a>. To make the PATH change permanent, add the <code>export</code> line to your <code>~/.zshrc</code> (macOS) or <code>~/.bashrc</code> (Linux).</p>
       </div>
     </div>
 
-    <!-- Step 1: Your first app -->
+    <!-- Step 1: Create your first file -->
     <div class="step reveal">
       <div class="step-header">
         <div class="step-number">1</div>
-        <h2 class="step-title">Your first app</h2>
+        <h2 class="step-title">Create your first file</h2>
       </div>
-      <p class="step-text">Every Human project starts with a single line: a declaration of what you are building. This tells the compiler the name of your application and what kind of platform it targets. No imports, no configuration files, no boilerplate. Just one sentence.</p>
-      <div class="code-window">
-        <div class="code-titlebar">
-          <span class="code-dot code-dot-accent"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-filename">app.human</span>
-        </div>
-        <div class="code-body"><pre><span class="kw">app</span> TaskFlow <span class="kw">is a</span> web application</pre></div>
-      </div>
-      <div class="explanation">
-        <div class="explanation-label">What this does</div>
-        <p>This single line declares an application called <strong>TaskFlow</strong> that targets the web. The compiler uses this to set up routing, project structure, and build configuration. You can also target <strong>mobile</strong>, <strong>desktop</strong>, or <strong>api</strong> platforms.</p>
-      </div>
-    </div>
-
-    <!-- Step 2: Define your data -->
-    <div class="step reveal">
-      <div class="step-header">
-        <div class="step-number">2</div>
-        <h2 class="step-title">Define your data</h2>
-      </div>
-      <p class="step-text">Data declarations describe the entities in your application &mdash; the things your users create, read, update, and delete. Each field has a type, and you can add modifiers like <code>unique</code>, <code>encrypted</code>, or <code>optional</code>. Relationships between entities are expressed as plain English: <strong>belongs to</strong>, <strong>has many</strong>.</p>
-      <div class="code-window">
-        <div class="code-titlebar">
-          <span class="code-dot code-dot-accent"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-filename">app.human</span>
-        </div>
-        <div class="code-body"><pre><span class="kw">data</span> User:
-  <span class="kw">has a</span> name <span class="kw">which is</span> text
-  <span class="kw">has an</span> email <span class="kw">which is</span> unique email
-  <span class="kw">has a</span> password <span class="kw">which is</span> encrypted text
-  <span class="kw">has a</span> role <span class="kw">which is either</span> <span class="str">"user"</span> <span class="kw">or</span> <span class="str">"admin"</span>
-  <span class="kw">has an optional</span> bio <span class="kw">which is</span> text
-  <span class="kw">has a</span> created datetime
-  <span class="kw">has many</span> Task
-
-<span class="kw">data</span> Task:
-  <span class="kw">belongs to a</span> User
-  <span class="kw">has a</span> title <span class="kw">which is</span> text
-  <span class="kw">has a</span> status <span class="kw">which is either</span> <span class="str">"pending"</span> <span class="kw">or</span> <span class="str">"in_progress"</span> <span class="kw">or</span> <span class="str">"done"</span>
-  <span class="kw">has a</span> priority <span class="kw">which is either</span> <span class="str">"low"</span> <span class="kw">or</span> <span class="str">"medium"</span> <span class="kw">or</span> <span class="str">"high"</span>
-  <span class="kw">has a</span> due date
-  <span class="kw">has many</span> Tag <span class="kw">through</span> TaskTag</pre></div>
-      </div>
-      <div class="explanation">
-        <div class="explanation-label">What this does</div>
-        <p>The compiler generates database tables, ORM models, TypeScript types, and migration files from these declarations. The <strong>unique</strong> modifier creates a database constraint. The <strong>encrypted</strong> modifier ensures the password is hashed at rest. Enum fields like <code>status</code> and <code>role</code> are type-safe &mdash; the compiler rejects any value not in the list. The <strong>belongs to</strong> / <strong>has many</strong> syntax creates foreign keys and join tables automatically.</p>
-      </div>
-    </div>
-
-    <!-- Step 3: Create pages -->
-    <div class="step reveal">
-      <div class="step-header">
-        <div class="step-number">3</div>
-        <h2 class="step-title">Create pages</h2>
-      </div>
-      <p class="step-text">Pages describe what the user sees and how they interact with it. You write display statements, interaction handlers, input elements, and conditional states &mdash; all in English. The compiler turns these into fully functional frontend components with proper state management, event handling, and data fetching.</p>
-      <div class="code-window">
-        <div class="code-titlebar">
-          <span class="code-dot code-dot-accent"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-filename">app.human</span>
-        </div>
-        <div class="code-body"><pre><span class="kw">page</span> Dashboard:
-  <span class="kw">show</span> a greeting with the user's name
-  <span class="kw">show</span> a summary card with total tasks, completed tasks, and overdue tasks
-
-  <span class="kw">show</span> a list of tasks sorted by due date
-  <span class="kw">each</span> task shows its title, status, priority, and due date
-  <span class="kw">each</span> task shows the status as a colored badge
-  clicking a task opens a detail panel on the right
-
-  there is a search bar that <span class="kw">filter</span>s tasks by title
-  there is a dropdown to <span class="kw">filter</span> by status
-
-  <span class="kw">if</span> no tasks match, <span class="kw">show</span> <span class="str">"No tasks found. Create your first task!"</span>
-  <span class="kw">while</span> loading, <span class="kw">show</span> a skeleton screen
-
-  there is a floating button to add a new task
-  clicking the add button opens a form to <span class="kw">create</span> a Task</pre></div>
-      </div>
-      <div class="explanation">
-        <div class="explanation-label">What this does</div>
-        <p>This generates a complete Dashboard page with a greeting header, summary statistics, a sortable and filterable task list, search input, status dropdown, an empty state message, a loading skeleton, and a floating action button that opens a creation form. The output targets whichever frontend you choose &mdash; React, Vue, Angular, or Svelte. Every interaction described in English becomes a real event handler. Every conditional becomes a proper render branch.</p>
-      </div>
-    </div>
-
-    <!-- Step 4: Build your API -->
-    <div class="step reveal">
-      <div class="step-header">
-        <div class="step-number">4</div>
-        <h2 class="step-title">Build your API</h2>
-      </div>
-      <p class="step-text">API declarations define your backend endpoints. Each one specifies what it accepts, what preconditions it requires, what logic it runs, and what it returns. Validation, authentication, and error handling are expressed inline. No route files, no middleware configuration &mdash; just describe the behavior.</p>
-      <div class="code-window">
-        <div class="code-titlebar">
-          <span class="code-dot code-dot-accent"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-filename">app.human</span>
-        </div>
-        <div class="code-body"><pre><span class="kw">api</span> CreateTask:
-  <span class="kw">requires</span> authentication
-  <span class="kw">accepts</span> title, description, priority, and due date
-  <span class="kw">check that</span> title is not empty
-  <span class="kw">check that</span> title is less than 200 characters
-  <span class="kw">check that</span> due date is in the future
-  <span class="kw">create</span> a Task with the given fields and current user as owner
-  set status to <span class="str">"pending"</span> if not provided
-  <span class="kw">respond with</span> the created task
-
-<span class="kw">api</span> GetTasks:
-  <span class="kw">requires</span> authentication
-  <span class="kw">fetch</span> all tasks for the current user
-  <span class="kw">sort</span> by due date
-  support <span class="kw">filter</span>ing by status
-  support <span class="kw">search</span>ing by title
-  <span class="kw">paginate</span> with 20 per page
-  <span class="kw">respond with</span> tasks and pagination info</pre></div>
-      </div>
-      <div class="explanation">
-        <div class="explanation-label">What this does</div>
-        <p>The compiler generates Express (or your chosen framework) route handlers with input validation, authentication middleware, database queries, error responses, and pagination. Each <strong>check that</strong> statement becomes a validation rule that returns a clear error message on failure. Each <strong>fetch</strong> or <strong>create</strong> becomes a properly parameterized database operation. Filtering, sorting, and pagination are handled automatically.</p>
-      </div>
-    </div>
-
-    <!-- Step 5: Add authentication and security -->
-    <div class="step reveal">
-      <div class="step-header">
-        <div class="step-number">5</div>
-        <h2 class="step-title">Add authentication and security</h2>
-      </div>
-      <p class="step-text">Security in Human is not an afterthought. The <code>authentication</code> block configures your auth strategy, and <code>policy</code> blocks define role-based access control. The compiler enforces these rules across your entire application &mdash; if an API requires authentication but your security config is missing, the build fails with a helpful message.</p>
-      <div class="code-window">
-        <div class="code-titlebar">
-          <span class="code-dot code-dot-accent"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-filename">app.human</span>
-        </div>
-        <div class="code-body"><pre><span class="kw">authentication</span>:
-  method JWT tokens that expire in 7 days
-  method Google OAuth with redirect to /auth/google/callback
-  passwords are hashed with bcrypt using 12 rounds
-  <span class="kw">all</span> api requests require a valid token except SignUp and Login
-  rate limit <span class="kw">all</span> endpoints to 100 requests per minute per user
-  <span class="kw">sanitize</span> <span class="kw">all</span> text inputs against XSS
-  enable CORS <span class="kw">only for</span> our frontend domain
-
-<span class="kw">policy</span> FreeUser:
-  can <span class="kw">create</span> up to 50 tasks per month
-  can view <span class="kw">only</span> their own tasks
-  can edit <span class="kw">only</span> their own tasks
-  cannot <span class="kw">delete</span> completed tasks
-  cannot export data
-
-<span class="kw">policy</span> Admin:
-  can view <span class="kw">all</span> users and their data
-  can edit any task
-  can <span class="kw">delete</span> any task
-  can export data
-  can view system analytics</pre></div>
-      </div>
-      <div class="explanation">
-        <div class="explanation-label">What this does</div>
-        <p>The compiler generates JWT middleware, OAuth integration, bcrypt password hashing, rate limiting middleware, XSS sanitization, and CORS configuration. Policies become authorization guards applied to every relevant endpoint. The <strong>FreeUser</strong> policy creates usage limits enforced at the database level. The <strong>Admin</strong> policy grants elevated access. These are not just comments &mdash; they are compiled into real, tested access control code.</p>
-      </div>
-    </div>
-
-    <!-- Step 6: Set up workflows -->
-    <div class="step reveal">
-      <div class="step-header">
-        <div class="step-number">6</div>
-        <h2 class="step-title">Set up workflows</h2>
-      </div>
-      <p class="step-text">Workflows describe what happens when events occur in your system. A user signs up, a task becomes overdue, a payment fails &mdash; each trigger starts a sequence of actions. These are compiled into event handlers, background jobs, and scheduled tasks with proper retry logic and error handling.</p>
-      <div class="code-window">
-        <div class="code-titlebar">
-          <span class="code-dot code-dot-accent"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-filename">app.human</span>
-        </div>
-        <div class="code-body"><pre><span class="kw">when</span> a user signs up:
-  <span class="kw">create</span> their account
-  assign FreeUser <span class="kw">policy</span>
-  <span class="kw">send</span> welcome email with template <span class="str">"welcome"</span>
-  <span class="kw">after</span> 3 days, <span class="kw">send</span> email with template <span class="str">"getting-started"</span>
-  <span class="kw">after</span> 14 days, <span class="kw">if</span> they have fewer than 5 tasks,
-    <span class="kw">send</span> email with template <span class="str">"need-help"</span>
-
-<span class="kw">when</span> a task is marked done:
-  <span class="kw">update</span> the user's completed task count
-  <span class="kw">if</span> <span class="kw">all</span> tasks for today are done,
-    <span class="kw">send</span> congratulations notification
-  log the completion <span class="kw">for</span> analytics</pre></div>
-      </div>
-      <div class="explanation">
-        <div class="explanation-label">What this does</div>
-        <p>The signup workflow generates an event listener that runs after user creation: it assigns a default policy, sends an immediate welcome email, and schedules two delayed follow-up emails with conditional logic. The completion workflow updates aggregate counts, checks a condition across related records, and logs an analytics event. All timing, retries, and failure handling are managed by the compiled code.</p>
-      </div>
-    </div>
-
-    <!-- Step 7: Choose your stack and build -->
-    <div class="step reveal">
-      <div class="step-header">
-        <div class="step-number">7</div>
-        <h2 class="step-title">Choose your stack and build</h2>
-      </div>
-      <p class="step-text">The <code>build with</code> block tells the compiler what frameworks and tools to target. Your entire application &mdash; data models, pages, APIs, security, workflows &mdash; compiles to the stack you choose. Change the target later and recompile; your logic stays the same.</p>
-      <div class="code-window">
-        <div class="code-titlebar">
-          <span class="code-dot code-dot-accent"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-filename">app.human</span>
-        </div>
-        <div class="code-body"><pre><span class="kw">build with</span>:
-  frontend using React with TypeScript    <span class="cm"># or Vue, Angular, Svelte</span>
-  backend using Node with Express         <span class="cm"># or Python with FastAPI, Go with Gin</span>
-  <span class="kw">database</span> using PostgreSQL
-  <span class="kw">deploy</span> to Docker</pre></div>
-      </div>
-      <div class="explanation">
-        <div class="explanation-label">What this does</div>
-        <p>The compiler reads your entire <code>.human</code> file and generates a complete project: frontend components with TypeScript types, backend API routes with middleware, PostgreSQL schemas with migrations, Dockerfiles, Terraform configs, CI/CD workflows, and a full test suite. Same source file could target Vue + Python + PostgreSQL or Angular + Go + PostgreSQL &mdash; just change the build block. 4 frontends, 3 backends, and 7 design systems are supported.</p>
-      </div>
-      <div class="cli-block">
-        <p>Then run it from your terminal:</p>
-        <div class="cli-commands"><pre><span class="accent">$</span> human check app.human      <span class="cm"># Validate your .human file</span>
-<span class="accent">$</span> human build app.human      <span class="cm"># Compile to your target stack</span>
-<span class="accent">$</span> cd .human/output && bash start.sh  <span class="cm"># Run the generated project</span></pre></div>
-      </div>
-    </div>
-
-    <!-- Step 8: Use the CLI tools -->
-    <div class="step reveal">
-      <div class="step-header">
-        <div class="step-number">8</div>
-        <h2 class="step-title">Use the CLI tools</h2>
-      </div>
-      <p class="step-text">The Human CLI is more than just a compiler. It includes tools to explore patterns, discover syntax, diagnose problems, and get instant explanations &mdash; all without leaving your terminal.</p>
-      <div class="code-window">
-        <div class="code-titlebar">
-          <span class="code-dot code-dot-accent"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-filename">terminal &mdash; explore</span>
-        </div>
-        <div class="code-body"><pre><span class="cm"># Learn about any Human pattern</span>
-<span class="kw">$</span> human explain data
-<span class="cm"># Shows: field types, modifiers, relationships, examples</span>
-
-<span class="kw">$</span> human explain authentication
-<span class="cm"># Shows: JWT, OAuth, bcrypt, rate limiting patterns</span></pre></div>
-      </div>
-      <div class="code-window">
-        <div class="code-titlebar">
-          <span class="code-dot code-dot-accent"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-dot code-dot-dim"></span>
-          <span class="code-filename">terminal &mdash; diagnose</span>
-        </div>
-        <div class="code-body"><pre><span class="cm"># Validate and fix your .human files</span>
-<span class="kw">$</span> human check app.human       <span class="cm"># Detailed validation report</span>
-<span class="kw">$</span> human fix app.human         <span class="cm"># Auto-fix common issues</span>
-<span class="kw">$</span> human doctor                <span class="cm"># Check your entire setup</span></pre></div>
-      </div>
-      <div class="explanation">
-        <div class="explanation-label">What this does</div>
-        <p><strong>human explain</strong> is a built-in reference &mdash; type any topic (data, page, api, authentication, etc.) to see the full pattern with examples. <strong>human fix</strong> detects and auto-corrects common issues like missing <code>build with</code> blocks. <strong>human doctor</strong> checks your Go version, PATH, and compiler installation. See the <a href="cli-guide.html">CLI Guide</a> for the complete command reference.</p>
-      </div>
-    </div>
-
-    <!-- Putting it all together -->
-    <div class="together reveal">
-      <h2>Putting it all together</h2>
-      <p>Here is a complete, minimal Human application combining every concept from the tutorial. This single file produces a full-stack, tested, deployable task manager.</p>
+      <p class="step-text">Create a file called <code>app.human</code> with the following content. This is a complete, buildable application &mdash; an app declaration, one data model, one page, and a build block.</p>
       <div class="code-window">
         <div class="code-titlebar">
           <span class="code-dot code-dot-accent"></span>
@@ -605,7 +316,267 @@
         </div>
         <div class="code-body"><pre><span class="kw">app</span> TaskFlow <span class="kw">is a</span> web application
 
-<span class="cm"># ── Data ──</span>
+<span class="kw">data</span> Task:
+  <span class="kw">has a</span> title <span class="kw">which is</span> text
+  <span class="kw">has a</span> status <span class="kw">which is either</span> <span class="str">"pending"</span> <span class="kw">or</span> <span class="str">"done"</span>
+  <span class="kw">has a</span> due date
+
+<span class="kw">page</span> Dashboard:
+  <span class="kw">show</span> a list of tasks sorted by due date
+  <span class="kw">each</span> task shows its title, status, and due date
+  clicking a task toggles its status
+  there is a form to <span class="kw">create</span> a Task
+
+<span class="kw">build with</span>:
+  frontend using React with TypeScript
+  backend using Node with Express
+  <span class="kw">database</span> using PostgreSQL</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this does</div>
+        <p>This 15-line file declares a web app called <strong>TaskFlow</strong> with a Task model (three fields), a Dashboard page that lists and creates tasks, and a build target of React + Node + PostgreSQL. That is enough for the compiler to generate a full-stack project.</p>
+      </div>
+    </div>
+
+    <!-- Step 2: Check and build -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">2</div>
+        <h2 class="step-title">Check and build</h2>
+      </div>
+      <p class="step-text">Run <code>human check</code> to validate your file, then <code>human build</code> to compile it into a full project.</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">terminal</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">$</span> human check app.human
+
+  <span class="cm">  Checking app.human...</span>
+  <span class="cm">  Parsed: 1 app, 1 data, 1 page, 0 apis</span>
+  <span class="cm">  Validation passed. 0 errors, 0 warnings.</span>
+
+<span class="kw">$</span> human build app.human
+
+  <span class="cm">  Building TaskFlow...</span>
+  <span class="cm">  Frontend:  React + TypeScript     7 files</span>
+  <span class="cm">  Backend:   Node + Express          8 files</span>
+  <span class="cm">  Database:  PostgreSQL              2 files</span>
+  <span class="cm">  Docker:    Dockerfile + Compose    5 files</span>
+  <span class="cm">  Quality:   Tests + Reports        11 files</span>
+  <span class="cm">  Scaffold:  Config + Scripts        7 files</span>
+  <span class="cm">  Build complete. 40+ files generated in .human/output/</span></pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What just happened</div>
+        <p>The compiler parsed your English, built an intermediate representation (Intent IR), ran semantic analysis, and then passed that IR through 10+ code generators. Each generator reads the same IR and produces framework-specific output. The result is a complete, deployable project &mdash; from a 15-line input.</p>
+      </div>
+    </div>
+
+    <!-- Step 3: See what was generated -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">3</div>
+        <h2 class="step-title">See what was generated</h2>
+      </div>
+      <p class="step-text">Look inside the <code>.human/output/</code> directory. Here is what the compiler produced from your 15-line file.</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">generated file tree</span>
+        </div>
+        <div class="code-body"><pre>.human/output/
+<span class="kw">frontend/</span>          <span class="cm"># React + TypeScript</span>
+  src/
+    types.ts         <span class="cm"># TypeScript interfaces from your data models</span>
+    api-client.ts    <span class="cm"># Typed API client with fetch calls</span>
+    pages/           <span class="cm"># Dashboard.tsx with state, handlers, rendering</span>
+    components/      <span class="cm"># Reusable UI components</span>
+    App.tsx          <span class="cm"># Router and app shell</span>
+<span class="kw">backend/</span>           <span class="cm"># Node + Express</span>
+    server.ts        <span class="cm"># Express server with middleware</span>
+    routes/          <span class="cm"># Route handlers with validation</span>
+    models/          <span class="cm"># Prisma schema from your data declarations</span>
+    auth/            <span class="cm"># Authentication middleware</span>
+<span class="kw">database/</span>          <span class="cm"># PostgreSQL</span>
+    migration.sql    <span class="cm"># CREATE TABLE statements</span>
+    seed.sql         <span class="cm"># Sample data</span>
+<span class="kw">infra/</span>             <span class="cm"># Docker + CI/CD</span>
+    Dockerfile       <span class="cm"># Multi-stage builds</span>
+    docker-compose.yml
+    .github/         <span class="cm"># GitHub Actions workflows</span>
+<span class="kw">quality/</span>           <span class="cm"># Tests + Reports</span>
+    *.test.ts        <span class="cm"># Unit tests for every component and route</span>
+    security-report.md
+    build-report.md</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">The wow moment</div>
+        <p>Every directory is a real, working part of your application. The frontend has proper TypeScript types derived from your data model. The backend has validated route handlers. The database has migration SQL. The quality directory has tests that actually run. You can <code>cd .human/output && bash start.sh</code> to launch it.</p>
+      </div>
+    </div>
+
+    <!-- Step 4: Add a user model -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">4</div>
+        <h2 class="step-title">Add a user model</h2>
+      </div>
+      <p class="step-text">Now let's make it real. Add a <strong>User</strong> data model with an encrypted password and a relationship to Task. Insert this between the app declaration and the Task model.</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human &mdash; add after line 1</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">data</span> User:
+  <span class="kw">has a</span> name <span class="kw">which is</span> text
+  <span class="kw">has an</span> email <span class="kw">which is</span> unique email
+  <span class="kw">has a</span> password <span class="kw">which is</span> encrypted text
+  <span class="kw">has many</span> Task</pre></div>
+      </div>
+      <p class="step-text">Then add a relationship line to the Task model:</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human &mdash; add to Task</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">data</span> Task:
+  <span class="kw">belongs to a</span> User              <span class="cm"># new line</span>
+  <span class="kw">has a</span> title <span class="kw">which is</span> text
+  <span class="kw">has a</span> status <span class="kw">which is either</span> <span class="str">"pending"</span> <span class="kw">or</span> <span class="str">"done"</span>
+  <span class="kw">has a</span> due date</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this adds</div>
+        <p>The <strong>unique</strong> modifier on email creates a database constraint. The <strong>encrypted</strong> modifier on password means the compiler generates bcrypt hashing &mdash; passwords are never stored in plain text. The <strong>has many</strong> / <strong>belongs to</strong> pair creates a foreign key relationship. The compiler generates migrations, ORM models, and TypeScript types for both entities.</p>
+      </div>
+    </div>
+
+    <!-- Step 5: Add an API -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">5</div>
+        <h2 class="step-title">Add an API</h2>
+      </div>
+      <p class="step-text">Add a backend endpoint that creates tasks with validation. Insert this after the page declaration.</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human &mdash; add after page</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">api</span> CreateTask:
+  <span class="kw">requires</span> authentication
+  <span class="kw">accepts</span> title and due date
+  <span class="kw">check that</span> title is not empty
+  <span class="kw">check that</span> due date is in the future
+  <span class="kw">create</span> a Task for the current user
+  <span class="kw">respond with</span> the created task</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this adds</div>
+        <p>The compiler generates a POST route handler with input validation, authentication middleware, a database insert, and a JSON response. Each <strong>check that</strong> becomes a validation rule that returns a clear 400 error on failure. The <strong>requires authentication</strong> line adds JWT middleware to this endpoint automatically.</p>
+      </div>
+    </div>
+
+    <!-- Step 6: Add authentication -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">6</div>
+        <h2 class="step-title">Add authentication</h2>
+      </div>
+      <p class="step-text">Your API requires authentication, so you need to declare how authentication works. Add this after the API declaration.</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human &mdash; add after api</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">authentication</span>:
+  method JWT tokens that expire in 7 days
+  passwords are hashed with bcrypt</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this adds</div>
+        <p>Two lines. The compiler generates JWT token creation, verification middleware, token refresh logic, and bcrypt password hashing with secure defaults. If you had declared <code>requires authentication</code> on an API without this block, the compiler would fail with a helpful error telling you exactly what to add.</p>
+      </div>
+    </div>
+
+    <!-- Step 7: Rebuild and explore -->
+    <div class="step reveal">
+      <div class="step-header">
+        <div class="step-number">7</div>
+        <h2 class="step-title">Rebuild and explore</h2>
+      </div>
+      <p class="step-text">Rebuild to see the expanded output. Then use the CLI tools to explore what you've built.</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">terminal</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">$</span> human build app.human
+
+  <span class="cm">  Building TaskFlow...</span>
+  <span class="cm">  Frontend:  React + TypeScript     7 files</span>
+  <span class="cm">  Backend:   Node + Express         13 files</span>
+  <span class="cm">  Database:  PostgreSQL              2 files</span>
+  <span class="cm">  Docker:    Dockerfile + Compose    5 files</span>
+  <span class="cm">  Quality:   Tests + Reports        11 files</span>
+  <span class="cm">  Scaffold:  Config + Scripts        7 files</span>
+  <span class="cm">  Build complete. 45+ files generated in .human/output/</span></pre></div>
+      </div>
+      <p class="step-text">Try the built-in tools:</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">terminal</span>
+        </div>
+        <div class="code-body"><pre><span class="cm"># Explain any concept</span>
+<span class="kw">$</span> human explain authentication
+<span class="cm"># Shows: JWT, bcrypt, OAuth patterns with examples</span>
+
+<span class="cm"># Auto-fix common issues</span>
+<span class="kw">$</span> human fix app.human
+
+<span class="cm"># Launch the interactive REPL</span>
+<span class="kw">$</span> human repl
+<span class="accent">human&gt;</span> /open app.human
+<span class="accent">human&gt;</span> /build
+<span class="accent">human&gt;</span> /explain data
+<span class="accent">human&gt;</span> /exit</pre></div>
+      </div>
+      <div class="explanation">
+        <div class="explanation-label">What this does</div>
+        <p><strong>human explain</strong> is a built-in reference for any language concept. <strong>human fix</strong> auto-corrects common issues. The <strong>REPL</strong> is an interactive environment with 30+ commands, tab completion, and command history &mdash; you can edit, build, and explore without leaving it. See the <a href="cli-guide.html">CLI Guide</a> for the full command reference.</p>
+      </div>
+    </div>
+
+    <!-- Putting it all together -->
+    <div class="together reveal">
+      <h2>Putting it all together</h2>
+      <p>Here is the complete file you've built through this tutorial. This single file produces a full-stack, tested, deployable task manager.</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <span class="code-dot code-dot-accent"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-dot code-dot-dim"></span>
+          <span class="code-filename">app.human</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">app</span> TaskFlow <span class="kw">is a</span> web application
 
 <span class="kw">data</span> User:
   <span class="kw">has a</span> name <span class="kw">which is</span> text
@@ -619,52 +590,40 @@
   <span class="kw">has a</span> status <span class="kw">which is either</span> <span class="str">"pending"</span> <span class="kw">or</span> <span class="str">"done"</span>
   <span class="kw">has a</span> due date
 
-<span class="cm"># ── Pages ──</span>
-
 <span class="kw">page</span> Dashboard:
   <span class="kw">show</span> a list of tasks sorted by due date
   <span class="kw">each</span> task shows its title, status, and due date
   clicking a task toggles its status
-  <span class="kw">if</span> no tasks match, <span class="kw">show</span> <span class="str">"No tasks yet."</span>
   there is a form to <span class="kw">create</span> a Task
-
-<span class="cm"># ── API ──</span>
 
 <span class="kw">api</span> CreateTask:
   <span class="kw">requires</span> authentication
   <span class="kw">accepts</span> title and due date
   <span class="kw">check that</span> title is not empty
-  <span class="kw">create</span> the task for the current user
+  <span class="kw">check that</span> due date is in the future
+  <span class="kw">create</span> a Task for the current user
   <span class="kw">respond with</span> the created task
-
-<span class="cm"># ── Security ──</span>
 
 <span class="kw">authentication</span>:
   method JWT tokens that expire in 7 days
   passwords are hashed with bcrypt
 
-<span class="kw">policy</span> User:
-  can view <span class="kw">only</span> their own tasks
-  can <span class="kw">create</span> up to 100 tasks
-
-<span class="cm"># ── Workflows ──</span>
-
-<span class="kw">when</span> a user signs up:
-  <span class="kw">send</span> welcome email with template <span class="str">"welcome"</span>
-
-<span class="cm"># ── Build ──</span>
-
 <span class="kw">build with</span>:
   frontend using React with TypeScript
   backend using Node with Express
-  <span class="kw">database</span> using PostgreSQL</pre></div>
+  <span class="kw">database</span> using PostgreSQL
+  <span class="kw">deploy</span> to Docker</pre></div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-commands"><pre><span class="accent">$</span> human build app.human      <span class="cm"># Compile to full-stack project</span>
+<span class="accent">$</span> cd .human/output && bash start.sh  <span class="cm"># Run it</span></pre></div>
       </div>
     </div>
 
     <!-- What's Next -->
     <div class="whats-next reveal">
       <h2>What's next?</h2>
-      <p>You know the basics. Here is where to go from here.</p>
+      <p>You've built a full-stack app. Here is where to go from here.</p>
       <div class="next-grid">
         <a href="cli-guide.html" class="next-card">
           <h3>CLI Guide</h3>
