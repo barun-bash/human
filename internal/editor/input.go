@@ -1,6 +1,9 @@
 package editor
 
-import "os"
+import (
+	"os"
+	"time"
+)
 
 // Key represents a keyboard event.
 type Key int
@@ -41,18 +44,65 @@ type KeyEvent struct {
 	Rune rune // valid when Key == KeyChar
 }
 
-// ReadKey reads a single key event from the file descriptor in raw mode.
-func ReadKey(fd int) KeyEvent {
-	buf := make([]byte, 1)
-	n, err := readByte(fd, buf)
-	if err != nil || n == 0 {
+// inputReader reads raw bytes from stdin in a background goroutine and
+// provides them via a buffered channel. This ensures the editor main loop
+// never blocks on I/O and escape sequence parsing can use real timeouts.
+type inputReader struct {
+	byteCh chan byte
+	fd     int
+}
+
+func newInputReader(fd int) *inputReader {
+	ir := &inputReader{
+		byteCh: make(chan byte, 128), // buffer for rapid input
+		fd:     fd,
+	}
+	go ir.readLoop()
+	return ir
+}
+
+func (ir *inputReader) readLoop() {
+	buf := make([]byte, 64) // read in small batches for efficiency
+	f := os.NewFile(uintptr(ir.fd), "stdin")
+	for {
+		n, err := f.Read(buf)
+		if err != nil {
+			close(ir.byteCh)
+			return
+		}
+		for i := 0; i < n; i++ {
+			ir.byteCh <- buf[i]
+		}
+	}
+}
+
+// getByte blocks until a byte is available.
+func (ir *inputReader) getByte() (byte, bool) {
+	b, ok := <-ir.byteCh
+	return b, ok
+}
+
+// getByteTimeout waits up to d for a byte. Returns (0, false) on timeout.
+func (ir *inputReader) getByteTimeout(d time.Duration) (byte, bool) {
+	select {
+	case b, ok := <-ir.byteCh:
+		return b, ok
+	case <-time.After(d):
+		return 0, false
+	}
+}
+
+const escTimeout = 50 * time.Millisecond // standard escape sequence timeout
+
+// ReadKey reads and parses a single key event.
+func (ir *inputReader) ReadKey() KeyEvent {
+	b, ok := ir.getByte()
+	if !ok {
 		return KeyEvent{Key: KeyNone}
 	}
 
-	ch := buf[0]
-
 	// Control characters.
-	switch ch {
+	switch b {
 	case 1: // Ctrl+A
 		return KeyEvent{Key: KeyCtrlA}
 	case 2: // Ctrl+B
@@ -83,15 +133,15 @@ func ReadKey(fd int) KeyEvent {
 		return KeyEvent{Key: KeyCtrlY}
 	case 26: // Ctrl+Z
 		return KeyEvent{Key: KeyCtrlZ}
-	case 27: // ESC — start of escape sequence
-		return readEscapeSeq(fd)
+	case 27: // ESC — start of escape sequence or bare ESC
+		return ir.readEscapeSeq()
 	case 127: // Backspace (alternative)
 		return KeyEvent{Key: KeyBackspace}
 	}
 
 	// Printable ASCII or start of UTF-8 multi-byte.
-	if ch >= 32 {
-		r := decodeUTF8(ch, fd)
+	if b >= 32 {
+		r := ir.decodeUTF8(b)
 		return KeyEvent{Key: KeyChar, Rune: r}
 	}
 
@@ -99,31 +149,29 @@ func ReadKey(fd int) KeyEvent {
 }
 
 // readEscapeSeq reads an escape sequence after ESC byte.
-func readEscapeSeq(fd int) KeyEvent {
-	buf := make([]byte, 1)
-	n, err := readByteTimeout(fd, buf)
-	if err != nil || n == 0 {
-		return KeyEvent{Key: KeyEscape} // bare ESC
+func (ir *inputReader) readEscapeSeq() KeyEvent {
+	b, ok := ir.getByteTimeout(escTimeout)
+	if !ok {
+		return KeyEvent{Key: KeyEscape} // bare ESC (timeout)
 	}
 
-	switch buf[0] {
+	switch b {
 	case '[': // CSI sequence
-		return readCSI(fd)
+		return ir.readCSI()
 	case 'O': // SS3 sequence
-		return readSS3(fd)
+		return ir.readSS3()
 	}
 	return KeyEvent{Key: KeyEscape}
 }
 
 // readCSI reads a CSI escape sequence (ESC [ ...).
-func readCSI(fd int) KeyEvent {
-	buf := make([]byte, 1)
-	n, err := readByteTimeout(fd, buf)
-	if err != nil || n == 0 {
+func (ir *inputReader) readCSI() KeyEvent {
+	b, ok := ir.getByteTimeout(escTimeout)
+	if !ok {
 		return KeyEvent{Key: KeyNone}
 	}
 
-	switch buf[0] {
+	switch b {
 	case 'A':
 		return KeyEvent{Key: KeyUp}
 	case 'B':
@@ -137,25 +185,25 @@ func readCSI(fd int) KeyEvent {
 	case 'F':
 		return KeyEvent{Key: KeyEnd}
 	case '1': // Extended sequences: ESC[1~, ESC[1;...
-		return readExtCSI(fd, buf[0])
+		return ir.readExtCSI()
 	case '3': // ESC[3~ = Delete
-		readByteTimeout(fd, buf) // consume ~
+		ir.getByteTimeout(escTimeout) // consume ~
 		return KeyEvent{Key: KeyDelete}
 	case '4': // ESC[4~ = End
-		readByteTimeout(fd, buf) // consume ~
+		ir.getByteTimeout(escTimeout) // consume ~
 		return KeyEvent{Key: KeyEnd}
 	case '5': // ESC[5~ = Page Up
-		readByteTimeout(fd, buf) // consume ~
+		ir.getByteTimeout(escTimeout) // consume ~
 		return KeyEvent{Key: KeyPageUp}
 	case '6': // ESC[6~ = Page Down
-		readByteTimeout(fd, buf) // consume ~
+		ir.getByteTimeout(escTimeout) // consume ~
 		return KeyEvent{Key: KeyPageDown}
 	}
 
-	// Consume remaining bytes of unknown CSI.
+	// Consume remaining bytes of unknown CSI sequence.
 	for {
-		n, _ := readByteTimeout(fd, buf)
-		if n == 0 || (buf[0] >= 0x40 && buf[0] <= 0x7E) {
+		cb, ok := ir.getByteTimeout(escTimeout)
+		if !ok || (cb >= 0x40 && cb <= 0x7E) {
 			break
 		}
 	}
@@ -163,19 +211,18 @@ func readCSI(fd int) KeyEvent {
 }
 
 // readExtCSI handles ESC[1... sequences.
-func readExtCSI(fd int, first byte) KeyEvent {
-	buf := make([]byte, 1)
-	n, _ := readByteTimeout(fd, buf)
-	if n == 0 {
+func (ir *inputReader) readExtCSI() KeyEvent {
+	b, ok := ir.getByteTimeout(escTimeout)
+	if !ok {
 		return KeyEvent{Key: KeyNone}
 	}
-	if buf[0] == '~' {
+	if b == '~' {
 		return KeyEvent{Key: KeyHome} // ESC[1~
 	}
 	// Consume rest of sequence.
 	for {
-		n, _ := readByteTimeout(fd, buf)
-		if n == 0 || (buf[0] >= 0x40 && buf[0] <= 0x7E) {
+		cb, ok := ir.getByteTimeout(escTimeout)
+		if !ok || (cb >= 0x40 && cb <= 0x7E) {
 			break
 		}
 	}
@@ -183,13 +230,12 @@ func readExtCSI(fd int, first byte) KeyEvent {
 }
 
 // readSS3 reads an SS3 escape sequence (ESC O ...).
-func readSS3(fd int) KeyEvent {
-	buf := make([]byte, 1)
-	n, _ := readByteTimeout(fd, buf)
-	if n == 0 {
+func (ir *inputReader) readSS3() KeyEvent {
+	b, ok := ir.getByteTimeout(escTimeout)
+	if !ok {
 		return KeyEvent{Key: KeyNone}
 	}
-	switch buf[0] {
+	switch b {
 	case 'A':
 		return KeyEvent{Key: KeyUp}
 	case 'B':
@@ -207,7 +253,7 @@ func readSS3(fd int) KeyEvent {
 }
 
 // decodeUTF8 decodes a UTF-8 character starting with the given byte.
-func decodeUTF8(first byte, fd int) rune {
+func (ir *inputReader) decodeUTF8(first byte) rune {
 	if first < 0x80 {
 		return rune(first)
 	}
@@ -227,32 +273,15 @@ func decodeUTF8(first byte, fd int) rune {
 	bytes := make([]byte, n+1)
 	bytes[0] = first
 	for i := 1; i <= n; i++ {
-		buf := make([]byte, 1)
-		nr, _ := readByte(fd, buf)
-		if nr == 0 {
+		b, ok := ir.getByteTimeout(escTimeout)
+		if !ok {
 			return rune(first)
 		}
-		bytes[i] = buf[0]
+		bytes[i] = b
 	}
 	r := []rune(string(bytes))
 	if len(r) > 0 {
 		return r[0]
 	}
 	return rune(first)
-}
-
-// readByte reads a single byte from fd (blocking).
-func readByte(fd int, buf []byte) (int, error) {
-	f := os.NewFile(uintptr(fd), "stdin")
-	return f.Read(buf)
-}
-
-// readByteTimeout reads a single byte with a short timeout for escape sequences.
-// On timeout or error returns 0, nil (bare ESC handling).
-func readByteTimeout(fd int, buf []byte) (int, error) {
-	// For escape sequences, we do a non-blocking read attempt.
-	// The OS typically delivers escape sequence bytes together,
-	// so a direct read works. If nothing is available, it's a bare ESC.
-	f := os.NewFile(uintptr(fd), "stdin")
-	return f.Read(buf)
 }

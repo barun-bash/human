@@ -32,6 +32,7 @@ type Editor struct {
 	renderer *Renderer
 	comp     *Completer
 	val      *Validator
+	input    *inputReader // channel-based non-blocking key reader
 
 	viewY int // first visible line (vertical scroll)
 	viewX int // first visible column (horizontal scroll)
@@ -102,6 +103,18 @@ func (e *Editor) Run() error {
 	}
 	defer e.restoreTerminal()
 
+	// Start channel-based input reader (background goroutine reads stdin bytes).
+	e.input = newInputReader(e.stdinFd)
+
+	// Parse keys in a goroutine and send to channel.
+	keyCh := make(chan KeyEvent, 16)
+	go func() {
+		for {
+			key := e.input.ReadKey()
+			keyCh <- key
+		}
+	}()
+
 	// Handle terminal resize.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGWINCH)
@@ -118,43 +131,43 @@ func (e *Editor) Run() error {
 	e.renderer.RenderFull(e)
 
 	for e.running {
-		// Check for resize or validation redraw.
+		// Event-driven loop: wait on any channel.
 		select {
 		case <-sigCh:
 			e.updateSize()
 			e.renderer.Resize(e.width, e.height)
 			e.renderer.RenderFull(e)
 			continue
+
 		case <-e.redrawCh:
 			e.renderer.RenderFull(e)
 			continue
-		default:
-		}
 
-		key := ReadKey(e.stdinFd)
-		if key.Key == KeyNone {
-			continue
-		}
-
-		if e.comp.Active() {
-			if e.handleCompletionKey(key) {
-				e.renderer.RenderFull(e)
-				if e.comp.Active() {
-					e.renderer.RenderComplete(e, e.comp.Items(), e.comp.Selected())
-				}
+		case key := <-keyCh:
+			if key.Key == KeyNone {
 				continue
 			}
-		}
 
-		e.handleKey(key)
+			if e.comp.Active() {
+				if e.handleCompletionKey(key) {
+					e.renderer.RenderFull(e)
+					if e.comp.Active() {
+						e.renderer.RenderComplete(e, e.comp.Items(), e.comp.Selected())
+					}
+					continue
+				}
+			}
 
-		// Scroll viewport to keep cursor visible.
-		e.scrollToCursor()
+			e.handleKey(key)
 
-		e.renderer.RenderFull(e)
+			// Scroll viewport to keep cursor visible.
+			e.scrollToCursor()
 
-		if e.comp.Active() {
-			e.renderer.RenderComplete(e, e.comp.Items(), e.comp.Selected())
+			e.renderer.RenderFull(e)
+
+			if e.comp.Active() {
+				e.renderer.RenderComplete(e, e.comp.Items(), e.comp.Selected())
+			}
 		}
 	}
 
@@ -323,7 +336,7 @@ func (e *Editor) gotoLine() {
 	fmt.Fprint(e.out, escShowCursor)
 
 	for {
-		key := ReadKey(e.stdinFd)
+		key := e.input.ReadKey()
 		switch key.Key {
 		case KeyEnter:
 			lineNum := 0
@@ -367,7 +380,7 @@ func (e *Editor) showMenu() {
 	for {
 		e.renderer.RenderMenu(e, items, selected)
 
-		key := ReadKey(e.stdinFd)
+		key := e.input.ReadKey()
 		switch key.Key {
 		case KeyUp:
 			selected--
