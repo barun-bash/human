@@ -168,6 +168,98 @@ func (c *Connector) Edit(ctx context.Context, source, instruction string, histor
 	}, nil
 }
 
+// HowResult is the result of a How operation (explanatory, not code generation).
+type HowResult struct {
+	RawResponse string
+	Usage       TokenUsage
+}
+
+// How answers a question about the Human language. Unlike Ask, it returns
+// explanatory text with examples rather than generating a complete .human file.
+func (c *Connector) How(ctx context.Context, question string) (*HowResult, error) {
+	pMsgs := prompts.HowPrompt(question, c.Instructions)
+
+	resp, err := c.provider.Complete(ctx, &Request{
+		Messages:    convertMessages(pMsgs),
+		Model:       c.config.Model,
+		MaxTokens:   c.config.MaxTokens,
+		Temperature: c.config.Temperature,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &HowResult{
+		RawResponse: resp.Content,
+		Usage:       resp.TokenUsage,
+	}, nil
+}
+
+// HowStream is the streaming version of How.
+func (c *Connector) HowStream(ctx context.Context, question string) (<-chan StreamChunk, error) {
+	pMsgs := prompts.HowPrompt(question, c.Instructions)
+
+	return c.provider.Stream(ctx, &Request{
+		Messages:    convertMessages(pMsgs),
+		Model:       c.config.Model,
+		MaxTokens:   c.config.MaxTokens,
+		Temperature: c.config.Temperature,
+		Stream:      true,
+	})
+}
+
+// Rewrite regenerates an entire .human file with a different approach.
+func (c *Connector) Rewrite(ctx context.Context, source, approach string) (*EditResult, error) {
+	pMsgs := prompts.RewritePrompt(source, approach, c.Instructions)
+
+	resp, err := c.provider.Complete(ctx, &Request{
+		Messages:    convertMessages(pMsgs),
+		Model:       c.config.Model,
+		MaxTokens:   c.config.MaxTokens,
+		Temperature: c.config.Temperature,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	code := prompts.ExtractHumanCode(resp.Content)
+	valid, parseErr := validateCode(code)
+
+	return &EditResult{
+		RawResponse: resp.Content,
+		Code:        code,
+		Valid:       valid,
+		ParseError:  parseErr,
+		Usage:       resp.TokenUsage,
+	}, nil
+}
+
+// Add inserts a new section into an existing .human file.
+func (c *Connector) Add(ctx context.Context, source, description string) (*EditResult, error) {
+	pMsgs := prompts.AddPrompt(source, description, c.Instructions)
+
+	resp, err := c.provider.Complete(ctx, &Request{
+		Messages:    convertMessages(pMsgs),
+		Model:       c.config.Model,
+		MaxTokens:   c.config.MaxTokens,
+		Temperature: c.config.Temperature,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	code := prompts.ExtractHumanCode(resp.Content)
+	valid, parseErr := validateCode(code)
+
+	return &EditResult{
+		RawResponse: resp.Content,
+		Code:        code,
+		Valid:       valid,
+		ParseError:  parseErr,
+		Usage:       resp.TokenUsage,
+	}, nil
+}
+
 // ExtractHumanCode strips markdown code fences from an LLM response and
 // returns the raw .human code. Useful for post-processing streamed output.
 func ExtractHumanCode(response string) string {

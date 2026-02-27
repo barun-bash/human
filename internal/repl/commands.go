@@ -73,6 +73,18 @@ func (r *REPL) registerCommands() {
 			Complete:    completeSuggest,
 		},
 		{
+			Name:        "/rewrite",
+			Description: "Regenerate the file with a different approach",
+			Usage:       "/rewrite <approach description>",
+			Handler:     cmdRewrite,
+		},
+		{
+			Name:        "/add",
+			Description: "Add a new section to the loaded project",
+			Usage:       "/add <description>",
+			Handler:     cmdAdd,
+		},
+		{
 			Name:        "/build",
 			Aliases:     []string{"/b"},
 			Description: "Compile the loaded project",
@@ -764,7 +776,8 @@ func cmdHelp(r *REPL, args []string) {
 
 	// Ordered list of command names for display
 	order := []string{
-		"/open", "/new", "/ask", "/import", "/edit", "/undo", "/suggest", "/check", "/build", "/deploy", "/stop",
+		"/open", "/new", "/ask", "/import", "/edit", "/undo", "/suggest", "/rewrite", "/add",
+		"/check", "/build", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
 		"/explain", "/syntax", "/fix", "/doctor",
 		"/instructions", "/connect", "/disconnect", "/model", "/mcp", "/theme", "/config",

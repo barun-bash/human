@@ -106,6 +106,15 @@ func (r *REPL) Run() {
 	r.history.Save()
 }
 
+// ExecAndExit initializes the REPL, executes a single command, then exits.
+// Used by CLI commands that need REPL infrastructure (MCP connections, etc.).
+func (r *REPL) ExecAndExit(command string) {
+	r.autoConnectMCP()
+	r.running = true
+	r.execute(command)
+	r.closeMCPClients()
+}
+
 // runReadline runs the main loop using the readline instance (interactive terminal).
 func (r *REPL) runReadline() {
 	r.rl.SetCompleter(r.buildCompleter())

@@ -16,6 +16,7 @@ import (
 	"github.com/barun-bash/human/internal/cli"
 	"github.com/barun-bash/human/internal/cmdutil"
 	"github.com/barun-bash/human/internal/config"
+	"github.com/barun-bash/human/internal/editor"
 	"github.com/barun-bash/human/internal/fixer"
 	"github.com/barun-bash/human/internal/ir"
 	"github.com/barun-bash/human/internal/llm"
@@ -60,7 +61,11 @@ func main() {
 	case "suggest":
 		cmdSuggest()
 	case "edit":
-		cmdEdit()
+		cmdEditDispatch()
+	case "how":
+		cmdHow()
+	case "import":
+		cmdImportCLI()
 	case "convert":
 		cmdConvert()
 	case "storybook":
@@ -1047,6 +1052,110 @@ func cmdFixCLI() {
 	}
 }
 
+// ── edit dispatch ──
+
+// cmdEditDispatch routes `human edit` to either the TUI editor or LLM-assisted editing.
+// `human edit <file>` → TUI editor
+// `human edit <file> -i "<instruction>"` → LLM-assisted edit (legacy behavior)
+func cmdEditDispatch() {
+	var file, instruction string
+	for i := 2; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		if arg == "-i" && i+1 < len(os.Args) {
+			instruction = os.Args[i+1]
+			i++
+		} else if !strings.HasPrefix(arg, "-") {
+			file = arg
+		}
+	}
+
+	if file == "" {
+		fmt.Fprintln(os.Stderr, "Usage: human edit <file.human>")
+		fmt.Fprintln(os.Stderr, "  Opens an interactive editor for .human files.")
+		fmt.Fprintln(os.Stderr, "  human edit <file> -i \"instruction\"  LLM-assisted edit")
+		os.Exit(1)
+	}
+
+	if instruction != "" {
+		// Legacy LLM-assisted edit.
+		cmdEdit()
+		return
+	}
+
+	// Open TUI editor.
+	ed, err := editor.Open(file)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+		os.Exit(1)
+	}
+
+	if err := ed.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+		os.Exit(1)
+	}
+
+	if ed.NeedBuild() {
+		fmt.Println(cli.Info("Building..."))
+		editor.RunExternal(os.Args[0], "build", file)
+	}
+}
+
+// ── how ──
+
+func cmdHow() {
+	if len(os.Args) < 3 {
+		fmt.Fprintln(os.Stderr, "Usage: human how \"<question>\"")
+		fmt.Fprintln(os.Stderr, "  Ask a question about the Human language.")
+		fmt.Fprintln(os.Stderr, "  Example: human how \"add authentication to a page\"")
+		os.Exit(1)
+	}
+
+	question := strings.Join(os.Args[2:], " ")
+
+	connector, llmCfg := loadLLMConnector()
+
+	fmt.Println(cli.Info(fmt.Sprintf("Asking %s (%s)...", llmCfg.Provider, llmCfg.Model)))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	ch, err := connector.HowStream(ctx, question)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+		os.Exit(1)
+	}
+
+	sw := cli.NewStreamWriter(os.Stdout)
+	for chunk := range ch {
+		if chunk.Err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(chunk.Err.Error()))
+			os.Exit(1)
+		}
+		if chunk.Delta != "" {
+			fmt.Fprint(sw, chunk.Delta)
+		}
+	}
+	sw.Finish()
+	fmt.Println()
+}
+
+// ── import ──
+
+func cmdImportCLI() {
+	if len(os.Args) < 4 || os.Args[2] != "figma" {
+		fmt.Fprintln(os.Stderr, "Usage: human import figma <url>")
+		fmt.Fprintln(os.Stderr, "  Import a Figma design into a .human file.")
+		fmt.Fprintln(os.Stderr, "  Requires: FIGMA_ACCESS_TOKEN env var and Figma MCP server.")
+		fmt.Fprintln(os.Stderr, "  For interactive import, use the REPL: /import figma <url>")
+		os.Exit(1)
+	}
+
+	// The import pipeline requires MCP connections and interactive prompts,
+	// so we delegate to the REPL with auto-exec.
+	r := repl.New(version.Version)
+	r.ExecAndExit(fmt.Sprintf("/import figma %s", os.Args[3]))
+}
+
 // ── Helpers ──
 
 func printUsage() {
@@ -1077,11 +1186,16 @@ Reference & Diagnostics:
   fix [--dry-run] <file>    Find and auto-fix common issues
   doctor                    Check environment health
 
+Editor:
+  edit <file.human>         Open interactive TUI editor
+  edit <file> -i "instr"    AI-assisted edit (apply instruction via LLM)
+
 AI-Assisted (optional, requires API key or Ollama):
   ask "<description>"       Generate .human code from English
+  how "<question>"          Ask about Human language usage
   suggest <file.human>      Get improvement suggestions for a file
-  edit <file.human>         Interactive AI-assisted editing session
-  convert "<description>"   Convert description to .human (design import planned)
+  convert "<description>"   Convert description to .human
+  import figma <url>        Import a Figma design into a .human file
 
 Flags:
   --no-color        Disable colored output

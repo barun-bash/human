@@ -179,3 +179,49 @@ func EditPrompt(source, instruction string, history []Message, instructions stri
 
 	return msgs
 }
+
+// HowPrompt builds a message sequence for the "how" command.
+// The LLM answers questions about Human language usage without generating code.
+func HowPrompt(question, instructions string) []Message {
+	base := SystemPrompt + `
+
+You are a helpful guide for the Human programming language. The user is asking a question about how to do something in Human. Provide a clear, concise answer with:
+1. A brief explanation
+2. One or two code examples (using ` + "```human" + ` fences)
+3. Related tips or caveats if relevant
+
+Keep answers focused and practical. Do not generate a complete .human file unless asked — just show the relevant snippet.`
+
+	return []Message{
+		{Role: RoleSystem, Content: buildSystemPrompt(base, instructions)},
+		{Role: RoleUser, Content: question},
+	}
+}
+
+// RewritePrompt builds a message sequence for the "rewrite" command.
+// The LLM regenerates the entire .human file based on an approach description.
+func RewritePrompt(source, approach, instructions string) []Message {
+	base := SystemPrompt + `
+
+You are rewriting an existing .human file with a different approach. Study the original file carefully — understand its purpose, data models, pages, APIs, and build target. Then regenerate the entire file incorporating the requested changes. The output must be a complete, valid .human file that replaces the original.`
+
+	return []Message{
+		{Role: RoleSystem, Content: buildSystemPrompt(base, instructions)},
+		{Role: RoleUser, Content: "Here is the current .human file:\n\n```human\n" + source + "\n```\n\n" +
+			"Rewrite this file with the following approach: " + approach},
+	}
+}
+
+// AddPrompt builds a message sequence for the "add" command.
+// The LLM adds a new section (page, data model, API, etc.) to an existing file.
+func AddPrompt(source, description, instructions string) []Message {
+	base := SystemPrompt + `
+
+You are adding a new section to an existing .human file. Study the existing file to understand naming conventions, design patterns, and the build target. Add the requested section in the appropriate location within the file. Return the complete updated file with the new section integrated naturally.`
+
+	return []Message{
+		{Role: RoleSystem, Content: buildSystemPrompt(base, instructions)},
+		{Role: RoleUser, Content: "Here is the current .human file:\n\n```human\n" + source + "\n```\n\n" +
+			"Add the following to this file: " + description},
+	}
+}
