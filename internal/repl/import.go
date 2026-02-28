@@ -220,7 +220,7 @@ func (r *REPL) saveAndBuild(code string, valid bool) {
 		return
 	}
 
-	if _, _, _, err := cmdutil.FullBuild(r.projectFile); err != nil {
+	if _, _, _, _, err := cmdutil.FullBuild(r.projectFile); err != nil {
 		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
 	}
 }

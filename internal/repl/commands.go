@@ -400,7 +400,7 @@ func cmdBuild(r *REPL, args []string) {
 			fmt.Fprintf(r.out, "  %s %s...\n", cli.Accent("\u25b6"), stage)
 		}
 	}
-	if _, _, _, err := cmdutil.FullBuildWithProgress(r.projectFile, progress); err != nil {
+	if _, _, _, _, err := cmdutil.FullBuildWithProgress(r.projectFile, progress); err != nil {
 		if progressBox != nil {
 			progressBox.Finish()
 		}
@@ -454,7 +454,7 @@ func cmdDeploy(r *REPL, args []string) {
 		return
 	}
 
-	if _, _, _, err := cmdutil.FullBuild(r.projectFile); err != nil {
+	if _, _, _, _, err := cmdutil.FullBuild(r.projectFile); err != nil {
 		fmt.Fprintln(r.errOut, cli.Error(fmt.Sprintf("Build failed: %v", err)))
 		return
 	}

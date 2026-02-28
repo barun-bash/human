@@ -128,6 +128,7 @@ func cmdBuild() {
 	// Parse flags
 	inspect := false
 	watch := false
+	timing := false
 	var file string
 	for _, arg := range os.Args[2:] {
 		switch arg {
@@ -135,6 +136,8 @@ func cmdBuild() {
 			inspect = true
 		case "--watch", "-w":
 			watch = true
+		case "--timing":
+			timing = true
 		default:
 			if !strings.HasPrefix(arg, "-") {
 				file = arg
@@ -143,7 +146,7 @@ func cmdBuild() {
 	}
 
 	if file == "" {
-		fmt.Fprintln(os.Stderr, "Usage: human build [--inspect] [--watch] <file.human>")
+		fmt.Fprintln(os.Stderr, "Usage: human build [--inspect] [--watch] [--timing] <file.human>")
 		os.Exit(1)
 	}
 
@@ -171,9 +174,18 @@ func cmdBuild() {
 		return
 	}
 
-	if _, _, _, err := cmdutil.FullBuild(file); err != nil {
-		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
-		os.Exit(1)
+	if timing {
+		_, results, _, bt, err := cmdutil.FullBuild(file)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+			os.Exit(1)
+		}
+		cmdutil.PrintBuildSummaryTiming(results, filepath.Join(".human", "output"), bt)
+	} else {
+		if _, _, _, _, err := cmdutil.FullBuild(file); err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+			os.Exit(1)
+		}
 	}
 }
 
@@ -584,7 +596,7 @@ func runBuild(file string) error {
 
 	// Run all code generators
 	outputDir := filepath.Join(".human", "output")
-	results, qResult, genErr := build.RunGenerators(result.App, outputDir)
+	results, qResult, _, genErr := build.RunGenerators(result.App, outputDir)
 	if genErr != nil {
 		return genErr
 	}
@@ -1169,6 +1181,7 @@ Commands:
   build <file>              Compile to IR and generate code
   build --inspect <file>    Parse and print IR as YAML to stdout
   build --watch <file>      Rebuild automatically on file changes
+  build --timing <file>     Show per-generator timing breakdown
   init [name]               Create a new Human project
   run                       Start the development server
   test                      Run generated tests

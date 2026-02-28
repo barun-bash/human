@@ -159,7 +159,7 @@ func cmdAsk(r *REPL, args []string) {
 	}
 
 	// Build directly, skipping plan mode (user already confirmed or auto-accepted).
-	if _, _, _, err := cmdutil.FullBuild(r.projectFile); err != nil {
+	if _, _, _, _, err := cmdutil.FullBuild(r.projectFile); err != nil {
 		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
 	}
 }

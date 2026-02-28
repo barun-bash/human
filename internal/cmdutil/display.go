@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/barun-bash/human/internal/build"
 	"github.com/barun-bash/human/internal/cli"
@@ -59,7 +60,7 @@ func PrintIRSummary(app *ir.Application) {
 }
 
 // PrintBuildSummary displays a table of generator results.
-func PrintBuildSummary(results []build.Result, outputDir string) {
+func PrintBuildSummary(results []build.Result, outputDir string, timing *build.BuildTiming) {
 	total := 0
 	for _, r := range results {
 		total += r.Files
@@ -80,7 +81,45 @@ func PrintBuildSummary(results []build.Result, outputDir string) {
 	fmt.Println("  " + strings.Repeat("─", 50))
 	fmt.Printf("  %-14s %-8d\n", "Total", total)
 	fmt.Println()
-	fmt.Println(cli.Success(fmt.Sprintf("Build complete — %d files in %s/", total, outputDir)))
+	if timing != nil {
+		fmt.Println(cli.Success(fmt.Sprintf("Build complete — %d files in %s/ (%s)", total, outputDir, formatDuration(timing.Total))))
+	} else {
+		fmt.Println(cli.Success(fmt.Sprintf("Build complete — %d files in %s/", total, outputDir)))
+	}
+}
+
+// PrintBuildSummaryTiming displays a detailed per-stage timing breakdown.
+func PrintBuildSummaryTiming(results []build.Result, outputDir string, timing *build.BuildTiming) {
+	total := 0
+	for _, r := range results {
+		total += r.Files
+	}
+
+	fmt.Println()
+	fmt.Println("  " + cli.Info("Build Timing"))
+	fmt.Println("  " + strings.Repeat("─", 40))
+	for _, r := range results {
+		fmt.Printf("  %-14s %3d files  %6s\n", r.Name, r.Files, formatDuration(r.Duration))
+	}
+	fmt.Println("  " + strings.Repeat("─", 40))
+	if timing != nil {
+		fmt.Printf("  %-14s %3d files  %6s\n", "Total", total, formatDuration(timing.Total))
+	}
+	fmt.Println()
+	if timing != nil {
+		fmt.Println(cli.Success(fmt.Sprintf("Build complete — %d files in %s/ (%s)", total, outputDir, formatDuration(timing.Total))))
+	}
+}
+
+// formatDuration formats a duration as a human-readable string (e.g. "42ms", "1.2s").
+func formatDuration(d time.Duration) string {
+	if d < time.Millisecond {
+		return fmt.Sprintf("%dµs", d.Microseconds())
+	}
+	if d < time.Second {
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	}
+	return fmt.Sprintf("%.1fs", d.Seconds())
 }
 
 // PrintAuditReport reads and displays the security report with colorized output.

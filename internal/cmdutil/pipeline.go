@@ -76,20 +76,20 @@ func PrintDiagnostic(e *cerr.CompilerError) {
 
 // FullBuild runs the complete build pipeline: parse, analyze, generate IR YAML,
 // run code generators, and the quality engine. Returns the application IR,
-// generator results, and quality result.
-func FullBuild(file string) (*ir.Application, []build.Result, *quality.Result, error) {
+// generator results, quality result, and build timing.
+func FullBuild(file string) (*ir.Application, []build.Result, *quality.Result, *build.BuildTiming, error) {
 	return FullBuildWithProgress(file, nil)
 }
 
 // FullBuildWithProgress is like FullBuild but reports progress via a callback.
-func FullBuildWithProgress(file string, progress build.ProgressFunc) (*ir.Application, []build.Result, *quality.Result, error) {
+func FullBuildWithProgress(file string, progress build.ProgressFunc) (*ir.Application, []build.Result, *quality.Result, *build.BuildTiming, error) {
 	result, err := ParseAndAnalyze(file)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	if PrintDiagnostics(result.Errs) {
-		return nil, nil, nil, fmt.Errorf("%d error(s) found", len(result.Errs.Errors()))
+		return nil, nil, nil, nil, fmt.Errorf("%d error(s) found", len(result.Errs.Errors()))
 	}
 
 	// Prompt for port configuration if interactive
@@ -100,19 +100,19 @@ func FullBuildWithProgress(file string, progress build.ProgressFunc) (*ir.Applic
 
 	yaml, err := ir.ToYAML(result.App)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("serialization error: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("serialization error: %w", err)
 	}
 
 	// Write IR to .human/intent/<name>.yaml
 	outDir := filepath.Join(".human", "intent")
 	if err := os.MkdirAll(outDir, 0755); err != nil {
-		return nil, nil, nil, fmt.Errorf("creating output directory: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("creating output directory: %w", err)
 	}
 
 	base := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
 	outFile := filepath.Join(outDir, base+".yaml")
 	if err := os.WriteFile(outFile, []byte(yaml), 0644); err != nil {
-		return nil, nil, nil, fmt.Errorf("writing %s: %w", outFile, err)
+		return nil, nil, nil, nil, fmt.Errorf("writing %s: %w", outFile, err)
 	}
 
 	fmt.Printf("Built %s → %s\n", file, outFile)
@@ -120,13 +120,13 @@ func FullBuildWithProgress(file string, progress build.ProgressFunc) (*ir.Applic
 
 	// Run all code generators
 	outputDir := filepath.Join(".human", "output")
-	results, qResult, genErr := build.RunGeneratorsWithProgress(result.App, outputDir, progress)
+	results, qResult, timing, genErr := build.RunGeneratorsWithProgress(result.App, outputDir, progress)
 	if genErr != nil {
-		return nil, nil, nil, fmt.Errorf("build failed: %w", genErr)
+		return nil, nil, nil, nil, fmt.Errorf("build failed: %w", genErr)
 	}
 
 	quality.PrintSummary(qResult)
-	PrintBuildSummary(results, outputDir)
+	PrintBuildSummary(results, outputDir, timing)
 
-	return result.App, results, qResult, nil
+	return result.App, results, qResult, timing, nil
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/barun-bash/human/internal/codegen/angular"
 	"github.com/barun-bash/human/internal/codegen/architecture"
@@ -28,9 +29,15 @@ import (
 
 // Result tracks the output of a single generator.
 type Result struct {
-	Name  string
-	Dir   string
-	Files int
+	Name     string
+	Dir      string
+	Files    int
+	Duration time.Duration
+}
+
+// BuildTiming holds the total build duration.
+type BuildTiming struct {
+	Total time.Duration
 }
 
 // MatchesGoBackend checks if the backend config indicates Go without
@@ -127,19 +134,24 @@ type ProgressFunc func(stage string)
 
 // RunGenerators dispatches all code generators based on the app's build config,
 // then runs the quality engine and scaffolder. Returns build results for each
-// generator and the quality result.
-func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Result, error) {
+// generator, the quality result, and build timing.
+func RunGenerators(app *ir.Application, outputDir string) ([]Result, *quality.Result, *BuildTiming, error) {
 	return RunGeneratorsWithProgress(app, outputDir, nil)
 }
 
 // RunGeneratorsWithProgress is like RunGenerators but calls progress before each stage.
-func RunGeneratorsWithProgress(app *ir.Application, outputDir string, progress ProgressFunc) ([]Result, *quality.Result, error) {
+func RunGeneratorsWithProgress(app *ir.Application, outputDir string, progress ProgressFunc) ([]Result, *quality.Result, *BuildTiming, error) {
+	buildStart := time.Now()
 	var results []Result
 
 	report := func(stage string) {
 		if progress != nil {
 			progress(stage)
 		}
+	}
+
+	timeGen := func(name, dir string, files int, start time.Time) Result {
+		return Result{Name: name, Dir: dir, Files: files, Duration: time.Since(start)}
 	}
 
 	frontendLower := ""
@@ -156,44 +168,49 @@ func RunGeneratorsWithProgress(app *ir.Application, outputDir string, progress P
 	// Frontend generators
 	if strings.Contains(frontendLower, "react") {
 		report("Generating React frontend")
+		start := time.Now()
 		dir := filepath.Join(outputDir, "react")
 		g := react.Generator{}
 		if err := g.Generate(app, dir); err != nil {
-			return nil, nil, fmt.Errorf("React codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("React codegen: %w", err)
 		}
-		results = append(results, Result{"react", dir, CountFiles(dir)})
+		results = append(results, timeGen("react", dir, CountFiles(dir), start))
 	}
 	if strings.Contains(frontendLower, "vue") {
 		report("Generating Vue frontend")
+		start := time.Now()
 		dir := filepath.Join(outputDir, "vue")
 		g := vue.Generator{}
 		if err := g.Generate(app, dir); err != nil {
-			return nil, nil, fmt.Errorf("Vue codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("Vue codegen: %w", err)
 		}
-		results = append(results, Result{"vue", dir, CountFiles(dir)})
+		results = append(results, timeGen("vue", dir, CountFiles(dir), start))
 	}
 	if strings.Contains(frontendLower, "angular") {
 		report("Generating Angular frontend")
+		start := time.Now()
 		dir := filepath.Join(outputDir, "angular")
 		g := angular.Generator{}
 		if err := g.Generate(app, dir); err != nil {
-			return nil, nil, fmt.Errorf("Angular codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("Angular codegen: %w", err)
 		}
-		results = append(results, Result{"angular", dir, CountFiles(dir)})
+		results = append(results, timeGen("angular", dir, CountFiles(dir), start))
 	}
 	if strings.Contains(frontendLower, "svelte") {
 		report("Generating Svelte frontend")
+		start := time.Now()
 		dir := filepath.Join(outputDir, "svelte")
 		g := svelte.Generator{}
 		if err := g.Generate(app, dir); err != nil {
-			return nil, nil, fmt.Errorf("Svelte codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("Svelte codegen: %w", err)
 		}
-		results = append(results, Result{"svelte", dir, CountFiles(dir)})
+		results = append(results, timeGen("svelte", dir, CountFiles(dir), start))
 	}
 
 	// Storybook — generates into the frontend directory that was just created
 	if frontendLower != "" {
 		report("Generating Storybook stories")
+		start := time.Now()
 		fw := storybook.GetFramework(app)
 		// Determine the frontend output directory
 		frontendDir := ""
@@ -210,9 +227,10 @@ func RunGeneratorsWithProgress(app *ir.Application, outputDir string, progress P
 		if frontendDir != "" {
 			sg := storybook.Generator{}
 			if err := sg.Generate(app, frontendDir); err != nil {
-				return nil, nil, fmt.Errorf("Storybook codegen: %w", err)
+				return nil, nil, nil, fmt.Errorf("Storybook codegen: %w", err)
 			}
-			results = append(results, Result{"storybook", frontendDir, CountFiles(filepath.Join(frontendDir, ".storybook")) + CountFiles(filepath.Join(frontendDir, "src", "stories"))})
+			sbFiles := CountFiles(filepath.Join(frontendDir, ".storybook")) + CountFiles(filepath.Join(frontendDir, "src", "stories"))
+			results = append(results, timeGen("storybook", frontendDir, sbFiles, start))
 			_ = fw // used by scaffold for dependency injection
 		}
 	}
@@ -220,118 +238,129 @@ func RunGeneratorsWithProgress(app *ir.Application, outputDir string, progress P
 	// Backend generators
 	if strings.Contains(backendLower, "node") {
 		report("Generating Node.js backend")
+		start := time.Now()
 		dir := filepath.Join(outputDir, "node")
 		g := node.Generator{}
 		if err := g.Generate(app, dir); err != nil {
-			return nil, nil, fmt.Errorf("Node codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("Node codegen: %w", err)
 		}
-		results = append(results, Result{"node", dir, CountFiles(dir)})
+		results = append(results, timeGen("node", dir, CountFiles(dir), start))
 	}
 	if strings.Contains(backendLower, "python") {
 		report("Generating Python backend")
+		start := time.Now()
 		dir := filepath.Join(outputDir, "python")
 		g := python.Generator{}
 		if err := g.Generate(app, dir); err != nil {
-			return nil, nil, fmt.Errorf("Python codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("Python codegen: %w", err)
 		}
-		results = append(results, Result{"python", dir, CountFiles(dir)})
+		results = append(results, timeGen("python", dir, CountFiles(dir), start))
 	}
 	if MatchesGoBackend(backendLower) {
 		report("Generating Go backend")
+		start := time.Now()
 		dir := filepath.Join(outputDir, "go")
 		g := gobackend.Generator{}
 		if err := g.Generate(app, dir); err != nil {
-			return nil, nil, fmt.Errorf("Go codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("Go codegen: %w", err)
 		}
-		results = append(results, Result{"go", dir, CountFiles(dir)})
+		results = append(results, timeGen("go", dir, CountFiles(dir), start))
 	}
 
 	// Database generator
 	if strings.Contains(databaseLower, "postgres") {
 		report("Generating PostgreSQL schema")
+		start := time.Now()
 		dir := filepath.Join(outputDir, "postgres")
 		g := postgres.Generator{}
 		if err := g.Generate(app, dir); err != nil {
-			return nil, nil, fmt.Errorf("PostgreSQL codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("PostgreSQL codegen: %w", err)
 		}
-		results = append(results, Result{"postgres", dir, CountFiles(dir)})
+		results = append(results, timeGen("postgres", dir, CountFiles(dir), start))
 	}
 
 	// Docker — conditional on deploy config
 	if strings.Contains(deployLower, "docker") {
 		report("Generating Docker configuration")
+		start := time.Now()
 		before := CountFiles(outputDir)
 		g := docker.Generator{}
 		if err := g.Generate(app, outputDir); err != nil {
-			return nil, nil, fmt.Errorf("Docker codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("Docker codegen: %w", err)
 		}
 		after := CountFiles(outputDir)
-		results = append(results, Result{"docker", outputDir, after - before})
+		results = append(results, timeGen("docker", outputDir, after-before, start))
 	}
 
 	// CI/CD — always runs
 	report("Generating CI/CD pipelines")
 	{
+		start := time.Now()
 		cicdDir := filepath.Join(outputDir, ".github")
 		g := cicd.Generator{}
 		if err := g.Generate(app, outputDir); err != nil {
-			return nil, nil, fmt.Errorf("CI/CD codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("CI/CD codegen: %w", err)
 		}
-		results = append(results, Result{"cicd", outputDir, CountFiles(cicdDir)})
+		results = append(results, timeGen("cicd", outputDir, CountFiles(cicdDir), start))
 	}
 
 	// Terraform — conditional on deploy config (aws, gcp, or terraform keyword)
 	if strings.Contains(deployLower, "aws") || strings.Contains(deployLower, "gcp") || strings.Contains(deployLower, "terraform") {
 		report("Generating Terraform infrastructure")
+		start := time.Now()
 		dir := filepath.Join(outputDir, "terraform")
 		g := terraform.Generator{}
 		if err := g.Generate(app, dir); err != nil {
-			return nil, nil, fmt.Errorf("Terraform codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("Terraform codegen: %w", err)
 		}
-		results = append(results, Result{"terraform", dir, CountFiles(dir)})
+		results = append(results, timeGen("terraform", dir, CountFiles(dir), start))
 	}
 
 	// Architecture — conditional on architecture style
 	if app.Architecture != nil && app.Architecture.Style != "" {
 		report("Generating architecture layout")
+		start := time.Now()
 		g := architecture.Generator{}
 		if err := g.Generate(app, outputDir); err != nil {
-			return nil, nil, fmt.Errorf("Architecture codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("Architecture codegen: %w", err)
 		}
 		archDir := filepath.Join(outputDir, "services")
 		fnDir := filepath.Join(outputDir, "functions")
 		archFiles := CountFiles(archDir) + CountFiles(fnDir) + CountFiles(filepath.Join(outputDir, "gateway"))
 		if archFiles > 0 {
-			results = append(results, Result{"architecture", outputDir, archFiles})
+			results = append(results, timeGen("architecture", outputDir, archFiles, start))
 		}
 	}
 
 	// Monitoring — conditional on monitoring rules
 	if len(app.Monitoring) > 0 {
 		report("Generating monitoring configuration")
+		start := time.Now()
 		dir := filepath.Join(outputDir, "monitoring")
 		g := monitoring.Generator{}
 		if err := g.Generate(app, dir); err != nil {
-			return nil, nil, fmt.Errorf("Monitoring codegen: %w", err)
+			return nil, nil, nil, fmt.Errorf("Monitoring codegen: %w", err)
 		}
-		results = append(results, Result{"monitoring", dir, CountFiles(dir)})
+		results = append(results, timeGen("monitoring", dir, CountFiles(dir), start))
 	}
 
 	// Quality engine — always runs after code generators
 	report("Running quality checks")
-	qResult, err := quality.Run(app, outputDir)
-	if err != nil {
-		return nil, nil, fmt.Errorf("quality engine: %w", err)
-	}
-	qualityFiles := qResult.TestFiles + qResult.ComponentTestFiles + qResult.EdgeTestFiles + 3
-	results = append(results, Result{"quality", outputDir, qualityFiles})
-
-	// Scaffolder — always runs last
-	report("Scaffolding project files")
 	{
+		start := time.Now()
+		qResult, err := quality.Run(app, outputDir)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("quality engine: %w", err)
+		}
+		qualityFiles := qResult.TestFiles + qResult.ComponentTestFiles + qResult.EdgeTestFiles + 3
+		results = append(results, timeGen("quality", outputDir, qualityFiles, start))
+
+		// Scaffolder — always runs last
+		report("Scaffolding project files")
+		scaffoldStart := time.Now()
 		sg := scaffold.Generator{}
 		if err := sg.Generate(app, outputDir); err != nil {
-			return nil, nil, fmt.Errorf("scaffold: %w", err)
+			return nil, nil, nil, fmt.Errorf("scaffold: %w", err)
 		}
 		scaffoldFiles := 0
 		for _, name := range []string{"package.json", "README.md", ".env.example", "start.sh"} {
@@ -346,8 +375,9 @@ func RunGeneratorsWithProgress(app *ir.Application, outputDir string, progress P
 				}
 			}
 		}
-		results = append(results, Result{"scaffold", outputDir, scaffoldFiles})
-	}
+		results = append(results, timeGen("scaffold", outputDir, scaffoldFiles, scaffoldStart))
 
-	return results, qResult, nil
+		timing := &BuildTiming{Total: time.Since(buildStart)}
+		return results, qResult, timing, nil
+	}
 }

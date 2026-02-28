@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"unicode"
 
 	"github.com/barun-bash/human/internal/ir"
@@ -40,59 +41,113 @@ type Warning struct {
 }
 
 // Run executes the full quality engine against the IR and writes output files.
+// Test generation, security, and lint stages run in parallel where possible.
 func Run(app *ir.Application, outputDir string) (*Result, error) {
 	result := &Result{}
-
-	// 1. Generate API tests
 	testDir := filepath.Join(outputDir, "node", "src", "__tests__")
-	testFiles, testCount, err := generateTests(app, testDir)
-	if err != nil {
-		return nil, fmt.Errorf("test generation: %w", err)
-	}
-	result.TestFiles = testFiles
-	result.TestCount = testCount
 
-	// 2. Generate component tests
-	compFiles, compCount, err := generateComponentTests(app, testDir)
-	if err != nil {
-		return nil, fmt.Errorf("component test generation: %w", err)
-	}
-	result.ComponentTestFiles = compFiles
-	result.ComponentTestCount = compCount
+	// Group 1: Generate all test types in parallel (they write to separate files).
+	var mu sync.Mutex
+	var firstErr error
+	var wg sync.WaitGroup
 
-	// 3. Generate edge case tests
-	edgeFiles, edgeCount, err := generateEdgeTests(app, testDir)
-	if err != nil {
-		return nil, fmt.Errorf("edge test generation: %w", err)
-	}
-	result.EdgeTestFiles = edgeFiles
-	result.EdgeTestCount = edgeCount
-
-	// 4. Generate integration tests
-	integCount, err := generateIntegrationTests(app, testDir)
-	if err != nil {
-		return nil, fmt.Errorf("integration test generation: %w", err)
-	}
-	result.IntegrationTestCount = integCount
-
-	// 5. Security check
-	result.SecurityFindings = checkSecurity(app)
-	secReport := renderSecurityReport(app, result.SecurityFindings)
-	if err := writeFile(filepath.Join(outputDir, "security-report.md"), secReport); err != nil {
-		return nil, fmt.Errorf("security report: %w", err)
+	setErr := func(err error) {
+		mu.Lock()
+		if firstErr == nil {
+			firstErr = err
+		}
+		mu.Unlock()
 	}
 
-	// 6. Lint check
-	result.LintWarnings = checkLint(app)
-	lintReport := renderLintReport(app, result.LintWarnings)
-	if err := writeFile(filepath.Join(outputDir, "lint-report.md"), lintReport); err != nil {
-		return nil, fmt.Errorf("lint report: %w", err)
+	wg.Add(4)
+	go func() {
+		defer wg.Done()
+		testFiles, testCount, err := generateTests(app, testDir)
+		if err != nil {
+			setErr(fmt.Errorf("test generation: %w", err))
+			return
+		}
+		mu.Lock()
+		result.TestFiles = testFiles
+		result.TestCount = testCount
+		mu.Unlock()
+	}()
+	go func() {
+		defer wg.Done()
+		compFiles, compCount, err := generateComponentTests(app, testDir)
+		if err != nil {
+			setErr(fmt.Errorf("component test generation: %w", err))
+			return
+		}
+		mu.Lock()
+		result.ComponentTestFiles = compFiles
+		result.ComponentTestCount = compCount
+		mu.Unlock()
+	}()
+	go func() {
+		defer wg.Done()
+		edgeFiles, edgeCount, err := generateEdgeTests(app, testDir)
+		if err != nil {
+			setErr(fmt.Errorf("edge test generation: %w", err))
+			return
+		}
+		mu.Lock()
+		result.EdgeTestFiles = edgeFiles
+		result.EdgeTestCount = edgeCount
+		mu.Unlock()
+	}()
+	go func() {
+		defer wg.Done()
+		integCount, err := generateIntegrationTests(app, testDir)
+		if err != nil {
+			setErr(fmt.Errorf("integration test generation: %w", err))
+			return
+		}
+		mu.Lock()
+		result.IntegrationTestCount = integCount
+		mu.Unlock()
+	}()
+	wg.Wait()
+
+	if firstErr != nil {
+		return nil, firstErr
 	}
 
-	// 7. Coverage
+	// Group 2: Security and lint checks in parallel (read-only on app, write to separate files).
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		findings := checkSecurity(app)
+		secReport := renderSecurityReport(app, findings)
+		if err := writeFile(filepath.Join(outputDir, "security-report.md"), secReport); err != nil {
+			setErr(fmt.Errorf("security report: %w", err))
+			return
+		}
+		mu.Lock()
+		result.SecurityFindings = findings
+		mu.Unlock()
+	}()
+	go func() {
+		defer wg.Done()
+		warnings := checkLint(app)
+		lintReport := renderLintReport(app, warnings)
+		if err := writeFile(filepath.Join(outputDir, "lint-report.md"), lintReport); err != nil {
+			setErr(fmt.Errorf("lint report: %w", err))
+			return
+		}
+		mu.Lock()
+		result.LintWarnings = warnings
+		mu.Unlock()
+	}()
+	wg.Wait()
+
+	if firstErr != nil {
+		return nil, firstErr
+	}
+
+	// Group 3: Sequential — coverage and summary depend on all prior results.
 	result.Coverage = calculateCoverage(app, result)
 
-	// 8. Build summary
 	summary := renderBuildSummary(app, outputDir, result)
 	if err := writeFile(filepath.Join(outputDir, "build-report.md"), summary); err != nil {
 		return nil, fmt.Errorf("build summary: %w", err)

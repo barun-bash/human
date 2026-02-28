@@ -80,7 +80,7 @@ func (s *Server) handleBuild(args json.RawMessage) *CallToolResult {
 	}
 
 	// Run generators (skips quality.PrintSummary — that writes to stdout)
-	results, qResult, err := build.RunGenerators(app, outputDir)
+	results, qResult, _, err := build.RunGenerators(app, outputDir)
 	if err != nil {
 		return toolError("Build failed: " + err.Error())
 	}
