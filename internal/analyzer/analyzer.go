@@ -25,7 +25,7 @@ func Analyze(app *ir.Application, file string) *cerr.CompilerErrors {
 	apis, apiList := collectNames(app.APIs, func(a *ir.Endpoint) string { return a.Name })
 	_, policyList := collectNames(app.Policies, func(p *ir.Policy) string { return p.Name })
 
-	// Silence unused-variable warnings — lists are needed for future suggestions
+	// componentList and policyList reserved for future cross-reference checks
 	_ = componentList
 	_ = policyList
 
@@ -68,6 +68,27 @@ func Analyze(app *ir.Application, file string) *cerr.CompilerErrors {
 
 	// 12. Workflow-integration cross-references
 	checkWorkflowIntegrationRefs(errs, app)
+
+	// 13. Validation field references
+	checkValidationFields(errs, app.APIs)
+
+	// 14. Database engine validation
+	checkDatabaseEngine(errs, app)
+
+	// 15. Gateway route references
+	checkGatewayRoutes(errs, app)
+
+	// 16. Monitoring channel references
+	checkMonitoringChannels(errs, app)
+
+	// 17. Policy model references
+	checkPolicyModelRefs(errs, app, models, modelList)
+
+	// 18. Workflow/ErrorHandler/Pipeline model references
+	checkActionModelRefs(errs, app, models, modelList)
+
+	// 19. Trigger model references
+	checkTriggerModelRefs(errs, app, models, modelList)
 
 	return errs
 }
@@ -291,42 +312,62 @@ func checkPageNavigation(errs *cerr.CompilerErrors, pages []*ir.Page, known map[
 	}
 }
 
-// ── API model reference validation ──
+// ── CRUD model reference helpers ──
 
 var crudPattern = regexp.MustCompile(`(?i)\b(create|fetch|update|delete)\s+(?:a\s+|the\s+)?(\w+)\b`)
 
-func checkAPIModelReferences(errs *cerr.CompilerErrors, apis []*ir.Endpoint, models map[string]bool, modelList []string) {
-	for _, api := range apis {
-		for _, step := range api.Steps {
-			matches := crudPattern.FindAllStringSubmatch(step.Text, -1)
-			for _, m := range matches {
-				verb := strings.ToLower(m[1])
-				target := m[2]
+// isSkipWord returns true for common non-model words that follow CRUD verbs.
+func isSkipWord(word string) bool {
+	lower := strings.ToLower(word)
+	return lower == "with" || lower == "the" || lower == "a" || lower == "an" ||
+		lower == "success" || lower == "error" || lower == "token" ||
+		lower == "it" || lower == "new" || lower == "existing" ||
+		lower == "all" || lower == "current" || lower == "each" ||
+		lower == "every" || lower == "this" || lower == "that" ||
+		lower == "entry" || lower == "record" || lower == "item"
+}
 
-				// Skip common non-model words that follow CRUD verbs
-				lower := strings.ToLower(target)
-				if lower == "with" || lower == "the" || lower == "a" || lower == "an" ||
-					lower == "success" || lower == "error" || lower == "token" ||
-					lower == "it" || lower == "new" || lower == "existing" ||
-					lower == "all" || lower == "current" || lower == "each" ||
-					lower == "every" || lower == "this" || lower == "that" ||
-					lower == "entry" || lower == "record" || lower == "item" {
-					continue
+// checkCRUDRefs scans actions for CRUD-verb model references and emits
+// diagnostics for unknown models. When asError is true it emits errors;
+// otherwise it emits warnings.
+func checkCRUDRefs(errs *cerr.CompilerErrors, label string, actions []*ir.Action, models map[string]bool, modelList []string, code string, asError bool) {
+	for _, action := range actions {
+		matches := crudPattern.FindAllStringSubmatch(action.Text, -1)
+		for _, m := range matches {
+			target := m[2]
+			if isSkipWord(target) {
+				continue
+			}
+			if !models[strings.ToLower(target)] {
+				msg := fmt.Sprintf("%s references model %q which does not exist", label, target)
+				suggestion := cerr.FindClosest(target, modelList, suggestionThreshold)
+				hint := ""
+				if suggestion != "" {
+					hint = fmt.Sprintf("Did you mean %q?", suggestion)
 				}
-
-				// Only flag if it looks like it should be a model reference
-				// (CRUD verbs typically act on data models)
-				_ = verb
-				if !models[strings.ToLower(target)] {
-					msg := fmt.Sprintf("API %q references model %q which does not exist", api.Name, target)
-					if suggestion := cerr.FindClosest(target, modelList, suggestionThreshold); suggestion != "" {
-						errs.AddErrorWithSuggestion("E104", msg, fmt.Sprintf("Did you mean %q?", suggestion))
+				if asError {
+					if hint != "" {
+						errs.AddErrorWithSuggestion(code, msg, hint)
 					} else {
-						errs.AddError("E104", msg)
+						errs.AddError(code, msg)
+					}
+				} else {
+					if hint != "" {
+						errs.AddWarningWithSuggestion(code, msg, hint)
+					} else {
+						errs.AddWarning(code, msg)
 					}
 				}
 			}
 		}
+	}
+}
+
+// ── API model reference validation ──
+
+func checkAPIModelReferences(errs *cerr.CompilerErrors, apis []*ir.Endpoint, models map[string]bool, modelList []string) {
+	for _, api := range apis {
+		checkCRUDRefs(errs, fmt.Sprintf("API %q", api.Name), api.Steps, models, modelList, "E104", true)
 	}
 }
 
@@ -595,6 +636,183 @@ func checkWorkflowIntegrationRefs(errs *cerr.CompilerErrors, app *ir.Application
 			errs.AddWarning("W503", fmt.Sprintf(
 				"%s references Slack but no messaging integration is declared — add an 'integrate with Slack' (or similar) block",
 				a.label))
+		}
+	}
+}
+
+// ── Validation field references (W107) ──
+
+func checkValidationFields(errs *cerr.CompilerErrors, apis []*ir.Endpoint) {
+	for _, api := range apis {
+		if len(api.Validation) == 0 || len(api.Params) == 0 {
+			continue
+		}
+		paramNames := make(map[string]bool)
+		var paramList []string
+		for _, p := range api.Params {
+			paramNames[strings.ToLower(p.Name)] = true
+			paramList = append(paramList, p.Name)
+		}
+		for _, v := range api.Validation {
+			if !paramNames[strings.ToLower(v.Field)] {
+				msg := fmt.Sprintf("API %q validation references field %q which is not a declared parameter", api.Name, v.Field)
+				if suggestion := cerr.FindClosest(v.Field, paramList, suggestionThreshold); suggestion != "" {
+					errs.AddWarningWithSuggestion("W107", msg, fmt.Sprintf("Did you mean %q?", suggestion))
+				} else {
+					errs.AddWarning("W107", msg)
+				}
+			}
+		}
+	}
+}
+
+// ── Database engine validation (W305) ──
+
+var knownEngines = []string{"PostgreSQL", "MySQL", "MariaDB", "SQLite", "MongoDB", "Redis", "DynamoDB", "CockroachDB"}
+
+func checkDatabaseEngine(errs *cerr.CompilerErrors, app *ir.Application) {
+	if app.Database == nil || app.Database.Engine == "" {
+		return
+	}
+	for _, engine := range knownEngines {
+		if strings.EqualFold(app.Database.Engine, engine) {
+			return
+		}
+	}
+	msg := fmt.Sprintf("Unknown database engine %q", app.Database.Engine)
+	if suggestion := cerr.FindClosest(app.Database.Engine, knownEngines, 0.4); suggestion != "" {
+		errs.AddWarningWithSuggestion("W305", msg, fmt.Sprintf("Did you mean %q?", suggestion))
+	} else {
+		errs.AddWarning("W305", fmt.Sprintf("%s. Supported: %s", msg, strings.Join(knownEngines, ", ")))
+	}
+}
+
+// ── Gateway route references (W404) ──
+
+func checkGatewayRoutes(errs *cerr.CompilerErrors, app *ir.Application) {
+	if app.Architecture == nil || app.Architecture.Gateway == nil {
+		return
+	}
+	serviceNames := make(map[string]bool)
+	var serviceNameList []string
+	for _, svc := range app.Architecture.Services {
+		serviceNames[strings.ToLower(svc.Name)] = true
+		serviceNameList = append(serviceNameList, svc.Name)
+	}
+	for path, svcName := range app.Architecture.Gateway.Routes {
+		if !serviceNames[strings.ToLower(svcName)] {
+			msg := fmt.Sprintf("Gateway route %q targets service %q which is not defined", path, svcName)
+			if suggestion := cerr.FindClosest(svcName, serviceNameList, suggestionThreshold); suggestion != "" {
+				errs.AddWarningWithSuggestion("W404", msg, fmt.Sprintf("Did you mean %q?", suggestion))
+			} else {
+				errs.AddWarning("W404", msg)
+			}
+		}
+	}
+}
+
+// ── Monitoring channel references (W504) ──
+
+func checkMonitoringChannels(errs *cerr.CompilerErrors, app *ir.Application) {
+	if len(app.Monitoring) == 0 {
+		return
+	}
+	integrationLookup := make(map[string]bool)
+	for _, integ := range app.Integrations {
+		integrationLookup[strings.ToLower(integ.Service)] = true
+		if integ.Type != "" {
+			integrationLookup[strings.ToLower(integ.Type)] = true
+		}
+	}
+	for _, rule := range app.Monitoring {
+		if rule.Kind == "alert" && rule.Channel != "" {
+			if !integrationLookup[strings.ToLower(rule.Channel)] {
+				errs.AddWarning("W504", fmt.Sprintf(
+					"Monitoring alert channel %q has no matching integration declared", rule.Channel))
+			}
+		}
+	}
+}
+
+// ── Policy model references (W109) ──
+
+func checkPolicyModelRefs(errs *cerr.CompilerErrors, app *ir.Application, models map[string]bool, modelList []string) {
+	for _, policy := range app.Policies {
+		for _, rules := range [][]*ir.PolicyRule{policy.Permissions, policy.Restrictions} {
+			for _, rule := range rules {
+				matches := crudPattern.FindAllStringSubmatch(rule.Text, -1)
+				for _, m := range matches {
+					target := m[2]
+					if isSkipWord(target) {
+						continue
+					}
+					if !models[strings.ToLower(target)] {
+						msg := fmt.Sprintf("Policy %q references model %q which does not exist", policy.Name, target)
+						if suggestion := cerr.FindClosest(target, modelList, suggestionThreshold); suggestion != "" {
+							errs.AddWarningWithSuggestion("W109", msg, fmt.Sprintf("Did you mean %q?", suggestion))
+						} else {
+							errs.AddWarning("W109", msg)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// ── Workflow/ErrorHandler/Pipeline CRUD model references ──
+
+func checkActionModelRefs(errs *cerr.CompilerErrors, app *ir.Application, models map[string]bool, modelList []string) {
+	for _, wf := range app.Workflows {
+		checkCRUDRefs(errs, fmt.Sprintf("Workflow %q", wf.Trigger), wf.Steps, models, modelList, "W109", false)
+	}
+	for _, eh := range app.ErrorHandlers {
+		checkCRUDRefs(errs, fmt.Sprintf("Error handler %q", eh.Condition), eh.Steps, models, modelList, "W109", false)
+	}
+	for _, pl := range app.Pipelines {
+		checkCRUDRefs(errs, fmt.Sprintf("Pipeline %q", pl.Trigger), pl.Steps, models, modelList, "W109", false)
+	}
+}
+
+// ── Trigger model references (W106) ──
+
+var triggerModelPattern = regexp.MustCompile(`(?i)\b(\w+)\s+(?:is\s+)?(?:created|updated|deleted|completed|overdue|signs?\s+up)\b`)
+
+func checkTriggerModelRefs(errs *cerr.CompilerErrors, app *ir.Application, models map[string]bool, modelList []string) {
+	type triggerSource struct {
+		label   string
+		trigger string
+	}
+	var triggers []triggerSource
+	for _, wf := range app.Workflows {
+		triggers = append(triggers, triggerSource{label: "Workflow", trigger: wf.Trigger})
+	}
+	for _, pl := range app.Pipelines {
+		triggers = append(triggers, triggerSource{label: "Pipeline", trigger: pl.Trigger})
+	}
+
+	// Words that appear before trigger verbs but are not model names
+	triggerSkip := map[string]bool{
+		"becomes": true, "gets": true, "was": true, "been": true,
+		"when": true, "if": true, "once": true, "after": true,
+	}
+
+	for _, ts := range triggers {
+		matches := triggerModelPattern.FindAllStringSubmatch(ts.trigger, -1)
+		for _, m := range matches {
+			target := m[1]
+			lower := strings.ToLower(target)
+			if isSkipWord(target) || triggerSkip[lower] {
+				continue
+			}
+			if !models[lower] {
+				msg := fmt.Sprintf("%s trigger %q references model %q which does not exist", ts.label, ts.trigger, target)
+				if suggestion := cerr.FindClosest(target, modelList, suggestionThreshold); suggestion != "" {
+					errs.AddWarningWithSuggestion("W106", msg, fmt.Sprintf("Did you mean %q?", suggestion))
+				} else {
+					errs.AddWarning("W106", msg)
+				}
+			}
 		}
 	}
 }

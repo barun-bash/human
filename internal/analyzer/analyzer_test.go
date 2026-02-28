@@ -715,6 +715,295 @@ func TestErrorHandlerEmailNoIntegration(t *testing.T) {
 	assertWarningCode(t, errs.Warnings(), "W502")
 }
 
+// ── Validation field references (W107) ──
+
+func TestValidationFieldUnknown(t *testing.T) {
+	app := minApp()
+	app.APIs = append(app.APIs, &ir.Endpoint{
+		Name:       "Register",
+		Params:     []*ir.Param{{Name: "email"}, {Name: "password"}},
+		Validation: []*ir.ValidationRule{{Field: "emial", Rule: "valid_email"}},
+	})
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W107")
+	assertWarningSuggestion(t, errs.Warnings(), "email")
+}
+
+func TestValidationFieldValid(t *testing.T) {
+	app := minApp()
+	app.APIs = append(app.APIs, &ir.Endpoint{
+		Name:       "Register",
+		Params:     []*ir.Param{{Name: "email"}, {Name: "password"}},
+		Validation: []*ir.ValidationRule{{Field: "email", Rule: "valid_email"}},
+	})
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W107" {
+			t.Errorf("unexpected W107 — email matches param: %s", w.Message)
+		}
+	}
+}
+
+func TestValidationNoParams(t *testing.T) {
+	app := minApp()
+	app.APIs = append(app.APIs, &ir.Endpoint{
+		Name:       "Register",
+		Validation: []*ir.ValidationRule{{Field: "email", Rule: "valid_email"}},
+	})
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W107" {
+			t.Errorf("unexpected W107 — no params defined, should skip: %s", w.Message)
+		}
+	}
+}
+
+// ── Database engine validation (W305) ──
+
+func TestUnknownDatabaseEngine(t *testing.T) {
+	app := minApp()
+	app.Database = &ir.DatabaseConfig{Engine: "Postgre"}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W305")
+	assertWarningSuggestion(t, errs.Warnings(), "PostgreSQL")
+}
+
+func TestValidDatabaseEngine(t *testing.T) {
+	app := minApp()
+	app.Database = &ir.DatabaseConfig{Engine: "PostgreSQL"}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W305" {
+			t.Errorf("unexpected W305 — PostgreSQL is valid: %s", w.Message)
+		}
+	}
+}
+
+func TestDatabaseEngineEmpty(t *testing.T) {
+	app := minApp()
+	app.Database = &ir.DatabaseConfig{}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W305" {
+			t.Errorf("unexpected W305 — empty engine should skip: %s", w.Message)
+		}
+	}
+}
+
+// ── Gateway route references (W404) ──
+
+func TestGatewayRouteUnknownService(t *testing.T) {
+	app := minApp()
+	app.Architecture = &ir.Architecture{
+		Style: "microservices",
+		Services: []*ir.ServiceDef{
+			{Name: "UserService"},
+		},
+		Gateway: &ir.GatewayDef{
+			Routes: map[string]string{"/api/users": "UserSrvice"}, // typo
+		},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W404")
+}
+
+func TestGatewayRouteValid(t *testing.T) {
+	app := minApp()
+	app.Architecture = &ir.Architecture{
+		Style: "microservices",
+		Services: []*ir.ServiceDef{
+			{Name: "UserService"},
+		},
+		Gateway: &ir.GatewayDef{
+			Routes: map[string]string{"/api/users": "UserService"},
+		},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W404" {
+			t.Errorf("unexpected W404 — UserService exists: %s", w.Message)
+		}
+	}
+}
+
+func TestNoGateway(t *testing.T) {
+	app := minApp()
+	app.Architecture = &ir.Architecture{
+		Style:    "microservices",
+		Services: []*ir.ServiceDef{{Name: "Svc1"}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W404" {
+			t.Errorf("unexpected W404 — no gateway defined: %s", w.Message)
+		}
+	}
+}
+
+// ── Monitoring channel references (W504) ──
+
+func TestMonitoringAlertNoIntegration(t *testing.T) {
+	app := minApp()
+	app.Monitoring = []*ir.MonitoringRule{
+		{Kind: "alert", Metric: "error_rate > 5%", Channel: "Slack"},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W504")
+}
+
+func TestMonitoringAlertWithIntegration(t *testing.T) {
+	app := minApp()
+	app.Integrations = []*ir.Integration{
+		{Service: "Slack", Type: "messaging", Credentials: map[string]string{"api key": "SLACK_URL"}},
+	}
+	app.Monitoring = []*ir.MonitoringRule{
+		{Kind: "alert", Metric: "error_rate > 5%", Channel: "Slack"},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W504" {
+			t.Errorf("unexpected W504 — Slack integration exists: %s", w.Message)
+		}
+	}
+}
+
+func TestMonitoringTrackNoAlert(t *testing.T) {
+	app := minApp()
+	app.Monitoring = []*ir.MonitoringRule{
+		{Kind: "track", Metric: "response_time"},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W504" {
+			t.Errorf("unexpected W504 — track rule has no channel: %s", w.Message)
+		}
+	}
+}
+
+// ── Policy model references (W109) ──
+
+func TestPolicyRefsUnknownModel(t *testing.T) {
+	app := minApp()
+	app.Policies = []*ir.Policy{
+		{Name: "admin", Permissions: []*ir.PolicyRule{
+			{Text: "can delete Taks"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W109")
+	assertWarningSuggestion(t, errs.Warnings(), "Task")
+}
+
+func TestPolicyRefsValidModel(t *testing.T) {
+	app := minApp()
+	app.Policies = []*ir.Policy{
+		{Name: "admin", Permissions: []*ir.PolicyRule{
+			{Text: "can delete Task"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W109" {
+			t.Errorf("unexpected W109 — Task exists: %s", w.Message)
+		}
+	}
+}
+
+func TestPolicyNoRules(t *testing.T) {
+	app := minApp()
+	app.Policies = []*ir.Policy{
+		{Name: "admin"},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W109" {
+			t.Errorf("unexpected W109 — no rules defined: %s", w.Message)
+		}
+	}
+}
+
+// ── Workflow/ErrorHandler/Pipeline CRUD model references ──
+
+func TestWorkflowCRUDUnknownModel(t *testing.T) {
+	app := minApp()
+	app.Workflows = []*ir.Workflow{
+		{Trigger: "task assigned", Steps: []*ir.Action{
+			{Type: "create", Text: "create a Userr notification"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W109")
+}
+
+func TestWorkflowCRUDValidModel(t *testing.T) {
+	app := minApp()
+	app.Workflows = []*ir.Workflow{
+		{Trigger: "task assigned", Steps: []*ir.Action{
+			{Type: "create", Text: "create a User notification"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W109" {
+			t.Errorf("unexpected W109 — User exists: %s", w.Message)
+		}
+	}
+}
+
+func TestPipelineCRUDUnknownModel(t *testing.T) {
+	app := minApp()
+	app.Pipelines = []*ir.Pipeline{
+		{Trigger: "code pushed", Steps: []*ir.Action{
+			{Type: "update", Text: "update the Deploymnt status"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W109")
+}
+
+// ── Trigger model references (W106) ──
+
+func TestWorkflowTriggerUnknownModel(t *testing.T) {
+	app := minApp()
+	app.Workflows = []*ir.Workflow{
+		{Trigger: "Taks is created", Steps: []*ir.Action{
+			{Type: "action", Text: "notify admin"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	assertWarningCode(t, errs.Warnings(), "W106")
+}
+
+func TestWorkflowTriggerValidModel(t *testing.T) {
+	app := minApp()
+	app.Workflows = []*ir.Workflow{
+		{Trigger: "Task is created", Steps: []*ir.Action{
+			{Type: "action", Text: "notify admin"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W106" {
+			t.Errorf("unexpected W106 — Task exists: %s", w.Message)
+		}
+	}
+}
+
+func TestWorkflowTriggerNoModel(t *testing.T) {
+	app := minApp()
+	app.Workflows = []*ir.Workflow{
+		{Trigger: "daily at 9am", Steps: []*ir.Action{
+			{Type: "action", Text: "run cleanup"},
+		}},
+	}
+	errs := Analyze(app, "test.human")
+	for _, w := range errs.Warnings() {
+		if w.Code == "W106" {
+			t.Errorf("unexpected W106 — trigger has no model reference: %s", w.Message)
+		}
+	}
+}
+
 // ── Test helpers ──
 
 func assertCode(t *testing.T, errs []*cerr.CompilerError, code string) {
@@ -745,4 +1034,14 @@ func assertSuggestion(t *testing.T, errs []*cerr.CompilerError, contains string)
 		}
 	}
 	t.Errorf("expected a suggestion containing %q, found none", contains)
+}
+
+func assertWarningSuggestion(t *testing.T, warnings []*cerr.CompilerError, contains string) {
+	t.Helper()
+	for _, w := range warnings {
+		if strings.Contains(w.Suggestion, contains) {
+			return
+		}
+	}
+	t.Errorf("expected a warning suggestion containing %q, found none", contains)
 }
