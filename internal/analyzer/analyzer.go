@@ -324,7 +324,12 @@ func isSkipWord(word string) bool {
 		lower == "it" || lower == "new" || lower == "existing" ||
 		lower == "all" || lower == "current" || lower == "each" ||
 		lower == "every" || lower == "this" || lower == "that" ||
-		lower == "entry" || lower == "record" || lower == "item"
+		lower == "entry" || lower == "record" || lower == "item" ||
+		lower == "up" || lower == "any" || lower == "their" ||
+		lower == "unlimited" || lower == "completed" || lower == "own" ||
+		lower == "multiple" || lower == "some" || lower == "many" ||
+		lower == "or" || lower == "status" || lower == "data" ||
+		lower == "only" || lower == "no" || lower == "one"
 }
 
 // checkCRUDRefs scans actions for CRUD-verb model references and emits
@@ -654,7 +659,12 @@ func checkValidationFields(errs *cerr.CompilerErrors, apis []*ir.Endpoint) {
 			paramList = append(paramList, p.Name)
 		}
 		for _, v := range api.Validation {
-			if !paramNames[strings.ToLower(v.Field)] {
+			field := strings.ToLower(v.Field)
+			// Skip implicit context fields (e.g. current_user, current user)
+			if strings.HasPrefix(field, "current") {
+				continue
+			}
+			if !paramNames[field] {
 				msg := fmt.Sprintf("API %q validation references field %q which is not a declared parameter", api.Name, v.Field)
 				if suggestion := cerr.FindClosest(v.Field, paramList, suggestionThreshold); suggestion != "" {
 					errs.AddWarningWithSuggestion("W107", msg, fmt.Sprintf("Did you mean %q?", suggestion))
