@@ -19,6 +19,8 @@ import (
 	"github.com/barun-bash/human/internal/editor"
 	"github.com/barun-bash/human/internal/figma"
 	"github.com/barun-bash/human/internal/fixer"
+	"github.com/barun-bash/human/internal/git"
+	"github.com/barun-bash/human/internal/openapi"
 	"github.com/barun-bash/human/internal/ir"
 	"github.com/barun-bash/human/internal/llm"
 	_ "github.com/barun-bash/human/internal/llm/providers" // register providers
@@ -67,6 +69,10 @@ func main() {
 		cmdHow()
 	case "design":
 		cmdDesign()
+	case "feature":
+		cmdFeature()
+	case "release":
+		cmdRelease()
 	case "import":
 		cmdImportCLI()
 	case "convert":
@@ -1157,18 +1163,175 @@ func cmdHow() {
 // ── import ──
 
 func cmdImportCLI() {
-	if len(os.Args) < 4 || os.Args[2] != "figma" {
-		fmt.Fprintln(os.Stderr, "Usage: human import figma <url>")
-		fmt.Fprintln(os.Stderr, "  Import a Figma design into a .human file.")
-		fmt.Fprintln(os.Stderr, "  Requires: FIGMA_ACCESS_TOKEN env var and Figma MCP server.")
-		fmt.Fprintln(os.Stderr, "  For interactive import, use the REPL: /import figma <url>")
+	if len(os.Args) < 3 {
+		printImportUsage()
 		os.Exit(1)
 	}
 
-	// The import pipeline requires MCP connections and interactive prompts,
-	// so we delegate to the REPL with auto-exec.
-	r := repl.New(version.Version)
-	r.ExecAndExit(fmt.Sprintf("/import figma %s", os.Args[3]))
+	switch os.Args[2] {
+	case "figma":
+		if len(os.Args) < 4 {
+			fmt.Fprintln(os.Stderr, "Usage: human import figma <url>")
+			os.Exit(1)
+		}
+		r := repl.New(version.Version)
+		r.ExecAndExit(fmt.Sprintf("/import figma %s", os.Args[3]))
+	case "openapi", "swagger":
+		cmdImportOpenAPI()
+	default:
+		printImportUsage()
+		os.Exit(1)
+	}
+}
+
+func printImportUsage() {
+	fmt.Fprintln(os.Stderr, "Usage: human import <source> [options]")
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "Sources:")
+	fmt.Fprintln(os.Stderr, "  figma <url>                Import from Figma design")
+	fmt.Fprintln(os.Stderr, "  openapi <file|url>         Import from OpenAPI/Swagger JSON spec")
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "OpenAPI options:")
+	fmt.Fprintln(os.Stderr, "  --name <name>              Application name (default: from spec title)")
+	fmt.Fprintln(os.Stderr, "  --output, -o <file>        Output .human file (default: app.human)")
+}
+
+func cmdImportOpenAPI() {
+	var source, output, appName string
+	args := os.Args[3:]
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--output", "-o":
+			if i+1 < len(args) {
+				i++
+				output = args[i]
+			}
+		case "--name":
+			if i+1 < len(args) {
+				i++
+				appName = args[i]
+			}
+		default:
+			if !strings.HasPrefix(args[i], "-") && source == "" {
+				source = args[i]
+			}
+		}
+	}
+
+	if source == "" {
+		fmt.Fprintln(os.Stderr, "Usage: human import openapi <file|url> [--name <name>] [--output <file>]")
+		os.Exit(1)
+	}
+
+	fmt.Println(cli.Info(fmt.Sprintf("Parsing OpenAPI spec: %s", source)))
+
+	spec, err := openapi.Parse(source)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+		os.Exit(1)
+	}
+
+	fmt.Println(cli.Info(fmt.Sprintf("Spec: %s v%s", spec.Info.Title, spec.Info.Version)))
+
+	code, err := openapi.ToHuman(spec, appName)
+	if err != nil {
+		// ToHuman returns code even with syntax warnings
+		fmt.Fprintln(os.Stderr, cli.Warn(err.Error()))
+	}
+
+	if code == "" {
+		fmt.Fprintln(os.Stderr, cli.Error("Conversion produced no output"))
+		os.Exit(1)
+	}
+
+	if output == "" {
+		if appName != "" {
+			output = strings.ToLower(appName) + ".human"
+		} else if spec.Info.Title != "" {
+			output = strings.ToLower(strings.ReplaceAll(spec.Info.Title, " ", "-")) + ".human"
+		} else {
+			output = "app.human"
+		}
+	}
+
+	if err := os.WriteFile(output, []byte(code), 0644); err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Writing output: %v", err)))
+		os.Exit(1)
+	}
+
+	fmt.Println(cli.Success(fmt.Sprintf("Generated %s from OpenAPI spec", output)))
+	fmt.Println(cli.Info(fmt.Sprintf("Next: human check %s  or  human build %s", output, output)))
+}
+
+// ── feature ──
+
+func cmdFeature() {
+	args := os.Args[2:]
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "Usage: human feature <name>       Create a feature branch")
+		fmt.Fprintln(os.Stderr, "       human feature finish       Merge feature branch back")
+		os.Exit(1)
+	}
+
+	switch args[0] {
+	case "finish":
+		dryRun := false
+		for _, a := range args[1:] {
+			if a == "--dry-run" {
+				dryRun = true
+			}
+		}
+		if err := git.FeatureFinish(dryRun); err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+			os.Exit(1)
+		}
+		branch, _ := git.DefaultBranch()
+		fmt.Println(cli.Success(fmt.Sprintf("Feature merged into %s and branch deleted.", branch)))
+	default:
+		name := strings.Join(args, " ")
+		if err := git.Feature(name); err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+			os.Exit(1)
+		}
+		branch, _ := git.CurrentBranch()
+		fmt.Println(cli.Success(fmt.Sprintf("Created and switched to %s", branch)))
+	}
+}
+
+// ── release ──
+
+func cmdRelease() {
+	args := os.Args[2:]
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "Usage: human release <version>    Tag a release (vX.Y.Z)")
+		fmt.Fprintln(os.Stderr, "       human release notes        Generate changelog")
+		os.Exit(1)
+	}
+
+	switch args[0] {
+	case "notes":
+		notes, err := git.ReleaseNotes()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+			os.Exit(1)
+		}
+		fmt.Print(notes)
+	default:
+		version := args[0]
+		dryRun := false
+		for _, a := range args[1:] {
+			if a == "--dry-run" {
+				dryRun = true
+			}
+		}
+		if err := git.Release(version, dryRun); err != nil {
+			fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+			os.Exit(1)
+		}
+		if !dryRun {
+			fmt.Println(cli.Success(fmt.Sprintf("Tagged %s — push with: git push origin %s", version, version)))
+		}
+	}
 }
 
 // ── design ──
@@ -1383,6 +1546,13 @@ Design Import:
   design <figma-url>        Import from Figma design via REST API
   design <image-file>       Import from screenshot via LLM vision
   import figma <url>        Import via Figma MCP server (REPL)
+  import openapi <file>     Import from OpenAPI/Swagger JSON spec
+
+Git Workflow:
+  feature <name>            Create a feature branch (feature/<name>)
+  feature finish            Merge current feature branch back
+  release <version>         Tag a release (vX.Y.Z)
+  release notes             Generate changelog from commits
 
 AI-Assisted (optional, requires API key or Ollama):
   ask "<description>"       Generate .human code from English
