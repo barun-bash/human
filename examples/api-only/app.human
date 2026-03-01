@@ -166,7 +166,7 @@ authentication:
 
 policy ActiveMerchant:
   can create customers and payment methods
-  can create charges and process refunds
+  can create Transaction and process refunds
   can view all their transactions
   can register webhooks
   can view their balance
@@ -174,7 +174,7 @@ policy ActiveMerchant:
 policy SuspendedMerchant:
   can view their existing transactions
   can view their balance
-  cannot create new charges
+  cannot create new Transaction
   cannot create new customers
   cannot register new webhooks
 
@@ -182,7 +182,7 @@ policy SuspendedMerchant:
 ── workflows ──
 # ─────────────────────────────────────────────────────────────
 
-when a charge is completed:
+when a Transaction is completed:
   deliver webhook to the merchant
   if webhook delivery fails, retry 3 times with exponential backoff
   log the delivery attempt and result
