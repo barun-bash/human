@@ -91,6 +91,21 @@ func renderBuildSummary(app *ir.Application, outputDir string, result *Result) s
 		b.WriteString(renderCoverageSection(result.Coverage))
 	}
 
+	// Dependencies section
+	b.WriteString(renderDependencySection(result.VulnerabilityReport))
+
+	// Duplication section
+	b.WriteString(renderDuplicationSection(result.DuplicationFindings))
+
+	// Performance section
+	b.WriteString(renderPerformanceSection(result.PerformanceFindings))
+
+	// Traceability section
+	if app.Config != nil {
+		entries := buildTraceEntries(app, app.Config)
+		b.WriteString(renderTraceabilitySection(entries))
+	}
+
 	// Output directory
 	fmt.Fprintf(&b, "**Output:** `%s`\n", outputDir)
 

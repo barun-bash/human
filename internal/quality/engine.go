@@ -23,6 +23,9 @@ type Result struct {
 	EdgeTestCount        int
 	IntegrationTestCount int
 	Coverage             *CoverageReport
+	VulnerabilityReport  *VulnerabilityReport
+	DuplicationFindings  []DuplicationFinding
+	PerformanceFindings  []PerformanceFinding
 }
 
 // Finding is a security audit finding.
@@ -113,8 +116,8 @@ func Run(app *ir.Application, outputDir string) (*Result, error) {
 		return nil, firstErr
 	}
 
-	// Group 2: Security and lint checks in parallel (read-only on app, write to separate files).
-	wg.Add(2)
+	// Group 2: Security, lint, duplication, and performance in parallel (read-only on app).
+	wg.Add(4)
 	go func() {
 		defer wg.Done()
 		findings := checkSecurity(app)
@@ -139,14 +142,60 @@ func Run(app *ir.Application, outputDir string) (*Result, error) {
 		result.LintWarnings = warnings
 		mu.Unlock()
 	}()
+	go func() {
+		defer wg.Done()
+		findings := checkDuplication(app)
+		mu.Lock()
+		result.DuplicationFindings = findings
+		mu.Unlock()
+	}()
+	go func() {
+		defer wg.Done()
+		findings := checkPerformance(app)
+		perfReport := renderPerformanceReport(findings)
+		if err := writeFile(filepath.Join(outputDir, "performance-report.md"), perfReport); err != nil {
+			setErr(fmt.Errorf("performance report: %w", err))
+			return
+		}
+		mu.Lock()
+		result.PerformanceFindings = findings
+		mu.Unlock()
+	}()
 	wg.Wait()
 
 	if firstErr != nil {
 		return nil, firstErr
 	}
 
-	// Group 3: Sequential — coverage and summary depend on all prior results.
+	// Group 3: Sequential — coverage, dependency scan, and summary depend on prior results.
 	result.Coverage = calculateCoverage(app, result)
+
+	// Dependency vulnerability scan (needs package.json from test gen).
+	vulnReport, err := ScanDependencies(outputDir)
+	if err != nil {
+		// Log warning but don't fail the build
+		fmt.Printf("  warning: dependency scan: %v\n", err)
+	}
+	result.VulnerabilityReport = vulnReport
+	if err := writeFile(filepath.Join(outputDir, "dependency-audit.md"), renderDependencyAudit(vulnReport)); err != nil {
+		return nil, fmt.Errorf("dependency audit: %w", err)
+	}
+
+	// QA test plan (read-only on app).
+	testPlan := generateTestPlan(app)
+	if err := writeFile(filepath.Join(outputDir, "qa-test-plan.md"), testPlan); err != nil {
+		return nil, fmt.Errorf("QA test plan: %w", err)
+	}
+
+	// Traceability matrix (needs build config).
+	var buildConfig *ir.BuildConfig
+	if app.Config != nil {
+		buildConfig = app.Config
+	}
+	traceMatrix := generateTraceabilityMatrix(app, buildConfig)
+	if err := writeFile(filepath.Join(outputDir, "traceability-matrix.md"), traceMatrix); err != nil {
+		return nil, fmt.Errorf("traceability matrix: %w", err)
+	}
 
 	summary := renderBuildSummary(app, outputDir, result)
 	if err := writeFile(filepath.Join(outputDir, "build-report.md"), summary); err != nil {
@@ -187,8 +236,25 @@ func PrintSummary(result *Result) {
 	if len(result.LintWarnings) > 0 {
 		parts = append(parts, fmt.Sprintf("%d lint warnings", len(result.LintWarnings)))
 	}
+	if len(result.DuplicationFindings) > 0 {
+		parts = append(parts, fmt.Sprintf("%d duplication warnings", len(result.DuplicationFindings)))
+	}
+	if len(result.PerformanceFindings) > 0 {
+		perfWarns := 0
+		for _, f := range result.PerformanceFindings {
+			if f.Severity == "warning" {
+				perfWarns++
+			}
+		}
+		parts = append(parts, fmt.Sprintf("%d performance warnings", perfWarns))
+	}
+	if result.VulnerabilityReport != nil && result.VulnerabilityReport.Total > 0 {
+		parts = append(parts, fmt.Sprintf("%d dependency vulnerabilities (%d high, %d moderate)",
+			result.VulnerabilityReport.Total, result.VulnerabilityReport.High, result.VulnerabilityReport.Moderate))
+	}
 
-	if criticals == 0 && warnings == 0 && len(result.LintWarnings) == 0 {
+	if criticals == 0 && warnings == 0 && len(result.LintWarnings) == 0 &&
+		len(result.DuplicationFindings) == 0 && len(result.PerformanceFindings) == 0 {
 		parts = append(parts, "no issues")
 	}
 
