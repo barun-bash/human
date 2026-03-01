@@ -442,7 +442,8 @@ func TestVueTSConfig(t *testing.T) {
 // ── Vite config ──
 
 func TestViteConfig(t *testing.T) {
-	output := generateViteConfig()
+	app := testApp()
+	output := generateViteConfig(app)
 
 	checks := []struct {
 		desc    string
@@ -452,7 +453,7 @@ func TestViteConfig(t *testing.T) {
 		{"import react", "import react from '@vitejs/plugin-react'"},
 		{"react plugin", "plugins: [react()]"},
 		{"api proxy", "'/api'"},
-		{"proxy target", "target: 'http://localhost:3000'"},
+		{"proxy target", "target: 'http://localhost:3001'"},
 		{"changeOrigin", "changeOrigin: true"},
 	}
 
@@ -460,6 +461,16 @@ func TestViteConfig(t *testing.T) {
 		if !strings.Contains(output, c.pattern) {
 			t.Errorf("vite config: missing %s (%q)", c.desc, c.pattern)
 		}
+	}
+}
+
+func TestViteConfigCustomPort(t *testing.T) {
+	app := testApp()
+	app.Config.Ports.Backend = 8080
+	output := generateViteConfig(app)
+
+	if !strings.Contains(output, "target: 'http://localhost:8080'") {
+		t.Error("vite config: custom port 8080 not reflected in proxy target")
 	}
 }
 

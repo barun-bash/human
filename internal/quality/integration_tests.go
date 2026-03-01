@@ -44,6 +44,15 @@ func generateIntegrationTests(app *ir.Application, testDir string) (int, error) 
 	// Auth rejection tests
 	testCount += writeAuthRejectionTests(&b, app)
 
+	// Validation failure tests
+	testCount += writeValidationFailureTests(&b, app)
+
+	// Not-found tests
+	testCount += writeNotFoundTests(&b, app)
+
+	// Relationship integrity tests
+	testCount += writeRelationshipIntegrityTests(&b, app)
+
 	if testCount == 0 {
 		return 0, nil
 	}
@@ -239,6 +248,161 @@ func writeAuthRejectionTests(b *strings.Builder, app *ir.Application) int {
 		b.WriteString("    const response = await request(app)\n")
 		fmt.Fprintf(b, "      .%s('%s');\n\n", method, path)
 		b.WriteString("    expect(response.status).toBe(401);\n")
+		b.WriteString("  });\n\n")
+		count++
+	}
+
+	b.WriteString("});\n\n")
+	return count
+}
+
+// writeValidationFailureTests generates tests that send invalid data to endpoints
+// with validation rules and expect 400 responses.
+func writeValidationFailureTests(b *strings.Builder, app *ir.Application) int {
+	// Collect endpoints that have validation rules
+	var validatedEPs []*ir.Endpoint
+	for _, ep := range app.APIs {
+		if len(ep.Validation) > 0 {
+			validatedEPs = append(validatedEPs, ep)
+		}
+	}
+	if len(validatedEPs) == 0 {
+		return 0
+	}
+
+	count := 0
+
+	b.WriteString("describe('Validation failures', () => {\n")
+
+	for _, ep := range validatedEPs {
+		method := httpMethod(ep.Name)
+		path := apiPath(ep.Name)
+
+		for _, val := range ep.Validation {
+			testName := fmt.Sprintf("%s with invalid %s (%s)", ep.Name, val.Field, val.Rule)
+			fmt.Fprintf(b, "  it('should reject %s', async () => {\n", testName)
+			b.WriteString("    const response = await request(app)\n")
+			fmt.Fprintf(b, "      .%s('%s')\n", method, path)
+			if ep.Auth {
+				b.WriteString("      .set('Authorization', `Bearer ${authToken}`)\n")
+			}
+
+			// Send data violating the specific rule
+			switch val.Rule {
+			case "not_empty":
+				fmt.Fprintf(b, "      .send({ %s: '' });\n\n", sanitizeParamName(val.Field))
+			case "valid_email":
+				fmt.Fprintf(b, "      .send({ %s: 'not-an-email' });\n\n", sanitizeParamName(val.Field))
+			case "min_length":
+				fmt.Fprintf(b, "      .send({ %s: 'a' });\n\n", sanitizeParamName(val.Field))
+			case "max_length":
+				fmt.Fprintf(b, "      .send({ %s: '%s' });\n\n", sanitizeParamName(val.Field), strings.Repeat("x", 10000))
+			default:
+				fmt.Fprintf(b, "      .send({ %s: null });\n\n", sanitizeParamName(val.Field))
+			}
+
+			b.WriteString("    expect(response.status).toBe(400);\n")
+			b.WriteString("  });\n\n")
+			count++
+		}
+	}
+
+	b.WriteString("});\n\n")
+	return count
+}
+
+// writeNotFoundTests generates tests that send non-existent IDs to endpoints
+// with "fetch" steps and expect 404 responses.
+func writeNotFoundTests(b *strings.Builder, app *ir.Application) int {
+	var fetchEPs []*ir.Endpoint
+	for _, ep := range app.APIs {
+		for _, step := range ep.Steps {
+			if step.Type == "query" && strings.Contains(strings.ToLower(step.Text), "fetch") {
+				fetchEPs = append(fetchEPs, ep)
+				break
+			}
+		}
+	}
+	if len(fetchEPs) == 0 {
+		return 0
+	}
+
+	count := 0
+
+	b.WriteString("describe('Not found responses', () => {\n")
+
+	for _, ep := range fetchEPs {
+		method := httpMethod(ep.Name)
+		path := apiPath(ep.Name)
+
+		fmt.Fprintf(b, "  it('should return 404 for non-existent %s', async () => {\n", ep.Name)
+		b.WriteString("    const response = await request(app)\n")
+		fmt.Fprintf(b, "      .%s('%s')\n", method, path)
+		if ep.Auth {
+			b.WriteString("      .set('Authorization', `Bearer ${authToken}`)\n")
+		}
+		b.WriteString("      .send({ id: '999999' });\n\n")
+		b.WriteString("    expect(response.status).toBe(404);\n")
+		b.WriteString("  });\n\n")
+		count++
+	}
+
+	b.WriteString("});\n\n")
+	return count
+}
+
+// writeRelationshipIntegrityTests generates tests that send invalid parent IDs
+// for endpoints creating child records with belongs_to relationships.
+func writeRelationshipIntegrityTests(b *strings.Builder, app *ir.Application) int {
+	// Find models with belongs_to relationships
+	type childEndpoint struct {
+		ep     *ir.Endpoint
+		parent string
+	}
+	var children []childEndpoint
+
+	for _, model := range app.Data {
+		for _, rel := range model.Relations {
+			if rel.Kind == "belongs_to" {
+				// Find Create endpoint for this model
+				createEP := findEndpoint(app, "Create"+model.Name)
+				if createEP != nil {
+					children = append(children, childEndpoint{ep: createEP, parent: rel.Target})
+				}
+			}
+		}
+	}
+	if len(children) == 0 {
+		return 0
+	}
+
+	count := 0
+
+	b.WriteString("describe('Relationship integrity', () => {\n")
+
+	for _, child := range children {
+		method := httpMethod(child.ep.Name)
+		path := apiPath(child.ep.Name)
+
+		fmt.Fprintf(b, "  it('should reject %s with invalid %s reference', async () => {\n", child.ep.Name, child.parent)
+		b.WriteString("    const response = await request(app)\n")
+		fmt.Fprintf(b, "      .%s('%s')\n", method, path)
+		if child.ep.Auth {
+			b.WriteString("      .set('Authorization', `Bearer ${authToken}`)\n")
+		}
+		b.WriteString("      .send({\n")
+		for _, p := range child.ep.Params {
+			name := sanitizeParamName(p.Name)
+			lower := strings.ToLower(p.Name)
+			if strings.Contains(lower, strings.ToLower(child.parent)) && strings.Contains(lower, "id") {
+				fmt.Fprintf(b, "        %s: '999999-nonexistent',\n", name)
+			} else {
+				fmt.Fprintf(b, "        %s: 'test-%s',\n", name, name)
+			}
+		}
+		b.WriteString("      });\n\n")
+		b.WriteString("    expect(response.status).toBeGreaterThanOrEqual(400);\n")
+		b.WriteString("    expect(response.status).toBeLessThan(500);\n")
 		b.WriteString("  });\n\n")
 		count++
 	}

@@ -35,7 +35,7 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	if strings.Contains(frontend, "react") {
 		files[filepath.Join(outputDir, "react", "package.json")] = generateReactPackageJSON(app)
 		files[filepath.Join(outputDir, "react", "tsconfig.json")] = generateReactTSConfig()
-		files[filepath.Join(outputDir, "react", "vite.config.ts")] = generateViteConfig()
+		files[filepath.Join(outputDir, "react", "vite.config.ts")] = generateViteConfig(app)
 	}
 
 	// Vue scaffold files (generator doesn't write package.json/tsconfig)

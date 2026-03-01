@@ -48,6 +48,12 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		filepath.Join(outputDir, "setup.sh"):                  generateSetupScript(),
 	}
 
+	// Add policy files if policies are defined
+	if len(app.Policies) > 0 {
+		files[filepath.Join(outputDir, "middleware", "policies.go")] = generatePolicies(moduleName, app)
+		files[filepath.Join(outputDir, "middleware", "authorize.go")] = generateAuthorizeMiddleware(moduleName, app)
+	}
+
 	for path, content := range files {
 		if err := writeFile(path, content); err != nil {
 			return err

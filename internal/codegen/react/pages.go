@@ -369,6 +369,122 @@ func writeDisplayJSX(b *strings.Builder, text string, indent string, ctx *pageCo
 		return
 	}
 
+	// Navigation / navbar
+	if strings.Contains(lower, "navigation") || strings.Contains(lower, "navbar") || strings.Contains(lower, "nav bar") || strings.Contains(lower, "menu bar") {
+		fmt.Fprintf(b, "%s<nav className=\"navbar\">\n", indent)
+		fmt.Fprintf(b, "%s  <a href=\"/\">Home</a>\n", indent)
+		fmt.Fprintf(b, "%s  <a href=\"/about\">About</a>\n", indent)
+		fmt.Fprintf(b, "%s  <a href=\"/contact\">Contact</a>\n", indent)
+		fmt.Fprintf(b, "%s</nav>\n", indent)
+		return
+	}
+
+	// Footer
+	if strings.Contains(lower, "footer") {
+		appName := ctx.appName
+		if appName == "" {
+			appName = "App"
+		}
+		fmt.Fprintf(b, "%s<footer className=\"site-footer\">\n", indent)
+		fmt.Fprintf(b, "%s  <p>&copy; 2026 %s. All rights reserved.</p>\n", indent, appName)
+		fmt.Fprintf(b, "%s</footer>\n", indent)
+		return
+	}
+
+	// Modal / dialog / popup
+	if strings.Contains(lower, "modal") || strings.Contains(lower, "dialog") || strings.Contains(lower, "popup") {
+		fmt.Fprintf(b, "%s<div className=\"modal-overlay\">\n", indent)
+		fmt.Fprintf(b, "%s  <div className=\"modal\">\n", indent)
+		fmt.Fprintf(b, "%s    <button className=\"modal-close\">&times;</button>\n", indent)
+		fmt.Fprintf(b, "%s    <div className=\"modal-body\">{/* TODO: modal content */}</div>\n", indent)
+		fmt.Fprintf(b, "%s  </div>\n", indent)
+		fmt.Fprintf(b, "%s</div>\n", indent)
+		return
+	}
+
+	// Tabs
+	if strings.Contains(lower, "tabs") || strings.Contains(lower, "tab group") || strings.Contains(lower, "tabbed") {
+		fmt.Fprintf(b, "%s<div className=\"tabs\">\n", indent)
+		fmt.Fprintf(b, "%s  <div className=\"tab-buttons\">\n", indent)
+		fmt.Fprintf(b, "%s    <button className=\"tab-btn active\">Tab 1</button>\n", indent)
+		fmt.Fprintf(b, "%s    <button className=\"tab-btn\">Tab 2</button>\n", indent)
+		fmt.Fprintf(b, "%s    <button className=\"tab-btn\">Tab 3</button>\n", indent)
+		fmt.Fprintf(b, "%s  </div>\n", indent)
+		fmt.Fprintf(b, "%s  <div className=\"tab-panel\">{/* TODO: active tab content */}</div>\n", indent)
+		fmt.Fprintf(b, "%s</div>\n", indent)
+		return
+	}
+
+	// Accordion / collapsible
+	if strings.Contains(lower, "accordion") || strings.Contains(lower, "collapsible") || strings.Contains(lower, "expandable") {
+		fmt.Fprintf(b, "%s<div className=\"accordion\">\n", indent)
+		fmt.Fprintf(b, "%s  <details>\n", indent)
+		fmt.Fprintf(b, "%s    <summary>Section 1</summary>\n", indent)
+		fmt.Fprintf(b, "%s    <div className=\"accordion-content\">{/* TODO: content */}</div>\n", indent)
+		fmt.Fprintf(b, "%s  </details>\n", indent)
+		fmt.Fprintf(b, "%s  <details>\n", indent)
+		fmt.Fprintf(b, "%s    <summary>Section 2</summary>\n", indent)
+		fmt.Fprintf(b, "%s    <div className=\"accordion-content\">{/* TODO: content */}</div>\n", indent)
+		fmt.Fprintf(b, "%s  </details>\n", indent)
+		fmt.Fprintf(b, "%s</div>\n", indent)
+		return
+	}
+
+	// Progress bar
+	if strings.Contains(lower, "progress bar") || strings.Contains(lower, "progress indicator") {
+		fmt.Fprintf(b, "%s<div className=\"progress-bar\">\n", indent)
+		fmt.Fprintf(b, "%s  <div className=\"progress-fill\" style={{ width: '0%%' }} />\n", indent)
+		fmt.Fprintf(b, "%s</div>\n", indent)
+		return
+	}
+
+	// Toast / alert / notification
+	if strings.Contains(lower, "notification") || strings.Contains(lower, "toast") || strings.Contains(lower, "alert banner") {
+		fmt.Fprintf(b, "%s<div className=\"alert alert-info\" role=\"alert\">\n", indent)
+		fmt.Fprintf(b, "%s  <span>{/* TODO: notification message */}</span>\n", indent)
+		fmt.Fprintf(b, "%s  <button className=\"alert-dismiss\">&times;</button>\n", indent)
+		fmt.Fprintf(b, "%s</div>\n", indent)
+		return
+	}
+
+	// Avatar / profile picture
+	if strings.Contains(lower, "avatar") || strings.Contains(lower, "profile picture") || strings.Contains(lower, "user icon") {
+		fmt.Fprintf(b, "%s<div className=\"avatar\">\n", indent)
+		fmt.Fprintf(b, "%s  <img src=\"\" alt=\"avatar\" className=\"avatar-img\" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />\n", indent)
+		fmt.Fprintf(b, "%s  <span className=\"avatar-fallback\">U</span>\n", indent)
+		fmt.Fprintf(b, "%s</div>\n", indent)
+		return
+	}
+
+	// Breadcrumb
+	if strings.Contains(lower, "breadcrumb") {
+		fmt.Fprintf(b, "%s<nav className=\"breadcrumbs\">\n", indent)
+		fmt.Fprintf(b, "%s  <a href=\"/\">Home</a>\n", indent)
+		fmt.Fprintf(b, "%s  <span className=\"separator\">/</span>\n", indent)
+		fmt.Fprintf(b, "%s  <span className=\"current\">Current Page</span>\n", indent)
+		fmt.Fprintf(b, "%s</nav>\n", indent)
+		return
+	}
+
+	// Pagination
+	if strings.Contains(lower, "pagination") || strings.Contains(lower, "page controls") {
+		fmt.Fprintf(b, "%s<nav className=\"pagination\">\n", indent)
+		fmt.Fprintf(b, "%s  <button className=\"page-btn\" disabled>&laquo; Prev</button>\n", indent)
+		fmt.Fprintf(b, "%s  <span className=\"page-number\">1</span>\n", indent)
+		fmt.Fprintf(b, "%s  <button className=\"page-btn\">Next &raquo;</button>\n", indent)
+		fmt.Fprintf(b, "%s</nav>\n", indent)
+		return
+	}
+
+	// Chart / graph / visualization
+	if strings.Contains(lower, "chart") || strings.Contains(lower, "graph") || strings.Contains(lower, "visualization") {
+		fmt.Fprintf(b, "%s<div className=\"chart-container\">\n", indent)
+		fmt.Fprintf(b, "%s  {/* TODO: integrate charting library (e.g. recharts, chart.js) */}\n", indent)
+		fmt.Fprintf(b, "%s  <p className=\"chart-placeholder\">Chart placeholder</p>\n", indent)
+		fmt.Fprintf(b, "%s</div>\n", indent)
+		return
+	}
+
 	// Generic "the X" — single field display
 	if strings.HasPrefix(lower, "the ") {
 		expr := resolveFieldExpr(cleaned, ctx)

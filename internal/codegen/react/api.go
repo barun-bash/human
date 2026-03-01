@@ -58,6 +58,7 @@ func writeEndpointFunction(b *strings.Builder, ep *ir.Endpoint) {
 	funcName := toCamelCase(ep.Name)
 	method := httpMethod(ep.Name)
 	path := apiPath(ep.Name)
+	responseType := inferResponseModel(ep)
 
 	// Build params
 	if len(ep.Params) > 0 {
@@ -71,15 +72,51 @@ func writeEndpointFunction(b *strings.Builder, ep *ir.Endpoint) {
 		fmt.Fprintf(b, "export async function %s(params: %s) {\n", funcName, paramType)
 		if method == "GET" {
 			b.WriteString("  const qs = new URLSearchParams(params as unknown as Record<string, string>).toString();\n")
-			fmt.Fprintf(b, "  return request<unknown>('%s', `%s?${qs}`);\n", method, path)
+			fmt.Fprintf(b, "  return request<%s>('%s', `%s?${qs}`);\n", responseType, method, path)
 		} else {
-			fmt.Fprintf(b, "  return request<unknown>('%s', '%s', params as unknown as Record<string, unknown>);\n", method, path)
+			fmt.Fprintf(b, "  return request<%s>('%s', '%s', params as unknown as Record<string, unknown>);\n", responseType, method, path)
 		}
 	} else {
 		fmt.Fprintf(b, "export async function %s() {\n", funcName)
-		fmt.Fprintf(b, "  return request<unknown>('%s', '%s');\n", method, path)
+		fmt.Fprintf(b, "  return request<%s>('%s', '%s');\n", responseType, method, path)
 	}
 	b.WriteString("}\n")
+}
+
+// inferResponseModel scans endpoint steps for a "respond" action that references
+// a model name, and returns the corresponding TypeScript interface name.
+// Falls back to "unknown" when no model is detected.
+func inferResponseModel(ep *ir.Endpoint) string {
+	lower := strings.ToLower(ep.Name)
+	// Infer from endpoint name: CreateTask → Task, GetTasks → Task[], etc.
+	for _, prefix := range []string{"create", "update", "get", "list", "fetch", "delete", "search"} {
+		if strings.HasPrefix(lower, prefix) && len(ep.Name) > len(prefix) {
+			model := ep.Name[len(prefix):]
+			// Strip trailing 's' for list endpoints → "Tasks" → "Task"
+			isList := strings.HasPrefix(lower, "list") || strings.HasPrefix(lower, "get") || strings.HasPrefix(lower, "search") || strings.HasPrefix(lower, "fetch")
+			if isList && strings.HasSuffix(model, "s") && len(model) > 1 {
+				return model[:len(model)-1] + "[]"
+			}
+			return model
+		}
+	}
+	// Scan steps for respond actions mentioning a model
+	for _, step := range ep.Steps {
+		if step.Type == "respond" {
+			stepLower := strings.ToLower(step.Text)
+			// "respond with the created task" → look for known CRUD nouns
+			for _, marker := range []string{"created ", "updated ", "the "} {
+				if idx := strings.Index(stepLower, marker); idx != -1 {
+					word := strings.Fields(stepLower[idx+len(marker):])[0]
+					if word != "" && word != "a" && word != "an" {
+						// Capitalize first letter
+						return strings.ToUpper(word[:1]) + word[1:]
+					}
+				}
+			}
+		}
+	}
+	return "unknown"
 }
 
 // sanitizeParamName converts a param name to a valid TypeScript identifier.
