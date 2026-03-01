@@ -328,7 +328,8 @@ func isSkipWord(word string) bool {
 		lower == "up" || lower == "any" || lower == "their" ||
 		lower == "unlimited" || lower == "completed" || lower == "own" ||
 		lower == "multiple" || lower == "some" || lower == "many" ||
-		lower == "or" || lower == "status" || lower == "data" ||
+		lower == "or" || lower == "and" || lower == "status" ||
+		lower == "data" || lower == "sample" ||
 		lower == "only" || lower == "no" || lower == "one"
 }
 
@@ -692,6 +693,10 @@ func checkValidationFields(errs *cerr.CompilerErrors, apis []*ir.Endpoint) {
 			field := strings.ToLower(v.Field)
 			// Skip implicit context fields (e.g. current_user, current user)
 			if strings.HasPrefix(field, "current") {
+				continue
+			}
+			// Skip multi-word fields — they are complex conditions, not param refs
+			if strings.Contains(v.Field, " ") {
 				continue
 			}
 			if !paramNames[field] {
