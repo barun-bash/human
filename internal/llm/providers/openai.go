@@ -71,8 +71,18 @@ type openaiRequest struct {
 }
 
 type openaiMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role    string      `json:"role"`
+	Content interface{} `json:"content"` // string or []openaiContentPart for vision
+}
+
+type openaiContentPart struct {
+	Type     string              `json:"type"`
+	Text     string              `json:"text,omitempty"`
+	ImageURL *openaiImageURLPart `json:"image_url,omitempty"`
+}
+
+type openaiImageURLPart struct {
+	URL string `json:"url"`
 }
 
 // openaiResponse is the OpenAI Chat Completions non-streaming response.
@@ -196,6 +206,30 @@ func (o *OpenAI) buildRequest(req *llm.Request, stream bool) openaiRequest {
 			Role:    string(msg.Role),
 			Content: msg.Content,
 		})
+	}
+
+	// If images are provided, convert the last user message to multi-part content.
+	if len(req.Images) > 0 && len(or.Messages) > 0 {
+		last := len(or.Messages) - 1
+		if or.Messages[last].Role == "user" {
+			var parts []openaiContentPart
+			// Text part first.
+			if text, ok := or.Messages[last].Content.(string); ok && text != "" {
+				parts = append(parts, openaiContentPart{
+					Type: "text",
+					Text: text,
+				})
+			}
+			// Image parts.
+			for _, img := range req.Images {
+				dataURL := fmt.Sprintf("data:%s;base64,%s", img.MIMEType, img.Data)
+				parts = append(parts, openaiContentPart{
+					Type:     "image_url",
+					ImageURL: &openaiImageURLPart{URL: dataURL},
+				})
+			}
+			or.Messages[last].Content = parts
+		}
 	}
 
 	return or

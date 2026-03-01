@@ -17,6 +17,7 @@ import (
 	"github.com/barun-bash/human/internal/cmdutil"
 	"github.com/barun-bash/human/internal/config"
 	"github.com/barun-bash/human/internal/editor"
+	"github.com/barun-bash/human/internal/figma"
 	"github.com/barun-bash/human/internal/fixer"
 	"github.com/barun-bash/human/internal/ir"
 	"github.com/barun-bash/human/internal/llm"
@@ -64,6 +65,8 @@ func main() {
 		cmdEditDispatch()
 	case "how":
 		cmdHow()
+	case "design":
+		cmdDesign()
 	case "import":
 		cmdImportCLI()
 	case "convert":
@@ -1168,6 +1171,179 @@ func cmdImportCLI() {
 	r.ExecAndExit(fmt.Sprintf("/import figma %s", os.Args[3]))
 }
 
+// ── design ──
+
+func cmdDesign() {
+	// Parse flags.
+	var output, appName, frontend, backend, database string
+	var inputs []string
+	args := os.Args[2:]
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--output", "-o":
+			if i+1 < len(args) {
+				i++
+				output = args[i]
+			}
+		case "--name":
+			if i+1 < len(args) {
+				i++
+				appName = args[i]
+			}
+		case "--frontend":
+			if i+1 < len(args) {
+				i++
+				frontend = args[i]
+			}
+		case "--backend":
+			if i+1 < len(args) {
+				i++
+				backend = args[i]
+			}
+		case "--database":
+			if i+1 < len(args) {
+				i++
+				database = args[i]
+			}
+		default:
+			if !strings.HasPrefix(args[i], "-") {
+				inputs = append(inputs, args[i])
+			}
+		}
+	}
+
+	if len(inputs) == 0 {
+		fmt.Fprintln(os.Stderr, "Usage: human design <figma-url|image-file> [options]")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Import a design into a .human file.")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Sources:")
+		fmt.Fprintln(os.Stderr, "  Figma URL    https://figma.com/design/...")
+		fmt.Fprintln(os.Stderr, "  Image file   screenshot.png, mockup.jpg")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Options:")
+		fmt.Fprintln(os.Stderr, "  --output, -o <file>    Output .human file (default: app.human)")
+		fmt.Fprintln(os.Stderr, "  --name <name>          Application name")
+		fmt.Fprintln(os.Stderr, "  --frontend <fw>        Frontend framework (React, Vue, Angular, Svelte)")
+		fmt.Fprintln(os.Stderr, "  --backend <fw>         Backend framework (Node, Python, Go)")
+		fmt.Fprintln(os.Stderr, "  --database <db>        Database (PostgreSQL, MySQL, MongoDB)")
+		os.Exit(1)
+	}
+
+	input := inputs[0]
+
+	// Build config.
+	cfg := &figma.GenerateConfig{
+		AppName:  appName,
+		Platform: "web",
+		Frontend: frontend,
+		Backend:  backend,
+		Database: database,
+	}
+	if cfg.Frontend == "" {
+		cfg.Frontend = "React"
+	}
+	if cfg.Backend == "" {
+		cfg.Backend = "Node"
+	}
+	if cfg.Database == "" {
+		cfg.Database = "PostgreSQL"
+	}
+
+	var code string
+	var err error
+
+	if figma.IsFigmaURL(input) {
+		code, err = designFromFigma(input, cfg)
+	} else if figma.IsImageFile(input) {
+		code, err = designFromImage(inputs, cfg)
+	} else {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Unrecognized input: %s", input)))
+		fmt.Fprintln(os.Stderr, "  Provide a Figma URL (https://figma.com/...) or an image file (.png, .jpg, .webp)")
+		os.Exit(1)
+	}
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
+		os.Exit(1)
+	}
+
+	// Determine output path.
+	if output == "" {
+		if cfg.AppName != "" {
+			output = strings.ToLower(cfg.AppName) + ".human"
+		} else {
+			output = "app.human"
+		}
+	}
+
+	if err := os.WriteFile(output, []byte(code+"\n"), 0644); err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Writing output: %v", err)))
+		os.Exit(1)
+	}
+
+	fmt.Println(cli.Success(fmt.Sprintf("Generated %s", output)))
+	fmt.Println(cli.Info(fmt.Sprintf("Next: human check %s  or  human build %s", output, output)))
+}
+
+func designFromFigma(url string, cfg *figma.GenerateConfig) (string, error) {
+	fileKey, nodeID, err := figma.ParseFigmaURL(url)
+	if err != nil {
+		return "", err
+	}
+
+	client := figma.NewClient("")
+	if client == nil {
+		return "", fmt.Errorf("no Figma access token found. Set FIGMA_ACCESS_TOKEN environment variable")
+	}
+
+	fmt.Println(cli.Info(fmt.Sprintf("Fetching Figma file %s...", fileKey)))
+
+	var file *figma.FigmaFile
+	if nodeID != "" {
+		file, err = client.GetFileNodes(fileKey, []string{nodeID})
+	} else {
+		file, err = client.GetFile(fileKey)
+	}
+	if err != nil {
+		return "", fmt.Errorf("fetching Figma file: %w", err)
+	}
+
+	if cfg.AppName == "" {
+		cfg.AppName = file.Name
+	}
+
+	fmt.Println(cli.Info("Analyzing design and generating .human code..."))
+	return figma.GenerateHumanFile(file, cfg)
+}
+
+func designFromImage(imagePaths []string, cfg *figma.GenerateConfig) (string, error) {
+	// Validate all paths are images.
+	for _, p := range imagePaths {
+		if !figma.IsImageFile(p) {
+			return "", fmt.Errorf("%s is not a supported image format (.png, .jpg, .jpeg, .webp)", p)
+		}
+		if _, err := os.Stat(p); err != nil {
+			return "", fmt.Errorf("cannot read image: %w", err)
+		}
+	}
+
+	connector, _ := loadLLMConnector()
+	provider := connector.Provider()
+
+	if !figma.SupportsVision(provider) {
+		return "", fmt.Errorf("LLM provider %q does not support vision. Use Anthropic, OpenAI, or Gemini", provider.Name())
+	}
+
+	if cfg.AppName == "" {
+		base := strings.TrimSuffix(filepath.Base(imagePaths[0]), filepath.Ext(imagePaths[0]))
+		cfg.AppName = strings.Title(base)
+	}
+
+	fmt.Println(cli.Info(fmt.Sprintf("Analyzing %d image(s) via %s...", len(imagePaths), provider.Name())))
+	return figma.AnalyzeMultipleImages(imagePaths, cfg, provider)
+}
+
 // ── Helpers ──
 
 func printUsage() {
@@ -1203,12 +1379,16 @@ Editor:
   edit <file.human>         Open interactive TUI editor
   edit <file> -i "instr"    AI-assisted edit (apply instruction via LLM)
 
+Design Import:
+  design <figma-url>        Import from Figma design via REST API
+  design <image-file>       Import from screenshot via LLM vision
+  import figma <url>        Import via Figma MCP server (REPL)
+
 AI-Assisted (optional, requires API key or Ollama):
   ask "<description>"       Generate .human code from English
   how "<question>"          Ask about Human language usage
   suggest <file.human>      Get improvement suggestions for a file
   convert "<description>"   Convert description to .human
-  import figma <url>        Import a Figma design into a .human file
 
 Flags:
   --no-color        Disable colored output

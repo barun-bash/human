@@ -26,6 +26,11 @@ func NewConnector(provider Provider, cfg *config.LLMConfig) *Connector {
 	}
 }
 
+// Provider returns the underlying LLM provider.
+func (c *Connector) Provider() Provider {
+	return c.provider
+}
+
 // AskResult is the result of an Ask operation.
 type AskResult struct {
 	// RawResponse is the full LLM response.

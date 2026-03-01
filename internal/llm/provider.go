@@ -33,13 +33,20 @@ type Message struct {
 	Content string `json:"content"`
 }
 
+// ImageInput holds a base64-encoded image for vision-capable providers.
+type ImageInput struct {
+	Data     string `json:"data"`      // base64-encoded image data
+	MIMEType string `json:"mime_type"` // e.g. "image/png", "image/jpeg"
+}
+
 // Request is the input to a Provider.
 type Request struct {
-	Messages    []Message `json:"messages"`
-	Model       string    `json:"model"`
-	MaxTokens   int       `json:"max_tokens"`
-	Temperature float64   `json:"temperature"`
-	Stream      bool      `json:"stream"`
+	Messages    []Message    `json:"messages"`
+	Model       string       `json:"model"`
+	MaxTokens   int          `json:"max_tokens"`
+	Temperature float64      `json:"temperature"`
+	Stream      bool         `json:"stream"`
+	Images      []ImageInput `json:"images,omitempty"` // optional image inputs for vision providers
 }
 
 // Response is the output from a non-streaming completion.

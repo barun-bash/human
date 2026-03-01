@@ -62,7 +62,13 @@ type geminiContent struct {
 }
 
 type geminiPart struct {
-	Text string `json:"text"`
+	Text       string          `json:"text,omitempty"`
+	InlineData *geminiBlobPart `json:"inlineData,omitempty"`
+}
+
+type geminiBlobPart struct {
+	MIMEType string `json:"mimeType"`
+	Data     string `json:"data"`
 }
 
 type geminiGenerationConfig struct {
@@ -214,6 +220,21 @@ func (g *Gemini) buildRequest(req *llm.Request) geminiRequest {
 			Role:  role,
 			Parts: []geminiPart{{Text: msg.Content}},
 		})
+	}
+
+	// If images are provided, add inline data parts to the last user content.
+	if len(req.Images) > 0 && len(gr.Contents) > 0 {
+		last := len(gr.Contents) - 1
+		if gr.Contents[last].Role == "user" {
+			for _, img := range req.Images {
+				gr.Contents[last].Parts = append(gr.Contents[last].Parts, geminiPart{
+					InlineData: &geminiBlobPart{
+						MIMEType: img.MIMEType,
+						Data:     img.Data,
+					},
+				})
+			}
+		}
 	}
 
 	return gr

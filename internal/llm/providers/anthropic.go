@@ -62,8 +62,20 @@ type anthropicRequest struct {
 }
 
 type anthropicMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role    string      `json:"role"`
+	Content interface{} `json:"content"` // string or []anthropicContentBlock for vision
+}
+
+type anthropicContentBlock struct {
+	Type   string                     `json:"type"`
+	Text   string                     `json:"text,omitempty"`
+	Source *anthropicContentBlockImage `json:"source,omitempty"`
+}
+
+type anthropicContentBlockImage struct {
+	Type      string `json:"type"`       // "base64"
+	MediaType string `json:"media_type"` // e.g. "image/png"
+	Data      string `json:"data"`
 }
 
 // anthropicResponse is the Anthropic Messages API non-streaming response.
@@ -194,6 +206,33 @@ func (a *Anthropic) buildRequest(req *llm.Request, stream bool) anthropicRequest
 				Role:    string(msg.Role),
 				Content: msg.Content,
 			})
+		}
+	}
+
+	// If images are provided, convert the last user message to multi-modal content blocks.
+	if len(req.Images) > 0 && len(ar.Messages) > 0 {
+		last := len(ar.Messages) - 1
+		if ar.Messages[last].Role == "user" {
+			var blocks []anthropicContentBlock
+			// Add image blocks first.
+			for _, img := range req.Images {
+				blocks = append(blocks, anthropicContentBlock{
+					Type: "image",
+					Source: &anthropicContentBlockImage{
+						Type:      "base64",
+						MediaType: img.MIMEType,
+						Data:      img.Data,
+					},
+				})
+			}
+			// Then the text block with the original content.
+			if text, ok := ar.Messages[last].Content.(string); ok && text != "" {
+				blocks = append(blocks, anthropicContentBlock{
+					Type: "text",
+					Text: text,
+				})
+			}
+			ar.Messages[last].Content = blocks
 		}
 	}
 
