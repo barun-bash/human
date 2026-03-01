@@ -499,7 +499,11 @@
           <li><a href="#editor-import">Editor &amp; Import</a></li>
           <li><a href="#cmd-edit"><code>edit</code></a></li>
           <li><a href="#cmd-import"><code>import</code></a></li>
+          <li><a href="#cmd-design"><code>design</code></a></li>
           <li><a href="#cmd-convert"><code>convert</code></a></li>
+          <li><a href="#git-workflow">Git Workflow</a></li>
+          <li><a href="#cmd-feature"><code>feature</code></a></li>
+          <li><a href="#cmd-release"><code>release</code></a></li>
         </ul>
       </div>
 
@@ -1079,8 +1083,17 @@ app "TaskFlow":
       <!-- import -->
       <h3 id="cmd-import"><code>human import</code></h3>
       <div class="cmd-card">
-        <div class="cmd-signature">human import --figma &lt;url&gt;</div>
+        <div class="cmd-signature">human import figma &lt;url&gt;</div>
         <p class="cmd-desc">Import Figma designs directly into <code>.human</code> files. Components are classified, data models inferred, and code generated. Also available via the REPL as <code>/import figma &lt;url&gt;</code>.</p>
+        <div class="cmd-signature" style="margin-top: 12px;">human import openapi &lt;spec.json&gt; [--name AppName] [--output file.human]</div>
+        <p class="cmd-desc">Import an OpenAPI/Swagger JSON specification and convert it into a <code>.human</code> file. Handles <code>$ref</code> resolution, Swagger 2.0 migration, and <code>allOf</code> merging. Auto-derives the app name from the spec title.</p>
+      </div>
+
+      <!-- design -->
+      <h3 id="cmd-design"><code>human design</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human design &lt;figma-url | image-path&gt;</div>
+        <p class="cmd-desc">Import a Figma design or screenshot and generate <code>.human</code> code. Connects to the Figma REST API to extract nodes, classify components, and infer data models. Supports LLM vision for image-based import with asset caching.</p>
       </div>
 
       <!-- convert -->
@@ -1088,6 +1101,31 @@ app "TaskFlow":
       <div class="cmd-card">
         <div class="cmd-signature">human convert &lt;description&gt;</div>
         <p class="cmd-desc">Convert natural language descriptions to <code>.human</code> files. Supports additional input formats including design files. Similar to <code>human ask</code> with extended format support.</p>
+      </div>
+
+
+      <!-- ══════════════════════════════════════════════
+           GIT WORKFLOW
+           ══════════════════════════════════════════════ -->
+      <h2 id="git-workflow">Git Workflow</h2>
+      <p>Built-in git workflow commands for feature branches and releases.</p>
+
+      <!-- feature -->
+      <h3 id="cmd-feature"><code>human feature</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human feature &lt;name&gt;</div>
+        <p class="cmd-desc">Create a new feature branch from the current branch. Automatically prefixes the branch name with <code>feature/</code>.</p>
+        <div class="cmd-signature" style="margin-top: 12px;">human feature finish</div>
+        <p class="cmd-desc">Merge the current feature branch back into the base branch and clean up.</p>
+      </div>
+
+      <!-- release -->
+      <h3 id="cmd-release"><code>human release</code></h3>
+      <div class="cmd-card">
+        <div class="cmd-signature">human release &lt;version&gt;</div>
+        <p class="cmd-desc">Tag a release with the given version (e.g., <code>v1.0.0</code>). Creates a git tag on the current commit.</p>
+        <div class="cmd-signature" style="margin-top: 12px;">human release notes</div>
+        <p class="cmd-desc">Generate a changelog from commits since the last tagged release.</p>
       </div>
 
 

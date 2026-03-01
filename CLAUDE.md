@@ -50,9 +50,9 @@ internal/
     scaffold/           package.json, README, start scripts
     monitoring/         Prometheus + Grafana
     themes/             7 design systems (Material, Shadcn, Ant, Chakra, Bootstrap, Tailwind, Untitled)
-  quality/            Tests, security audit, lint, QA trail
+  quality/            Tests, security audit, lint, coverage, duplication, performance, QA trail
   build/              Orchestrates full build pipeline
-  repl/               Interactive REPL (32 commands, readline, tab completion)
+  repl/               Interactive REPL (38 commands, readline, tab completion)
   readline/           Terminal input with history + completion
   cli/                Terminal UI/UX (colors, themes, banners, spinners)
   cmdutil/            Shared CLI command utilities
@@ -61,6 +61,8 @@ internal/
   llm/                LLM connector (Anthropic, OpenAI, Ollama, Groq, Gemini, OpenRouter, custom)
   mcp/                MCP server protocol handlers
   figma/              Figma design → .human mapping intelligence
+  openapi/            OpenAPI/Swagger spec → .human converter
+  git/                Git workflow commands (feature branches, releases)
   errors/             Error types with fix suggestions
 examples/             13 example .human apps
 ```
@@ -95,8 +97,8 @@ Always read `.claude/STATUS.md` before starting work.
 
 ## Current State
 
-Phases 1-12 complete. 1,185+ tests across 34 packages.
-Active work: `WORKPLAN.md` (Figma pipeline), `CLAUDE_CODE_ORG.md` (Claude Code setup).
+Phases 1-12 complete plus quality engine, Figma pipeline, and developer ecosystem. 1,200+ tests across 41 packages.
+Active work: Documentation updates, polish, and next-phase planning.
 
 ## Repository
 

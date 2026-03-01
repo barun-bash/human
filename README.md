@@ -214,7 +214,13 @@ my-app/
 | `human syntax [--search term]` | Full syntax reference with search |
 | `human fix [--dry-run] <file>` | Find and auto-fix common issues |
 | `human doctor` | Check environment health |
-| `human` (no args) | Launch interactive REPL with 30+ commands |
+| `human design <url\|image>` | Import from Figma design or screenshot |
+| `human import openapi <file>` | Import from OpenAPI/Swagger JSON spec |
+| `human feature <name>` | Create a feature branch |
+| `human feature finish` | Merge feature branch back |
+| `human release <version>` | Tag a release (vX.Y.Z) |
+| `human release notes` | Generate changelog from commits |
+| `human` (no args) | Launch interactive REPL with 38 commands |
 
 The interactive REPL includes `/ask`, `/edit`, `/suggest` (LLM-powered), `/explain`, `/syntax`, `/fix`, `/doctor`, `/update` (self-update), `/build`, `/check`, tab completion, and command history.
 
@@ -224,7 +230,7 @@ See [CLI_REFERENCE.md](CLI_REFERENCE.md) for the full command reference, [GETTIN
 
 ## Project Status
 
-**[v0.4.2 released](https://github.com/barun-bash/human/releases/tag/v0.4.2)** — Full-stack multi-framework output. 4 frontend frameworks, 3 backend languages, Terraform, monitoring, CI/CD, 7 design systems, 5 integrations, LLM connector, interactive REPL with self-update, VS Code extension, 12 example apps, language specification, LLM system prompt. 600+ tests across 30 packages. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) and [Changelog](CHANGELOG.md) for details.
+**[v0.4.2 released](https://github.com/barun-bash/human/releases/tag/v0.4.2)** — Full-stack multi-framework output. 4 frontend frameworks, 3 backend languages, Terraform, monitoring, CI/CD, 7 design systems, 5 integrations, LLM connector with vision support, Figma design import, OpenAPI/Swagger import, git workflow commands, interactive REPL with self-update, VS Code extension, 13 example apps, language specification, LLM system prompt, plugin guide. 1,200+ tests across 41 packages. See the [Roadmap](https://barun-bash.github.io/human/roadmap.html) and [Changelog](CHANGELOG.md) for details.
 
 ---
 
@@ -239,7 +245,8 @@ See [CLI_REFERENCE.md](CLI_REFERENCE.md) for the full command reference, [GETTIN
 | [Manifesto](https://barun-bash.github.io/human/manifesto.html) | Why Human exists |
 | [Contributing](https://barun-bash.github.io/human/contributing.html) | How to contribute |
 | [Changelog](CHANGELOG.md) | Release history |
-| [Examples](examples/) | 12 sample applications (TaskFlow, Blog, E-commerce, SaaS, API-only, test-app, Recipes, Projects, Events, Fitness, Inventory, Figma-demo) |
+| [Examples](examples/) | 13 sample applications (TaskFlow, Blog, E-commerce, SaaS, API-only, test-app, Recipes, Projects, Events, Fitness, Inventory, Figma-demo, Timekeeper-signin) |
+| [Plugin Guide](docs/PLUGIN_GUIDE.md) | How to build a code generator |
 
 ---
 

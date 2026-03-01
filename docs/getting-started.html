@@ -552,8 +552,15 @@
 <span class="cm"># Auto-fix common issues</span>
 <span class="kw">$</span> human fix app.human
 
+<span class="cm"># Import from OpenAPI spec</span>
+<span class="kw">$</span> human import openapi spec.json
+
+<span class="cm"># Git workflow</span>
+<span class="kw">$</span> human feature user-auth
+<span class="kw">$</span> human feature finish
+
 <span class="cm"># Launch the interactive REPL</span>
-<span class="kw">$</span> human repl
+<span class="kw">$</span> human
 <span class="accent">human&gt;</span> /open app.human
 <span class="accent">human&gt;</span> /build
 <span class="accent">human&gt;</span> /explain data
