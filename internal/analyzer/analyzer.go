@@ -332,6 +332,28 @@ func isSkipWord(word string) bool {
 		lower == "only" || lower == "no" || lower == "one"
 }
 
+// isPluralOfModel checks if word (already lowered) is a simple plural form
+// of a known model name (e.g., "orders" matches "order").
+func isPluralOfModel(lower string, models map[string]bool) bool {
+	if strings.HasSuffix(lower, "ies") && models[strings.TrimSuffix(lower, "ies")+"y"] {
+		return true // categories → category
+	}
+	if strings.HasSuffix(lower, "es") && models[strings.TrimSuffix(lower, "es")] {
+		return true // addresses → address
+	}
+	if strings.HasSuffix(lower, "s") && models[strings.TrimSuffix(lower, "s")] {
+		return true // orders → order
+	}
+	return false
+}
+
+// hasPossessive checks if word appears in possessive form (word's) in text.
+func hasPossessive(text, word string) bool {
+	lower := strings.ToLower(text)
+	target := strings.ToLower(word)
+	return strings.Contains(lower, target+"'s") || strings.Contains(lower, target+"\u2019s")
+}
+
 // checkCRUDRefs scans actions for CRUD-verb model references and emits
 // diagnostics for unknown models. When asError is true it emits errors;
 // otherwise it emits warnings.
@@ -343,25 +365,33 @@ func checkCRUDRefs(errs *cerr.CompilerErrors, label string, actions []*ir.Action
 			if isSkipWord(target) {
 				continue
 			}
-			if !models[strings.ToLower(target)] {
-				msg := fmt.Sprintf("%s references model %q which does not exist", label, target)
-				suggestion := cerr.FindClosest(target, modelList, suggestionThreshold)
-				hint := ""
-				if suggestion != "" {
-					hint = fmt.Sprintf("Did you mean %q?", suggestion)
-				}
-				if asError {
-					if hint != "" {
-						errs.AddErrorWithSuggestion(code, msg, hint)
-					} else {
-						errs.AddError(code, msg)
-					}
+			lower := strings.ToLower(target)
+			if models[lower] {
+				continue
+			}
+			if isPluralOfModel(lower, models) {
+				continue
+			}
+			if hasPossessive(action.Text, target) {
+				continue
+			}
+			msg := fmt.Sprintf("%s references model %q which does not exist", label, target)
+			suggestion := cerr.FindClosest(target, modelList, suggestionThreshold)
+			hint := ""
+			if suggestion != "" {
+				hint = fmt.Sprintf("Did you mean %q?", suggestion)
+			}
+			if asError {
+				if hint != "" {
+					errs.AddErrorWithSuggestion(code, msg, hint)
 				} else {
-					if hint != "" {
-						errs.AddWarningWithSuggestion(code, msg, hint)
-					} else {
-						errs.AddWarning(code, msg)
-					}
+					errs.AddError(code, msg)
+				}
+			} else {
+				if hint != "" {
+					errs.AddWarningWithSuggestion(code, msg, hint)
+				} else {
+					errs.AddWarning(code, msg)
 				}
 			}
 		}
@@ -756,13 +786,18 @@ func checkPolicyModelRefs(errs *cerr.CompilerErrors, app *ir.Application, models
 					if isSkipWord(target) {
 						continue
 					}
-					if !models[strings.ToLower(target)] {
-						msg := fmt.Sprintf("Policy %q references model %q which does not exist", policy.Name, target)
-						if suggestion := cerr.FindClosest(target, modelList, suggestionThreshold); suggestion != "" {
-							errs.AddWarningWithSuggestion("W109", msg, fmt.Sprintf("Did you mean %q?", suggestion))
-						} else {
-							errs.AddWarning("W109", msg)
-						}
+					lower := strings.ToLower(target)
+					if models[lower] || isPluralOfModel(lower, models) {
+						continue
+					}
+					if hasPossessive(rule.Text, target) {
+						continue
+					}
+					msg := fmt.Sprintf("Policy %q references model %q which does not exist", policy.Name, target)
+					if suggestion := cerr.FindClosest(target, modelList, suggestionThreshold); suggestion != "" {
+						errs.AddWarningWithSuggestion("W109", msg, fmt.Sprintf("Did you mean %q?", suggestion))
+					} else {
+						errs.AddWarning("W109", msg)
 					}
 				}
 			}
