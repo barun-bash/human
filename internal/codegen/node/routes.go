@@ -68,6 +68,26 @@ func generateRoute(ep *ir.Endpoint, app *ir.Application) string {
 		b.WriteString("import { signToken } from '../middleware/auth';\n")
 	}
 
+	// Import integration services if send steps reference them
+	needsEmailImport := false
+	needsMessagingImport := false
+	for _, step := range ep.Steps {
+		if step.Type == "send" {
+			integType := detectSendIntegration(step.Text, app)
+			if integType == "email" {
+				needsEmailImport = true
+			} else if integType == "messaging" {
+				needsMessagingImport = true
+			}
+		}
+	}
+	if needsEmailImport {
+		b.WriteString("import { sendEmail } from '../services/email';\n")
+	}
+	if needsMessagingImport {
+		b.WriteString("import { sendSlackMessage } from '../services/slack';\n")
+	}
+
 	b.WriteString("\nconst prisma = new PrismaClient();\n")
 	b.WriteString("const router = Router();\n\n")
 
@@ -403,7 +423,15 @@ func writeStepCode(b *strings.Builder, step *ir.Action, ep *ir.Endpoint, app *ir
 
 	case "send":
 		fmt.Fprintf(b, "    // %s\n", step.Text)
-		b.WriteString("    // TODO: implement notification/email sending\n\n")
+		integType := detectSendIntegration(step.Text, app)
+		switch integType {
+		case "email":
+			b.WriteString("    await sendEmail({ to: result.email ?? req.body.email, subject: 'Notification', text: `Action completed successfully` });\n\n")
+		case "messaging":
+			b.WriteString("    await sendSlackMessage({ text: `Action completed successfully` });\n\n")
+		default:
+			b.WriteString("    // TODO: no matching integration service configured\n\n")
+		}
 
 	case "validate":
 		fmt.Fprintf(b, "    // %s\n", step.Text)
@@ -715,6 +743,24 @@ func extractRespondMessage(text string) string {
 			msg = strings.ToUpper(msg[:1]) + msg[1:]
 		}
 		return msg
+	}
+	return ""
+}
+
+// detectSendIntegration matches a send step's text to a configured integration.
+func detectSendIntegration(stepText string, app *ir.Application) string {
+	lower := strings.ToLower(stepText)
+	for _, integ := range app.Integrations {
+		switch integ.Type {
+		case "email":
+			if strings.Contains(lower, "email") || strings.Contains(lower, "welcome") || strings.Contains(lower, "notification") || strings.Contains(lower, "confirmation") {
+				return "email"
+			}
+		case "messaging":
+			if strings.Contains(lower, "slack") || strings.Contains(lower, "alert") || strings.Contains(lower, "notify") || strings.Contains(lower, "message") {
+				return "messaging"
+			}
+		}
 	}
 	return ""
 }

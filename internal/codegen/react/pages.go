@@ -18,6 +18,7 @@ type pageContext struct {
 	props           map[string]string // component props: propName → typeName
 	hasSuccessState bool              // whether setSuccess is available
 	hasErrorState   bool              // whether setError is available
+	needsFormState  bool              // whether setShowForm is available
 }
 
 // generatePage produces a React page component from an IR Page.
@@ -89,6 +90,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		itemVar:         itemVar,
 		hasSuccessState: needsSuccess,
 		hasErrorState:   needsError,
+		needsFormState:  needsFormState,
 	}
 
 	// Write imports (react-jsx transform — no React import needed)
@@ -112,15 +114,30 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		fmt.Fprintf(&b, "import { %s } from '../types/models';\n", modelName)
 	}
 
-	// Import API client function if we have a matching list endpoint
+	// Import API client functions for data fetching and form submission
 	var listEp *ir.Endpoint
+	var createEp *ir.Endpoint
 	if needsEffect && modelName != "" {
 		listEp = findListEndpoint(app, modelName)
-		if listEp != nil {
-			fmt.Fprintf(&b, "import { %s } from '../api/client';\n", toCamelCase(listEp.Name))
-		} else {
-			b.WriteString("import { request } from '../api/client';\n")
+	}
+	if needsFormState && modelName != "" {
+		createEp = findCreateEndpoint(app, modelName)
+	}
+	var apiImports []string
+	if listEp != nil {
+		apiImports = append(apiImports, toCamelCase(listEp.Name))
+	}
+	if createEp != nil {
+		fn := toCamelCase(createEp.Name)
+		// Avoid duplicate imports
+		if listEp == nil || toCamelCase(listEp.Name) != fn {
+			apiImports = append(apiImports, fn)
 		}
+	}
+	if len(apiImports) > 0 {
+		fmt.Fprintf(&b, "import { %s } from '../api/client';\n", strings.Join(apiImports, ", "))
+	} else if needsEffect {
+		b.WriteString("import { request } from '../api/client';\n")
 	}
 
 	// Component imports
@@ -148,7 +165,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		}
 	}
 	if needsAuth {
-		b.WriteString("  const [isLoggedIn] = useState(false); // TODO: connect to auth context\n")
+		b.WriteString("  const [isLoggedIn] = useState(!!localStorage.getItem('token'));\n")
 	}
 	if needsFormState {
 		b.WriteString("  const [showForm, setShowForm] = useState(false);\n")
@@ -216,7 +233,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		if modelName != "" {
 			fmt.Fprintf(&b, "            <h2>New %s</h2>\n", modelName)
 		}
-		b.WriteString("            {/* TODO: form fields */}\n")
+		writeFormJSX(&b, "a form to create a "+modelName, "            ", ctx)
 		b.WriteString("          </div>\n")
 		b.WriteString("        </div>\n")
 		b.WriteString("      )}\n")
@@ -533,7 +550,7 @@ func writeInputJSX(b *strings.Builder, text string, indent string, ctx *pageCont
 		}
 		fmt.Fprintf(b, "%s<div className=\"file-upload\">\n", indent)
 		fmt.Fprintf(b, "%s  <label>%s</label>\n", indent, label)
-		fmt.Fprintf(b, "%s  <input type=\"file\" accept=\"image/*\" onChange={() => {/* TODO: handle upload */}} />\n", indent)
+		fmt.Fprintf(b, "%s  <input type=\"file\" accept=\"image/*\" onChange={(ev) => { const f = ev.target.files?.[0]; if (f) { const fd = new FormData(); fd.append('file', f); fetch('/api/upload', { method: 'POST', body: fd }); } }} />\n", indent)
 		fmt.Fprintf(b, "%s</div>\n", indent)
 	} else if strings.Contains(lower, "button") {
 		label := extractQuotedText(text)
@@ -551,21 +568,75 @@ func writeFormJSX(b *strings.Builder, text string, indent string, ctx *pageConte
 	lower := strings.ToLower(text)
 	fields := extractFormFields(lower, ctx)
 
-	submitHandler := "/* TODO: submit */"
-	if ctx.hasSuccessState && ctx.hasErrorState {
-		submitHandler = "setError(''); setSuccess('Saved successfully')"
+	// Detect login form
+	isLogin := strings.Contains(lower, "login") || strings.Contains(lower, "sign in") || strings.Contains(lower, "signin")
+
+	// Look up matching create endpoint for API wiring
+	createEp := findCreateEndpoint(ctx.app, ctx.modelName)
+	if isLogin {
+		// For login forms, look for a login endpoint
+		for i := range ctx.app.APIs {
+			ln := strings.ToLower(ctx.app.APIs[i].Name)
+			if ln == "login" || strings.Contains(ln, "signin") || strings.Contains(ln, "sign_in") {
+				createEp = ctx.app.APIs[i]
+				break
+			}
+		}
 	}
-	fmt.Fprintf(b, "%s<form className=\"form\" onSubmit={(ev) => { ev.preventDefault(); %s }}>\n", indent, submitHandler)
+
+	if createEp != nil {
+		createFunc := toCamelCase(createEp.Name)
+		fmt.Fprintf(b, "%s<form className=\"form\" onSubmit={async (ev) => {\n", indent)
+		fmt.Fprintf(b, "%s  ev.preventDefault();\n", indent)
+		if ctx.hasErrorState {
+			fmt.Fprintf(b, "%s  setError('');\n", indent)
+		}
+		fmt.Fprintf(b, "%s  try {\n", indent)
+		fmt.Fprintf(b, "%s    const fd = new FormData(ev.currentTarget);\n", indent)
+		fmt.Fprintf(b, "%s    const res = await %s(Object.fromEntries(fd));\n", indent, createFunc)
+		if isLogin {
+			fmt.Fprintf(b, "%s    localStorage.setItem('token', res.token);\n", indent)
+			fmt.Fprintf(b, "%s    window.location.href = '/';\n", indent)
+		} else {
+			if ctx.varName != "" && ctx.varName != "data" {
+				setterName := "set" + capitalize(ctx.varName)
+				fmt.Fprintf(b, "%s    %s(prev => [...prev, res.data]);\n", indent, setterName)
+			}
+			if ctx.needsFormState {
+				fmt.Fprintf(b, "%s    setShowForm(false);\n", indent)
+			}
+			if ctx.hasSuccessState {
+				fmt.Fprintf(b, "%s    setSuccess('Created successfully');\n", indent)
+			}
+			fmt.Fprintf(b, "%s    ev.currentTarget.reset();\n", indent)
+		}
+		fmt.Fprintf(b, "%s  } catch (err) {\n", indent)
+		if ctx.hasErrorState {
+			fmt.Fprintf(b, "%s    setError(err instanceof Error ? err.message : 'Failed to save');\n", indent)
+		}
+		fmt.Fprintf(b, "%s  }\n", indent)
+		fmt.Fprintf(b, "%s}}>\n", indent)
+	} else if ctx.hasSuccessState && ctx.hasErrorState {
+		fmt.Fprintf(b, "%s<form className=\"form\" onSubmit={(ev) => { ev.preventDefault(); setError(''); setSuccess('Saved successfully') }}>\n", indent)
+	} else {
+		fmt.Fprintf(b, "%s<form className=\"form\" onSubmit={(ev) => { ev.preventDefault(); }}>\n", indent)
+	}
+
 	for _, f := range fields {
 		inputType := "text"
-		if strings.Contains(f, "email") {
+		fl := strings.ToLower(f)
+		if strings.Contains(fl, "email") {
 			inputType = "email"
-		} else if strings.Contains(f, "password") {
+		} else if strings.Contains(fl, "password") {
 			inputType = "password"
+		} else if strings.Contains(fl, "date") {
+			inputType = "date"
+		} else if strings.Contains(fl, "number") || strings.Contains(fl, "count") {
+			inputType = "number"
 		}
 		fmt.Fprintf(b, "%s  <div className=\"form-field\">\n", indent)
 		fmt.Fprintf(b, "%s    <label>%s</label>\n", indent, capitalize(f))
-		fmt.Fprintf(b, "%s    <input type=\"%s\" name=\"%s\" placeholder=\"%s\" />\n", indent, inputType, f, capitalize(f))
+		fmt.Fprintf(b, "%s    <input type=\"%s\" name=\"%s\" placeholder=\"%s\" />\n", indent, inputType, toCamelCase(f), capitalize(f))
 		fmt.Fprintf(b, "%s  </div>\n", indent)
 	}
 	fmt.Fprintf(b, "%s  <button type=\"submit\">Save</button>\n", indent)
@@ -858,6 +929,36 @@ func findListEndpoint(app *ir.Application, modelName string) *ir.Endpoint {
 	for i := range app.APIs {
 		lower := strings.ToLower(app.APIs[i].Name)
 		if strings.HasPrefix(lower, "get") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
+		}
+	}
+	return nil
+}
+
+// findCreateEndpoint finds a create-type API endpoint matching the model.
+func findCreateEndpoint(app *ir.Application, modelName string) *ir.Endpoint {
+	if modelName == "" || app == nil {
+		return nil
+	}
+	lowerModel := strings.ToLower(modelName)
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "create") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
+		}
+	}
+	return nil
+}
+
+// findUpdateEndpoint finds an update-type API endpoint matching the model.
+func findUpdateEndpoint(app *ir.Application, modelName string) *ir.Endpoint {
+	if modelName == "" || app == nil {
+		return nil
+	}
+	lowerModel := strings.ToLower(modelName)
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "update") && strings.Contains(lower, lowerModel) {
 			return app.APIs[i]
 		}
 	}

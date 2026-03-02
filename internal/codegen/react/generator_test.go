@@ -1000,3 +1000,177 @@ func TestFullIntegration(t *testing.T) {
 
 	t.Logf("Generated %d files to %s", len(expectedFiles), dir)
 }
+
+// ── Data Flow & Integration Wiring Tests ──
+
+func TestFormSubmitCallsAPI(t *testing.T) {
+	app := &ir.Application{
+		Name: "TestApp",
+		Data: []*ir.DataModel{
+			{Name: "Task", Fields: []*ir.DataField{
+				{Name: "title", Type: "text", Required: true},
+				{Name: "description", Type: "text"},
+			}},
+		},
+		APIs: []*ir.Endpoint{
+			{Name: "ListTasks", Steps: []*ir.Action{{Type: "query", Text: "fetch all Tasks"}}},
+			{Name: "CreateTask", Params: []*ir.Param{{Name: "title"}, {Name: "description"}}},
+		},
+		Pages: []*ir.Page{
+			{Name: "Dashboard", Content: []*ir.Action{
+				{Type: "query", Text: "fetch all Tasks"},
+				{Type: "loop", Text: "each task shows its title"},
+				{Type: "input", Text: "a form to create a Task"},
+			}},
+		},
+	}
+
+	page := app.Pages[0]
+	output := generatePage(page, app)
+
+	// Should contain the create API call, not a TODO
+	if !strings.Contains(output, "createTask") {
+		t.Error("form should call createTask API function")
+	}
+	if strings.Contains(output, "TODO: submit") {
+		t.Error("form should not contain TODO: submit when endpoint exists")
+	}
+	// Should import createTask
+	if !strings.Contains(output, "import { listTasks, createTask }") && !strings.Contains(output, "import { createTask") {
+		t.Error("should import createTask from API client")
+	}
+}
+
+func TestPostMutationRefresh(t *testing.T) {
+	app := &ir.Application{
+		Name: "TestApp",
+		Data: []*ir.DataModel{
+			{Name: "Task", Fields: []*ir.DataField{{Name: "title", Type: "text", Required: true}}},
+		},
+		APIs: []*ir.Endpoint{
+			{Name: "ListTasks", Steps: []*ir.Action{{Type: "query", Text: "fetch all Tasks"}}},
+			{Name: "CreateTask", Params: []*ir.Param{{Name: "title"}}},
+		},
+		Pages: []*ir.Page{
+			{Name: "Dashboard", Content: []*ir.Action{
+				{Type: "query", Text: "fetch all Tasks"},
+				{Type: "loop", Text: "each task shows its title"},
+				{Type: "interact", Text: "clicking Add opens a form"},
+			}},
+		},
+	}
+
+	page := app.Pages[0]
+	output := generatePage(page, app)
+
+	// Should update the list after mutation
+	if !strings.Contains(output, "setTasks(prev =>") {
+		t.Error("should update tasks list after successful create")
+	}
+	// Should close modal
+	if !strings.Contains(output, "setShowForm(false)") {
+		t.Error("should close modal after successful create")
+	}
+}
+
+func TestModalFormPopulated(t *testing.T) {
+	app := &ir.Application{
+		Name: "TestApp",
+		Data: []*ir.DataModel{
+			{Name: "Task", Fields: []*ir.DataField{
+				{Name: "title", Type: "text", Required: true},
+				{Name: "description", Type: "text"},
+			}},
+		},
+		APIs: []*ir.Endpoint{
+			{Name: "ListTasks", Steps: []*ir.Action{{Type: "query", Text: "fetch all Tasks"}}},
+			{Name: "CreateTask", Params: []*ir.Param{{Name: "title"}, {Name: "description"}}},
+		},
+		Pages: []*ir.Page{
+			{Name: "Dashboard", Content: []*ir.Action{
+				{Type: "query", Text: "fetch all Tasks"},
+				{Type: "loop", Text: "each task shows its title"},
+				{Type: "interact", Text: "clicking Add opens a form"},
+			}},
+		},
+	}
+
+	page := app.Pages[0]
+	output := generatePage(page, app)
+
+	if strings.Contains(output, "TODO: form fields") {
+		t.Error("modal should not contain TODO: form fields")
+	}
+	if !strings.Contains(output, "<form") {
+		t.Error("modal should contain a <form element")
+	}
+}
+
+func TestLoginFormStoresToken(t *testing.T) {
+	app := &ir.Application{
+		Name: "TestApp",
+		Data: []*ir.DataModel{
+			{Name: "User", Fields: []*ir.DataField{
+				{Name: "email", Type: "email", Required: true},
+				{Name: "password", Type: "text", Required: true, Encrypted: true},
+			}},
+		},
+		APIs: []*ir.Endpoint{
+			{Name: "Login", Params: []*ir.Param{{Name: "email"}, {Name: "password"}}},
+		},
+		Pages: []*ir.Page{
+			{Name: "Login", Content: []*ir.Action{
+				{Type: "input", Text: "a form to login with email and password"},
+			}},
+		},
+	}
+
+	page := app.Pages[0]
+	output := generatePage(page, app)
+
+	if !strings.Contains(output, "localStorage.setItem") {
+		t.Error("login form should store token in localStorage")
+	}
+}
+
+func TestAuthStateFromLocalStorage(t *testing.T) {
+	app := &ir.Application{
+		Name: "TestApp",
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{
+				{Type: "condition", Text: "if user is logged in, show dashboard"},
+			}},
+		},
+	}
+
+	page := app.Pages[0]
+	output := generatePage(page, app)
+
+	if strings.Contains(output, "TODO: connect to auth") {
+		t.Error("auth state should not have TODO")
+	}
+	if !strings.Contains(output, "localStorage.getItem") {
+		t.Error("auth state should read from localStorage")
+	}
+}
+
+func TestFileUploadWiring(t *testing.T) {
+	app := &ir.Application{
+		Name: "TestApp",
+		Pages: []*ir.Page{
+			{Name: "Profile", Content: []*ir.Action{
+				{Type: "input", Text: "a file upload for avatar"},
+			}},
+		},
+	}
+
+	page := app.Pages[0]
+	output := generatePage(page, app)
+
+	if strings.Contains(output, "TODO: handle upload") {
+		t.Error("file upload should not contain TODO")
+	}
+	if !strings.Contains(output, "FormData") {
+		t.Error("file upload should use FormData")
+	}
+}

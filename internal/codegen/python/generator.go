@@ -17,6 +17,9 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		filepath.Join(outputDir, "alembic"),
 		filepath.Join(outputDir, "alembic", "versions"),
 	}
+	if len(app.Integrations) > 0 {
+		dirs = append(dirs, filepath.Join(outputDir, "services"))
+	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0755); err != nil {
 			return fmt.Errorf("creating directory %s: %w", d, err)
@@ -41,6 +44,11 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	if len(app.Policies) > 0 {
 		files[filepath.Join(outputDir, "policies.py")] = generatePolicies(app)
 		files[filepath.Join(outputDir, "authorize.py")] = generateAuthorize(app)
+	}
+
+	// Generate integration service files
+	for relPath, content := range generateIntegrations(app) {
+		files[filepath.Join(outputDir, relPath)] = content
 	}
 
 	for path, content := range files {
@@ -442,7 +450,7 @@ func containsWord(words []string, target string) bool {
 }
 
 func generateRequirements(app *ir.Application) string {
-	return `fastapi==0.104.1
+	base := `fastapi==0.104.1
 uvicorn==0.24.0.post1
 sqlalchemy==2.0.23
 alembic==1.12.1
@@ -454,6 +462,21 @@ python-multipart==0.0.6
 psycopg2-binary==2.9.9
 email-validator==2.1.0
 `
+	for _, integ := range app.Integrations {
+		switch integ.Type {
+		case "email":
+			base += "sendgrid==6.11.0\n"
+		case "storage":
+			base += "boto3==1.34.0\n"
+		case "payment":
+			base += "stripe==7.8.0\n"
+		case "messaging":
+			base += "slack-sdk==3.26.0\n"
+		case "oauth":
+			base += "authlib==1.3.0\nhttpx==0.27.0\n"
+		}
+	}
+	return base
 }
 
 func generateMain(app *ir.Application) string {
@@ -810,6 +833,19 @@ router = APIRouter()
 			case "delete":
 				sb.WriteString("    db.delete(item)\n    db.commit()\n")
 
+			case "send":
+				integType := detectSendIntegration(step.Text, app)
+				switch integType {
+				case "email":
+					sb.WriteString("    from services.email_service import send_email\n")
+					sb.WriteString("    await send_email(to=getattr(payload, 'email', ''), subject='Notification', text='Action completed')\n")
+				case "messaging":
+					sb.WriteString("    from services.slack_service import send_slack_message\n")
+					sb.WriteString("    await send_slack_message(text='Action completed')\n")
+				default:
+					sb.WriteString("    # TODO: no matching integration service configured\n")
+				}
+
 			case "respond":
 				hasReturn = true
 				lowerText := strings.ToLower(step.Text)
@@ -856,6 +892,25 @@ func findIDParam(api *ir.Endpoint) string {
 		return toSnakeCase(api.Params[0].Name)
 	}
 	return "id"
+}
+
+// detectSendIntegration determines which integration type a "send" step targets
+// by matching keywords in the step text against configured integrations.
+func detectSendIntegration(stepText string, app *ir.Application) string {
+	lower := strings.ToLower(stepText)
+	for _, integ := range app.Integrations {
+		switch integ.Type {
+		case "email":
+			if strings.Contains(lower, "email") || strings.Contains(lower, "welcome") || strings.Contains(lower, "notification") {
+				return "email"
+			}
+		case "messaging":
+			if strings.Contains(lower, "slack") || strings.Contains(lower, "alert") || strings.Contains(lower, "notify") {
+				return "messaging"
+			}
+		}
+	}
+	return ""
 }
 
 func generateAuth(app *ir.Application) string {

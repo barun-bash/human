@@ -23,6 +23,9 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		filepath.Join(outputDir, "routes"),
 		filepath.Join(outputDir, "migrations"),
 	}
+	if len(app.Integrations) > 0 {
+		dirs = append(dirs, filepath.Join(outputDir, "services"))
+	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0755); err != nil {
 			return fmt.Errorf("creating directory %s: %w", d, err)
@@ -35,7 +38,7 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	}
 
 	files := map[string]string{
-		filepath.Join(outputDir, "go.mod"):                    generateGoMod(moduleName),
+		filepath.Join(outputDir, "go.mod"):                    generateGoMod(moduleName, app),
 		filepath.Join(outputDir, "main.go"):                   generateMain(moduleName, app),
 		filepath.Join(outputDir, "config", "config.go"):       generateConfig(moduleName),
 		filepath.Join(outputDir, "database", "database.go"):   generateDatabase(moduleName, app),
@@ -52,6 +55,21 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	if len(app.Policies) > 0 {
 		files[filepath.Join(outputDir, "middleware", "policies.go")] = generatePolicies(moduleName, app)
 		files[filepath.Join(outputDir, "middleware", "authorize.go")] = generateAuthorizeMiddleware(moduleName, app)
+	}
+
+	// Generate integration service files
+	for relPath, content := range generateIntegrations(moduleName, app) {
+		files[filepath.Join(outputDir, relPath)] = content
+	}
+
+	// Generate webhook handlers when payment integration with webhook exists
+	if hasWebhookIntegration(app) {
+		files[filepath.Join(outputDir, "handlers", "webhooks.go")] = generateWebhookHandlers(moduleName, app)
+	}
+
+	// Generate OAuth handlers when OAuth integration exists
+	if hasOAuthIntegration(app) {
+		files[filepath.Join(outputDir, "handlers", "oauth.go")] = generateOAuthHandlers(moduleName, app)
 	}
 
 	for path, content := range files {

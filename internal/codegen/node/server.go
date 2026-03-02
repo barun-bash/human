@@ -15,9 +15,14 @@ func generateServer(app *ir.Application) string {
 	b.WriteString("import express from 'express';\n")
 	b.WriteString("import cors from 'cors';\n")
 	b.WriteString("import { router } from './routes';\n")
-	b.WriteString("import { errorHandler } from './middleware/errors';\n\n")
+	b.WriteString("import { errorHandler } from './middleware/errors';\n")
 
-	b.WriteString("const app = express();\n")
+	// Passport for OAuth
+	if hasOAuthIntegration(app) {
+		b.WriteString("import passport from 'passport';\n")
+	}
+
+	b.WriteString("\nconst app = express();\n")
 	fmt.Fprintf(&b, "const PORT = process.env.PORT || %d;\n\n", 3001)
 
 	// Core middleware
@@ -25,13 +30,33 @@ func generateServer(app *ir.Application) string {
 	b.WriteString("app.use(cors());\n")
 	b.WriteString("app.use(express.json());\n")
 
+	// Raw body parsing for webhooks (must be before json middleware for specific routes)
+	if hasWebhookIntegration(app) {
+		b.WriteString("app.use('/api/webhooks', express.raw({ type: 'application/json' }));\n")
+	}
+
+	// Passport initialization
+	if hasOAuthIntegration(app) {
+		b.WriteString("\n// OAuth\n")
+		b.WriteString("app.use(passport.initialize());\n")
+	}
+
 	// Rate limiting from auth rules
 	if hasRateLimiting(app) {
 		b.WriteString("// TODO: configure rate limiting (see auth rules in .human file)\n")
 	}
 
 	b.WriteString("\n// Routes\n")
-	b.WriteString("app.use('/api', router);\n\n")
+	b.WriteString("app.use('/api', router);\n")
+
+	if hasWebhookIntegration(app) {
+		b.WriteString("app.use('/api/webhooks', require('./routes/webhooks').router);\n")
+	}
+	if hasOAuthIntegration(app) {
+		b.WriteString("app.use('/auth', require('./routes/auth').router);\n")
+	}
+
+	b.WriteString("\n")
 
 	// Health check
 	b.WriteString("// Health check\n")

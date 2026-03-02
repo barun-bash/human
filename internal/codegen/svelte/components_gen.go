@@ -18,6 +18,7 @@ type pageContext struct {
 	hasSuccessState bool
 	hasErrorState   bool
 	isComponent     bool              // true when generating a component (not a page)
+	needsFormState  bool
 }
 
 func generatePage(page *ir.Page, app *ir.Application) string {
@@ -77,6 +78,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		itemVar:         itemVar,
 		hasSuccessState: needsSuccess,
 		hasErrorState:   needsError,
+		needsFormState:  needsFormState,
 	}
 
 	// <script>
@@ -90,15 +92,29 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		fmt.Fprintf(&b, "  import type { %s } from '$lib/types';\n", modelName)
 	}
 
-	// Import API client function if we have a matching list endpoint
+	// Import API client functions for data fetching and form submission
 	var listEp *ir.Endpoint
+	var createEp *ir.Endpoint
 	if needsEffect && modelName != "" {
 		listEp = findListEndpoint(app, modelName)
-		if listEp != nil {
-			fmt.Fprintf(&b, "  import { %s } from '$lib/api';\n", toCamelCase(listEp.Name))
-		} else {
-			b.WriteString("  import { request } from '$lib/api';\n")
+	}
+	if needsFormState && modelName != "" {
+		createEp = findCreateEndpoint(app, modelName)
+	}
+	var apiImports []string
+	if listEp != nil {
+		apiImports = append(apiImports, toCamelCase(listEp.Name))
+	}
+	if createEp != nil {
+		fn := toCamelCase(createEp.Name)
+		if listEp == nil || toCamelCase(listEp.Name) != fn {
+			apiImports = append(apiImports, fn)
 		}
+	}
+	if len(apiImports) > 0 {
+		fmt.Fprintf(&b, "  import { %s } from '$lib/api';\n", strings.Join(apiImports, ", "))
+	} else if needsEffect {
+		b.WriteString("  import { request } from '$lib/api';\n")
 	}
 
 	// Component imports
@@ -135,7 +151,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		}
 	}
 	if needsAuth {
-		b.WriteString("  let isLoggedIn = $state(false); // TODO: connect to auth\n")
+		b.WriteString("  let isLoggedIn = $state(!!localStorage.getItem('token'));\n")
 	}
 	if needsFormState {
 		b.WriteString("  let showForm = $state(false);\n")
@@ -145,6 +161,66 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	}
 	if needsError {
 		b.WriteString("  let error = $state('');\n")
+	}
+
+	// Generate form field state and handleSubmit when create endpoint exists
+	if createEp != nil {
+		createFunc := toCamelCase(createEp.Name)
+		lower := strings.ToLower(ctx.modelName)
+		isLogin := false
+		for _, a := range page.Content {
+			al := strings.ToLower(a.Text)
+			if strings.Contains(al, "login") || strings.Contains(al, "sign in") {
+				isLogin = true
+				break
+			}
+		}
+		// Form field $state declarations
+		fields := extractFormFields("a form to create a "+lower, ctx)
+		for _, f := range fields {
+			fmt.Fprintf(&b, "  let %s = $state('');\n", toCamelCase(f))
+		}
+		b.WriteString("\n")
+		// handleSubmit async function
+		b.WriteString("  async function handleSubmit(ev: Event) {\n")
+		b.WriteString("    ev.preventDefault();\n")
+		if ctx.hasErrorState {
+			b.WriteString("    error = '';\n")
+		}
+		b.WriteString("    try {\n")
+		b.WriteString("      const body = { ")
+		for i, f := range fields {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%s", toCamelCase(f))
+		}
+		b.WriteString(" };\n")
+		fmt.Fprintf(&b, "      const res = await %s(body);\n", createFunc)
+		if isLogin {
+			b.WriteString("      localStorage.setItem('token', res.token);\n")
+			b.WriteString("      window.location.href = '/';\n")
+		} else {
+			if varName != "" && varName != "data" {
+				fmt.Fprintf(&b, "      %s = [...%s, res.data];\n", varName, varName)
+			}
+			b.WriteString("      showForm = false;\n")
+			if ctx.hasSuccessState {
+				b.WriteString("      success = 'Created successfully';\n")
+			}
+			// Reset form fields
+			for _, f := range fields {
+				fmt.Fprintf(&b, "      %s = '';\n", toCamelCase(f))
+			}
+		}
+		b.WriteString("    } catch (err) {\n")
+		if ctx.hasErrorState {
+			b.WriteString("      error = err instanceof Error ? err.message : 'Something went wrong';\n")
+		} else {
+			b.WriteString("      console.error(err);\n")
+		}
+		b.WriteString("    }\n")
+		b.WriteString("  }\n")
 	}
 
 	if needsEffect {
@@ -200,7 +276,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 		if modelName != "" {
 			fmt.Fprintf(&b, "        <h2>New %s</h2>\n", modelName)
 		}
-		b.WriteString("        <!-- TODO: form fields -->\n")
+		writeFormSvelte(&b, "a form to create a "+strings.ToLower(modelName), "        ", ctx)
 		b.WriteString("      </div>\n")
 		b.WriteString("    </div>\n")
 		b.WriteString("  {/if}\n")
@@ -562,7 +638,16 @@ func writeInputSvelte(b *strings.Builder, text string, indent string, ctx *pageC
 		}
 		fmt.Fprintf(b, "%s<div class=\"file-upload\">\n", indent)
 		fmt.Fprintf(b, "%s  <label>%s</label>\n", indent, label)
-		fmt.Fprintf(b, "%s  <input type=\"file\" accept=\"image/*\" onchange={() => {/* TODO: handle upload */}} />\n", indent)
+		fmt.Fprintf(b, "%s  <input type=\"file\" accept=\"image/*\" onchange={async (e) => {\n", indent)
+		fmt.Fprintf(b, "%s    const file = e.currentTarget.files?.[0];\n", indent)
+		fmt.Fprintf(b, "%s    if (!file) return;\n", indent)
+		fmt.Fprintf(b, "%s    const fd = new FormData();\n", indent)
+		fmt.Fprintf(b, "%s    fd.append('file', file);\n", indent)
+		fmt.Fprintf(b, "%s    try {\n", indent)
+		fmt.Fprintf(b, "%s      const res = await fetch('/api/upload', { method: 'POST', body: fd });\n", indent)
+		fmt.Fprintf(b, "%s      if (!res.ok) throw new Error('Upload failed');\n", indent)
+		fmt.Fprintf(b, "%s    } catch (err) { console.error(err); }\n", indent)
+		fmt.Fprintf(b, "%s  }} />\n", indent)
 		fmt.Fprintf(b, "%s</div>\n", indent)
 		return
 	}
@@ -605,33 +690,70 @@ func writeFormSvelte(b *strings.Builder, text string, indent string, ctx *pageCo
 	lower := strings.ToLower(text)
 	fields := extractFormFields(lower, ctx)
 
-	onSubmit := "/* TODO: submit */"
-	if ctx.hasSuccessState && ctx.hasErrorState {
-		onSubmit = "error = ''; success = 'Saved successfully'"
-	} else if ctx.hasSuccessState {
-		onSubmit = "success = 'Saved successfully'"
+	isLogin := strings.Contains(lower, "login") || strings.Contains(lower, "sign in") || strings.Contains(lower, "signin")
+
+	createEp := findCreateEndpoint(ctx.app, ctx.modelName)
+	if isLogin && ctx.app != nil {
+		for i := range ctx.app.APIs {
+			ln := strings.ToLower(ctx.app.APIs[i].Name)
+			if ln == "login" || strings.Contains(ln, "signin") || strings.Contains(ln, "sign_in") {
+				createEp = ctx.app.APIs[i]
+				break
+			}
+		}
 	}
 
-	fmt.Fprintf(b, "%s<form class=\"form\" onsubmit={(e) => { e.preventDefault(); %s }}>\n", indent, onSubmit)
-	for _, f := range fields {
-		inputType := "text"
-		fl := strings.ToLower(f)
-		if strings.Contains(fl, "email") {
-			inputType = "email"
-		} else if strings.Contains(fl, "password") {
-			inputType = "password"
-		} else if strings.Contains(fl, "date") {
-			inputType = "date"
-		} else if strings.Contains(fl, "number") || strings.Contains(fl, "count") {
-			inputType = "number"
+	if createEp != nil {
+		// Wired form: use handleSubmit from script block
+		fmt.Fprintf(b, "%s<form class=\"form\" onsubmit={handleSubmit}>\n", indent)
+		for _, f := range fields {
+			inputType := "text"
+			fl := strings.ToLower(f)
+			if strings.Contains(fl, "email") {
+				inputType = "email"
+			} else if strings.Contains(fl, "password") {
+				inputType = "password"
+			} else if strings.Contains(fl, "date") {
+				inputType = "date"
+			} else if strings.Contains(fl, "number") || strings.Contains(fl, "count") {
+				inputType = "number"
+			}
+			fmt.Fprintf(b, "%s  <div class=\"form-field\">\n", indent)
+			fmt.Fprintf(b, "%s    <label>%s</label>\n", indent, capitalize(f))
+			fmt.Fprintf(b, "%s    <input type=\"%s\" placeholder=\"%s\" bind:value={%s} />\n", indent, inputType, capitalize(f), toCamelCase(f))
+			fmt.Fprintf(b, "%s  </div>\n", indent)
 		}
-		fmt.Fprintf(b, "%s  <div class=\"form-field\">\n", indent)
-		fmt.Fprintf(b, "%s    <label>%s</label>\n", indent, capitalize(f))
-		fmt.Fprintf(b, "%s    <input type=\"%s\" name=\"%s\" placeholder=\"%s\" bind:value={%s} />\n", indent, inputType, toCamelCase(f), capitalize(f), toCamelCase(f))
-		fmt.Fprintf(b, "%s  </div>\n", indent)
+		fmt.Fprintf(b, "%s  <button type=\"submit\">Save</button>\n", indent)
+		fmt.Fprintf(b, "%s</form>\n", indent)
+	} else {
+		// Fallback: no endpoint wired
+		onSubmit := "/* TODO: submit */"
+		if ctx.hasSuccessState && ctx.hasErrorState {
+			onSubmit = "error = ''; success = 'Saved successfully'"
+		} else if ctx.hasSuccessState {
+			onSubmit = "success = 'Saved successfully'"
+		}
+		fmt.Fprintf(b, "%s<form class=\"form\" onsubmit={(e) => { e.preventDefault(); %s }}>\n", indent, onSubmit)
+		for _, f := range fields {
+			inputType := "text"
+			fl := strings.ToLower(f)
+			if strings.Contains(fl, "email") {
+				inputType = "email"
+			} else if strings.Contains(fl, "password") {
+				inputType = "password"
+			} else if strings.Contains(fl, "date") {
+				inputType = "date"
+			} else if strings.Contains(fl, "number") || strings.Contains(fl, "count") {
+				inputType = "number"
+			}
+			fmt.Fprintf(b, "%s  <div class=\"form-field\">\n", indent)
+			fmt.Fprintf(b, "%s    <label>%s</label>\n", indent, capitalize(f))
+			fmt.Fprintf(b, "%s    <input type=\"%s\" name=\"%s\" placeholder=\"%s\" bind:value={%s} />\n", indent, inputType, toCamelCase(f), capitalize(f), toCamelCase(f))
+			fmt.Fprintf(b, "%s  </div>\n", indent)
+		}
+		fmt.Fprintf(b, "%s  <button type=\"submit\">Save</button>\n", indent)
+		fmt.Fprintf(b, "%s</form>\n", indent)
 	}
-	fmt.Fprintf(b, "%s  <button type=\"submit\">Save</button>\n", indent)
-	fmt.Fprintf(b, "%s</form>\n", indent)
 }
 
 // ── Loop ──
@@ -964,6 +1086,34 @@ func findListEndpoint(app *ir.Application, modelName string) *ir.Endpoint {
 	for i := range app.APIs {
 		lower := strings.ToLower(app.APIs[i].Name)
 		if strings.HasPrefix(lower, "get") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
+		}
+	}
+	return nil
+}
+
+func findCreateEndpoint(app *ir.Application, modelName string) *ir.Endpoint {
+	if modelName == "" || app == nil {
+		return nil
+	}
+	lowerModel := strings.ToLower(modelName)
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "create") && strings.Contains(lower, lowerModel) {
+			return app.APIs[i]
+		}
+	}
+	return nil
+}
+
+func findUpdateEndpoint(app *ir.Application, modelName string) *ir.Endpoint {
+	if modelName == "" || app == nil {
+		return nil
+	}
+	lowerModel := strings.ToLower(modelName)
+	for i := range app.APIs {
+		lower := strings.ToLower(app.APIs[i].Name)
+		if strings.HasPrefix(lower, "update") && strings.Contains(lower, lowerModel) {
 			return app.APIs[i]
 		}
 	}

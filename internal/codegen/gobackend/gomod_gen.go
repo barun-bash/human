@@ -2,12 +2,14 @@ package gobackend
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/barun-bash/human/internal/ir"
 )
 
-func generateGoMod(moduleName string) string {
-	return fmt.Sprintf(`module %s
+func generateGoMod(moduleName string, app *ir.Application) string {
+	var deps strings.Builder
+	deps.WriteString(fmt.Sprintf(`module %s
 
 go 1.23
 
@@ -17,8 +19,29 @@ require (
 	golang.org/x/crypto v0.31.0
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.25.12
-)
-`, moduleName)
+`, moduleName))
+
+	if app != nil {
+		for _, integ := range app.Integrations {
+			switch integ.Type {
+			case "email":
+				deps.WriteString("\tgithub.com/sendgrid/sendgrid-go v3.14.0\n")
+			case "storage":
+				deps.WriteString("\tgithub.com/aws/aws-sdk-go-v2 v1.30.0\n")
+				deps.WriteString("\tgithub.com/aws/aws-sdk-go-v2/config v1.27.0\n")
+				deps.WriteString("\tgithub.com/aws/aws-sdk-go-v2/service/s3 v1.58.0\n")
+			case "payment":
+				deps.WriteString("\tgithub.com/stripe/stripe-go/v81 v81.0.0\n")
+			case "messaging":
+				deps.WriteString("\tgithub.com/slack-go/slack v0.13.0\n")
+			case "oauth":
+				deps.WriteString("\tgolang.org/x/oauth2 v0.21.0\n")
+			}
+		}
+	}
+
+	deps.WriteString(")\n")
+	return deps.String()
 }
 
 func generateMain(moduleName string, app *ir.Application) string {

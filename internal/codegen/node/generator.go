@@ -58,6 +58,16 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		files[path] = generateRoute(ep, app)
 	}
 
+	// Generate webhook routes when payment integration with webhook exists
+	if hasWebhookIntegration(app) {
+		files[filepath.Join(outputDir, "src", "routes", "webhooks.ts")] = generateWebhookRoutes(app)
+	}
+
+	// Generate OAuth routes when OAuth integration exists
+	if hasOAuthIntegration(app) {
+		files[filepath.Join(outputDir, "src", "routes", "auth.ts")] = generateOAuthRoutes(app)
+	}
+
 	for path, content := range files {
 		if err := writeFile(path, content); err != nil {
 			return err

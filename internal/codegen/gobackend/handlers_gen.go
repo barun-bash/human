@@ -32,22 +32,21 @@ func modelFieldSet(app *ir.Application, modelName string) map[string]modelFieldI
 }
 
 func generateHandlers(moduleName string, app *ir.Application) string {
+	hasIntegrations := len(app.Integrations) > 0
+
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf(`package handlers
-
-import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
-
-	"%s/config"
-	"%s/dto"
-	"%s/middleware"
-	"%s/models"
-)
-
-`, moduleName, moduleName, moduleName, moduleName))
+	sb.WriteString("package handlers\n\nimport (\n")
+	sb.WriteString("\t\"net/http\"\n\n")
+	sb.WriteString("\t\"github.com/gin-gonic/gin\"\n")
+	sb.WriteString("\t\"gorm.io/gorm\"\n\n")
+	sb.WriteString(fmt.Sprintf("\t\"%s/config\"\n", moduleName))
+	sb.WriteString(fmt.Sprintf("\t\"%s/dto\"\n", moduleName))
+	sb.WriteString(fmt.Sprintf("\t\"%s/middleware\"\n", moduleName))
+	sb.WriteString(fmt.Sprintf("\t\"%s/models\"\n", moduleName))
+	if hasIntegrations {
+		sb.WriteString(fmt.Sprintf("\t\"%s/services\"\n", moduleName))
+	}
+	sb.WriteString(")\n\n")
 
 	for _, api := range app.APIs {
 		isLogin := isLoginEndpoint(api.Name)
@@ -197,6 +196,24 @@ import (
 			case "delete":
 				sb.WriteString("\t\tif err := db.Delete(&item).Error; err != nil {\n\t\t\tc.JSON(http.StatusInternalServerError, gin.H{\"error\": \"Failed to delete\"})\n\t\t\treturn\n\t\t}\n")
 
+			case "send":
+				integType := detectSendIntegration(step.Text, app)
+				switch integType {
+				case "email":
+					sb.WriteString("\t\t// Send email notification\n")
+					sb.WriteString("\t\tif err := services.SendEmail(\"\", \"Notification\", \"Action completed\"); err != nil {\n")
+					sb.WriteString("\t\t\t// Log error but don't fail the request\n")
+					sb.WriteString("\t\t\t_ = err\n")
+					sb.WriteString("\t\t}\n")
+				case "messaging":
+					sb.WriteString("\t\t// Send Slack notification\n")
+					sb.WriteString("\t\tif err := services.SendSlackMessage(\"Action completed\"); err != nil {\n")
+					sb.WriteString("\t\t\t_ = err\n")
+					sb.WriteString("\t\t}\n")
+				default:
+					sb.WriteString("\t\t// TODO: no matching integration service configured\n")
+				}
+
 			case "respond":
 				hasReturn = true
 				lowerText := strings.ToLower(step.Text)
@@ -238,4 +255,35 @@ import (
 	}
 
 	return sb.String()
+}
+
+// detectSendIntegration inspects the step text and app integrations to determine
+// which integration type a "send" step should dispatch to.
+func detectSendIntegration(text string, app *ir.Application) string {
+	lower := strings.ToLower(text)
+
+	// Check for explicit keywords in the step text.
+	if strings.Contains(lower, "email") || strings.Contains(lower, "mail") {
+		for _, integ := range app.Integrations {
+			if integ.Type == "email" {
+				return "email"
+			}
+		}
+	}
+	if strings.Contains(lower, "slack") || strings.Contains(lower, "message") || strings.Contains(lower, "notification") {
+		for _, integ := range app.Integrations {
+			if integ.Type == "messaging" {
+				return "messaging"
+			}
+		}
+	}
+
+	// Fall back to the first matching integration.
+	for _, integ := range app.Integrations {
+		if integ.Type == "email" || integ.Type == "messaging" {
+			return integ.Type
+		}
+	}
+
+	return ""
 }
