@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type BuildStatus = 'idle' | 'checking' | 'building' | 'running' | 'deploying' | 'success' | 'error'
+export type BuildStatus = 'idle' | 'checking' | 'building' | 'running' | 'success' | 'error'
 
 export interface OutputFile {
   name: string

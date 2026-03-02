@@ -156,25 +156,6 @@ export function App() {
     }
   }, [projectDir])
 
-  const handleDeploy = useCallback(async () => {
-    if (!projectDir) {
-      showToast('error', 'Open a project first')
-      return
-    }
-    useBuildStore.getState().clearOutput()
-    useBuildStore.getState().setStatus('deploying')
-    useSettingsStore.getState().setBuildPanelOpen(true)
-    try {
-      const result = await api.compiler.deploy(projectDir)
-      useBuildStore.getState().setStatus(result.code === 0 ? 'success' : 'error')
-      if (result.code === 0) showToast('success', 'Deploy complete')
-      else showToast('error', 'Deploy failed')
-    } catch (err: any) {
-      useBuildStore.getState().setStatus('error')
-      showToast('error', err.message || 'Deploy failed')
-    }
-  }, [projectDir])
-
   const handleStop = useCallback(async () => {
     try {
       await api.compiler.stop()
@@ -205,7 +186,6 @@ export function App() {
       api.on('menu:check', handleCheck),
       api.on('menu:build', handleBuild),
       api.on('menu:run', handleRun),
-      api.on('menu:deploy', handleDeploy),
       api.on('menu:stop', handleStop),
       api.on('menu:toggle-build-panel', () => useSettingsStore.getState().toggleBuildPanel()),
       api.on('menu:toggle-sidebar', () => useSettingsStore.getState().toggleSidebar()),
@@ -244,7 +224,7 @@ export function App() {
       }),
     ]
     return () => cleanups.forEach((fn) => fn())
-  }, [handleCheck, handleBuild, handleRun, handleDeploy, handleStop])
+  }, [handleCheck, handleBuild, handleRun, handleStop])
 
   // Load file content when active file changes
   useEffect(() => {
@@ -303,7 +283,6 @@ export function App() {
         onCheck={handleCheck}
         onBuild={handleBuild}
         onRun={handleRun}
-        onDeploy={handleDeploy}
         onStop={handleStop}
         onOpenProfile={() => setProfileOpen(true)}
         onConfigureKeys={() => setProfileOpen(true)}

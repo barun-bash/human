@@ -11,8 +11,8 @@ interface ProfilePanelProps {
 }
 
 const MCP_SERVICES = [
-  { name: 'Figma', connected: false },
-  { name: 'GitHub', connected: false },
+  { name: 'Figma', connected: true },
+  { name: 'GitHub', connected: true },
   { name: 'Slack', connected: false },
   { name: 'Vercel', connected: false },
   { name: 'AWS', connected: false },
@@ -152,36 +152,61 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
             <SectionHeader icon={<CreditCard size={14} />} title="Subscription" />
             <div
               style={{
-                padding: 12,
+                padding: 14,
                 background: 'var(--bg-surface)',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)' }}>
-                  {subscription?.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
-                </span>
-                <span
-                  style={{
-                    padding: '2px 6px',
-                    fontSize: 9,
-                    fontWeight: 600,
-                    background: subscription?.status === 'trialing' ? 'var(--info)' : 'var(--success)',
-                    color: '#fff',
-                    borderRadius: 4,
-                  }}
-                >
-                  {subscription?.status === 'trialing' ? 'Trial' : 'Active'}
-                </span>
+              {/* Plan + status */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-bright)' }}>
+                    {subscription?.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                  </span>
+                  <span
+                    style={{
+                      padding: '2px 6px',
+                      fontSize: 9,
+                      fontWeight: 600,
+                      background: subscription?.status === 'trialing' ? 'var(--info)' : 'var(--accent)',
+                      color: '#fff',
+                      borderRadius: 4,
+                    }}
+                  >
+                    {subscription?.status === 'trialing' ? 'Trial' : 'Active'}
+                  </span>
+                </div>
               </div>
-              <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 4 }}>
-                {subscription?.plan === 'pro'
-                  ? subscription?.status === 'trialing' && subscription?.trial_end
-                    ? `Trial ends ${new Date(subscription.trial_end).toLocaleDateString()}`
-                    : 'Pro plan active'
-                  : 'Upgrade for team features and cloud deployments'}
-              </p>
+
+              {/* Price + billing */}
+              {subscription?.plan === 'pro' ? (
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
+                  $19/month
+                  {subscription?.status === 'trialing' && subscription?.trial_end
+                    ? ` \u00B7 Trial ends ${new Date(subscription.trial_end).toLocaleDateString()}`
+                    : subscription?.current_period_end
+                      ? ` \u00B7 Next billing: ${new Date(subscription.current_period_end).toLocaleDateString()}`
+                      : ''}
+                </p>
+              ) : (
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
+                  $0/month \u00B7 Upgrade for team features and cloud deployments
+                </p>
+              )}
+
+              {/* Payment method */}
+              {subscription?.plan === 'pro' && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    Visa \u2022\u2022\u2022\u2022 4242
+                  </span>
+                  <Button variant="ghost" size="sm">Change</Button>
+                </div>
+              )}
             </div>
           </section>
 

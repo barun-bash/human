@@ -63,7 +63,7 @@ export function AuthScreen() {
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
           <svg width="48" height="48" viewBox="0 0 120 120">
-            <rect width="120" height="120" rx="24" fill="#0D0D0D" />
+            <rect width="120" height="120" rx="24" fill="var(--bg-surface)" />
             <text
               x="24"
               y="84"
@@ -72,8 +72,8 @@ export function AuthScreen() {
               fontSize="72"
               letterSpacing="-1"
             >
-              <tspan fill="#F5F5F3">h</tspan>
-              <tspan fill="#E85D3A">_</tspan>
+              <tspan fill="var(--text-bright)">h</tspan>
+              <tspan fill="var(--accent)">_</tspan>
             </text>
           </svg>
           <span

@@ -9,7 +9,6 @@ const statusVariant: Record<string, 'default' | 'accent' | 'success' | 'error' |
   checking: 'info',
   building: 'accent',
   running: 'success',
-  deploying: 'accent',
   success: 'success',
   error: 'error',
 }
@@ -19,7 +18,6 @@ const statusLabel: Record<string, string> = {
   checking: 'Running...',
   building: 'Running...',
   running: 'Running...',
-  deploying: 'Running...',
   success: 'Passed',
   error: 'Failed',
 }
@@ -88,13 +86,18 @@ export function BuildPanel() {
               style={{
                 height: '100%',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 12,
+                textAlign: 'center',
+                padding: 24,
                 color: 'var(--text-dim)',
+                fontSize: 12,
+                gap: 4,
               }}
             >
-              Check, Build, or Run your project
+              <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>$ human build</code>
+              <span>Press {navigator.platform.includes('Mac') ? '\u2318' : 'Ctrl+'}B to build your project</span>
             </div>
           )}
         </div>

@@ -7,6 +7,7 @@ interface DropdownItem {
   icon?: React.ReactNode
   divider?: boolean
   disabled?: boolean
+  danger?: boolean
 }
 
 interface DropdownProps {
@@ -28,13 +29,20 @@ export function Dropdown({
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const handleClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false)
       }
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKey)
+    }
   }, [])
 
   const selected = items.find((i) => i.value === value)
@@ -143,7 +151,7 @@ function DropdownItemButton({
         padding: '6px 12px',
         fontSize: 12,
         textAlign: 'left',
-        color: isSelected ? 'var(--accent)' : 'var(--text)',
+        color: item.danger ? 'var(--error)' : isSelected ? 'var(--accent)' : 'var(--text)',
         background: hovered && !item.disabled ? 'var(--bg-hover)' : 'transparent',
         border: 'none',
         cursor: item.disabled ? 'default' : 'pointer',

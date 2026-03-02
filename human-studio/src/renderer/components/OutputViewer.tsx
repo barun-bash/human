@@ -118,8 +118,11 @@ export function OutputViewer({ onPopOut }: OutputViewerProps) {
               padding: '0 16px',
             }}
           >
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
               Run a build to see generated code
+            </p>
+            <p style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+              {navigator.platform.includes('Mac') ? '\u2318\u21E7' : 'Ctrl+Shift+'}B to build
             </p>
           </div>
         )}

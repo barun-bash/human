@@ -292,6 +292,19 @@ export function HumanEditor({ onPopOut }: HumanEditorProps) {
   )
 }
 
+function getFileIcon(name: string): { label: string; color: string } {
+  const ext = name.split('.').pop()?.toLowerCase() || ''
+  const map: Record<string, string> = {
+    human: '#E85D3A', tsx: '#60A5FA', ts: '#60A5FA',
+    sql: '#2D8C5A', json: '#FBBF24', css: '#A78BFA',
+    md: '#7A7A7A', yml: '#22D3EE', yaml: '#22D3EE',
+    prisma: '#2D8C5A', html: '#E85D3A', js: '#FBBF24',
+    jsx: '#60A5FA', scss: '#A78BFA', svg: '#FBBF24',
+    txt: '#7A7A7A', csv: '#2D8C5A', pdf: '#C43030',
+  }
+  return { label: ext.slice(0, 3).toUpperCase(), color: map[ext] || '#7A7A7A' }
+}
+
 function FileTabButton({
   name,
   isActive,
@@ -308,6 +321,7 @@ function FileTabButton({
   onClose: () => void
 }) {
   const [hovered, setHovered] = useState(false)
+  const icon = getFileIcon(name)
 
   return (
     <button
@@ -331,6 +345,24 @@ function FileTabButton({
         fontFamily: 'var(--font-body)',
       }}
     >
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 16,
+          height: 16,
+          borderRadius: 3,
+          fontSize: 7,
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
+          background: icon.color + '22',
+          color: icon.color,
+          flexShrink: 0,
+        }}
+      >
+        {icon.label}
+      </span>
       <span style={{ color: isHuman ? 'var(--accent)' : undefined }}>
         {name}
       </span>
