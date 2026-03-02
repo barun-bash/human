@@ -22,6 +22,7 @@ import (
 	"github.com/barun-bash/human/internal/git"
 	"github.com/barun-bash/human/internal/openapi"
 	"github.com/barun-bash/human/internal/ir"
+	"github.com/barun-bash/human/internal/parser"
 	"github.com/barun-bash/human/internal/llm"
 	"github.com/barun-bash/human/internal/plugin"
 	_ "github.com/barun-bash/human/internal/llm/providers" // register providers
@@ -88,6 +89,8 @@ func main() {
 		cmdFixCLI()
 	case "doctor":
 		cmdutil.RunDoctor(os.Stdout)
+	case "split":
+		cmdSplit()
 	case "plugin":
 		cmdPlugin()
 	default:
@@ -205,17 +208,104 @@ func cmdBuild() {
 
 func cmdInit() {
 	name := ""
-	if len(os.Args) >= 3 && !strings.HasPrefix(os.Args[2], "-") {
-		name = os.Args[2]
+	multi := false
+	for _, arg := range os.Args[2:] {
+		switch arg {
+		case "--multi", "-m":
+			multi = true
+		default:
+			if !strings.HasPrefix(arg, "-") && name == "" {
+				name = arg
+			}
+		}
 	}
 
-	outPath, err := cmdutil.InitProject(name, os.Stdin, os.Stdout)
+	outPath, err := cmdutil.InitProject(name, multi, os.Stdin, os.Stdout)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, cli.Error(err.Error()))
 		os.Exit(1)
 	}
 
-	fmt.Println(cli.Success(fmt.Sprintf("Created %s — run 'human check %s' to validate, 'human build %s' to compile", outPath, outPath, outPath)))
+	checkTarget := outPath
+	if multi {
+		checkTarget = filepath.Dir(outPath)
+	}
+	fmt.Println(cli.Success(fmt.Sprintf("Created %s — run 'human check %s' to validate, 'human build %s' to compile", outPath, checkTarget, checkTarget)))
+}
+
+// ── split ──
+
+func cmdSplit() {
+	dryRun := false
+	output := ""
+	var file string
+	args := os.Args[2:]
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--dry-run":
+			dryRun = true
+		case "--output", "-o":
+			if i+1 < len(args) {
+				i++
+				output = args[i]
+			} else {
+				fmt.Fprintln(os.Stderr, cli.Error("--output requires a directory path"))
+				os.Exit(1)
+			}
+		default:
+			if !strings.HasPrefix(args[i], "-") {
+				file = args[i]
+			}
+		}
+	}
+
+	if file == "" {
+		fmt.Fprintln(os.Stderr, "Usage: human split [--dry-run] [--output <dir>] <file.human>")
+		os.Exit(1)
+	}
+
+	source, err := os.ReadFile(file)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Error reading %s: %v", file, err)))
+		os.Exit(1)
+	}
+
+	prog, err := parser.Parse(string(source))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Parse error: %v", err)))
+		os.Exit(1)
+	}
+
+	if prog.App == nil {
+		fmt.Fprintln(os.Stderr, cli.Error("No app declaration found. Cannot split a file without an app declaration."))
+		os.Exit(1)
+	}
+
+	if dryRun {
+		files := cmdutil.SplitProgram(prog)
+		fmt.Println(cli.Info("Dry run — would create:"))
+		for name, content := range files {
+			lines := strings.Count(content, "\n")
+			fmt.Printf("  %-25s %d lines\n", name, lines)
+		}
+		return
+	}
+
+	// Default output: same directory as source file.
+	if output == "" {
+		output = filepath.Dir(file)
+	}
+
+	created, err := cmdutil.SplitToDir(prog, output)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, cli.Error(fmt.Sprintf("Split failed: %v", err)))
+		os.Exit(1)
+	}
+
+	fmt.Println(cli.Success(fmt.Sprintf("Split into %d files in %s/", len(created), output)))
+	for _, f := range created {
+		fmt.Printf("  %s\n", filepath.Base(f))
+	}
 }
 
 // ── run ──
@@ -1675,6 +1765,9 @@ Commands:
   build --watch <file|dir>   Rebuild automatically on file changes
   build --timing <file|dir>  Show per-generator timing breakdown
   init [name]               Create a new Human project
+  init --multi [name]       Create a multi-file project (concern-based)
+  split <file.human>        Split into multi-file project (concern-based)
+  split --dry-run <file>    Preview split without writing files
   run                       Start the development server
   test                      Run generated tests
   audit                     Display security and quality report

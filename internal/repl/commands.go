@@ -11,6 +11,7 @@ import (
 	"github.com/barun-bash/human/internal/cli"
 	"github.com/barun-bash/human/internal/cmdutil"
 	"github.com/barun-bash/human/internal/config"
+	"github.com/barun-bash/human/internal/parser"
 	"github.com/barun-bash/human/internal/version"
 )
 
@@ -204,6 +205,12 @@ func (r *REPL) registerCommands() {
 			Complete:    completeSyntax,
 		},
 		{
+			Name:        "/split",
+			Description: "Split project into concern-based multi-file layout",
+			Usage:       "/split [--dry-run]",
+			Handler:     cmdSplit,
+		},
+		{
 			Name:        "/fix",
 			Description: "Find and auto-fix common issues",
 			Usage:       "/fix [--dry-run]",
@@ -311,10 +318,18 @@ func cmdOpen(r *REPL, args []string) {
 
 func cmdNew(r *REPL, args []string) {
 	name := ""
-	if len(args) > 0 {
-		name = args[0]
+	multi := false
+	for _, arg := range args {
+		switch arg {
+		case "--multi", "-m":
+			multi = true
+		default:
+			if !strings.HasPrefix(arg, "-") && name == "" {
+				name = arg
+			}
+		}
 	}
-	outPath, err := cmdutil.InitProject(name, r.in, r.out)
+	outPath, err := cmdutil.InitProject(name, multi, r.in, r.out)
 	if err != nil {
 		fmt.Fprintln(r.errOut, cli.Error(err.Error()))
 		return
@@ -614,6 +629,68 @@ func cmdExamples(r *REPL, args []string) {
 	}
 }
 
+// ── Split Command ──
+
+func cmdSplit(r *REPL, args []string) {
+	if !r.requireProject() {
+		return
+	}
+
+	dryRun := false
+	for _, arg := range args {
+		if arg == "--dry-run" {
+			dryRun = true
+		}
+	}
+
+	source, err := os.ReadFile(r.projectFile)
+	if err != nil {
+		fmt.Fprintln(r.errOut, cli.Error(fmt.Sprintf("Error reading %s: %v", r.projectFile, err)))
+		return
+	}
+
+	prog, err := parser.Parse(string(source))
+	if err != nil {
+		fmt.Fprintln(r.errOut, cli.Error(fmt.Sprintf("Parse error: %v", err)))
+		return
+	}
+
+	if prog.App == nil {
+		fmt.Fprintln(r.errOut, cli.Error("No app declaration found."))
+		return
+	}
+
+	outputDir := filepath.Dir(r.projectFile)
+
+	if dryRun {
+		files := cmdutil.SplitProgram(prog)
+		fmt.Fprintln(r.out, cli.Info("Dry run — would create:"))
+		for name, content := range files {
+			lines := strings.Count(content, "\n")
+			fmt.Fprintf(r.out, "  %-25s %d lines\n", name, lines)
+		}
+		return
+	}
+
+	created, err := cmdutil.SplitToDir(prog, outputDir)
+	if err != nil {
+		fmt.Fprintln(r.errOut, cli.Error(fmt.Sprintf("Split failed: %v", err)))
+		return
+	}
+
+	fmt.Fprintln(r.out, cli.Success(fmt.Sprintf("Split into %d files:", len(created))))
+	for _, f := range created {
+		fmt.Fprintf(r.out, "  %s\n", filepath.Base(f))
+	}
+
+	// Auto-reload project from app.human.
+	appFile := filepath.Join(outputDir, "app.human")
+	if _, err := os.Stat(appFile); err == nil {
+		r.setProject(appFile)
+		fmt.Fprintln(r.out, cli.Info("Reloaded project from app.human"))
+	}
+}
+
 // ── Theme Command ──
 
 func cmdTheme(r *REPL, args []string) {
@@ -784,7 +861,7 @@ func cmdHelp(r *REPL, args []string) {
 	// Ordered list of command names for display
 	order := []string{
 		"/open", "/new", "/ask", "/import", "/edit", "/undo", "/suggest", "/rewrite", "/add",
-		"/check", "/build", "/deploy", "/stop",
+		"/check", "/build", "/split", "/deploy", "/stop",
 		"/status", "/run", "/test", "/audit", "/review", "/examples",
 		"/explain", "/syntax", "/fix", "/doctor",
 		"/plugin",

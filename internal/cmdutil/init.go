@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/barun-bash/human/internal/ir"
+	"github.com/barun-bash/human/internal/parser"
 )
 
 // AppType describes a project starter template type.
@@ -57,7 +58,7 @@ func AvailableDesignSystems() []DesignSystem {
 // Prompts for app type, entity/fields (for CRUD), stack, and design system.
 // Creates the project directory and writes app.human, HUMAN.md, and .gitignore.
 // Returns the path to the generated .human file.
-func InitProject(name string, in io.Reader, out io.Writer) (string, error) {
+func InitProject(name string, multi bool, in io.Reader, out io.Writer) (string, error) {
 	if name == "" {
 		fmt.Fprintf(out, "App name: ")
 		scanner := bufio.NewScanner(in)
@@ -147,10 +148,29 @@ func InitProject(name string, in io.Reader, out io.Writer) (string, error) {
 		return "", fmt.Errorf("could not create directory %s: %w", name, err)
 	}
 
-	// Write app.human.
-	outPath := filepath.Join(name, "app.human")
-	if err := os.WriteFile(outPath, []byte(content), 0644); err != nil {
-		return "", fmt.Errorf("could not write %s: %w", outPath, err)
+	var outPath string
+
+	if multi {
+		// Multi-file: parse the generated content and split into concern-based files.
+		prog, err := parser.Parse(content)
+		if err != nil {
+			return "", fmt.Errorf("generated template has syntax errors: %w", err)
+		}
+		created, err := SplitToDir(prog, name)
+		if err != nil {
+			return "", fmt.Errorf("splitting into multi-file project: %w", err)
+		}
+		outPath = filepath.Join(name, "app.human")
+		fmt.Fprintf(out, "  Created %d files:\n", len(created))
+		for _, f := range created {
+			fmt.Fprintf(out, "    %s\n", filepath.Base(f))
+		}
+	} else {
+		// Single file: write app.human.
+		outPath = filepath.Join(name, "app.human")
+		if err := os.WriteFile(outPath, []byte(content), 0644); err != nil {
+			return "", fmt.Errorf("could not write %s: %w", outPath, err)
+		}
 	}
 
 	// Write HUMAN.md.
@@ -158,10 +178,11 @@ func InitProject(name string, in io.Reader, out io.Writer) (string, error) {
 	humanMDPath := filepath.Join(name, "HUMAN.md")
 	os.WriteFile(humanMDPath, []byte(humanMD), 0644) // non-fatal
 
-	// Write .gitignore.
-	gitignore := generateGitignore()
+	// Write .gitignore (SplitToDir already writes one for multi, but non-fatal either way).
 	gitignorePath := filepath.Join(name, ".gitignore")
-	os.WriteFile(gitignorePath, []byte(gitignore), 0644) // non-fatal
+	if _, err := os.Stat(gitignorePath); os.IsNotExist(err) {
+		os.WriteFile(gitignorePath, []byte(generateGitignore()), 0644) // non-fatal
+	}
 
 	// Summary.
 	fmt.Fprintln(out)

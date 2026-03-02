@@ -1,7 +1,3 @@
-# ─────────────────────────────────────────────────────────────
-── integrations ──
-# ─────────────────────────────────────────────────────────────
-
 integrate with SendGrid:
   api key from environment variable SENDGRID_API_KEY
   use for sending transactional emails
@@ -14,35 +10,6 @@ integrate with AWS S3:
 integrate with Slack:
   api key from environment variable SLACK_WEBHOOK_URL
   use for team notifications and alerts
-
-# ─────────────────────────────────────────────────────────────
-── policies ──
-# ─────────────────────────────────────────────────────────────
-
-policy FreeUser:
-  can create up to 50 tasks per month
-  can view only their own tasks
-  can edit only their own tasks
-  cannot delete completed tasks
-  cannot export data
-
-policy ProUser:
-  can create unlimited tasks
-  can view only their own tasks
-  can edit only their own tasks
-  can delete any of their own tasks
-  can export data
-
-policy Admin:
-  can view all users and their data
-  can edit any task
-  can delete any task
-  can export data
-  can view system analytics
-
-# ─────────────────────────────────────────────────────────────
-── workflows ──
-# ─────────────────────────────────────────────────────────────
 
 when a user signs up:
   create their account
@@ -64,17 +31,3 @@ when a task is marked done:
   if all tasks for today are done,
     send congratulations notification
   log the completion for analytics
-
-# ─────────────────────────────────────────────────────────────
-── logic ──
-# ─────────────────────────────────────────────────────────────
-
-if database is unreachable:
-  retry 3 times with 1 second delay
-  if still failing, respond with "service temporarily unavailable"
-  alert the engineering team via Slack
-
-if an api request fails validation:
-  respond with a clear message explaining what is wrong
-  log the attempt for analytics
-  do not reveal internal details

@@ -1,0 +1,51 @@
+architecture: monolith
+
+source control using Git on GitHub
+repository: https://github.com/example/taskflow
+
+branches:
+  main is the production branch
+  staging is the pre-release branch
+  feature branches from main with prefix "feat/"
+  bugfix branches from main with prefix "fix/"
+
+when code is pushed to a feature branch:
+  run all tests
+  check code formatting
+  check for security vulnerabilities
+  report results back to the pull request
+
+when code is merged to staging:
+  run all tests
+  build the application
+  deploy to staging environment
+  run smoke tests against staging
+  notify the team on Slack
+
+when code is merged to main:
+  run all tests
+  build the application
+  deploy to production environment
+  run health checks
+  if health checks fail, rollback automatically
+  notify the team on Slack
+
+environment staging:
+  url is staging.taskflow.example.com
+  uses staging database
+  seeds with test data
+  resets weekly
+
+environment production:
+  url is taskflow.example.com
+  uses production database
+  requires manual approval for deployment
+  has auto-scaling enabled
+
+track response times for all api endpoints
+track error rates per endpoint
+track active users daily and monthly
+alert on Slack if error rate exceeds 5 percent
+alert on Slack if response time exceeds 2 seconds
+log all api requests to CloudWatch
+keep logs for 90 days

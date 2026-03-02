@@ -1,3 +1,12 @@
+theme:
+  primary color is #6C5CE7
+  secondary color is #00B894
+  danger color is #D63031
+  font is Inter for body and Poppins for headings
+  border radius is smooth on all elements
+  dark mode is supported and toggles from the header
+  spacing is comfortable
+
 page Home:
   show a hero section with the app name and tagline
   show a "Get Started" button
