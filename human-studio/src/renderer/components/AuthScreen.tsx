@@ -9,6 +9,28 @@ export function AuthScreen() {
   const { isLoading, error, setLoading, setError, setUser, setSubscription, setScreen } =
     useAuthStore()
 
+  const isDev = !!(window as any).__VITE_DEV_SERVER_URL || (import.meta as any).env?.DEV
+
+  const handleDevBypass = () => {
+    setUser({
+      id: 'dev-user-001',
+      email: 'dev@humanstudio.local',
+      name: 'Dev User',
+      auth_provider: 'dev',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    setSubscription({
+      id: 'dev-sub-001',
+      user_id: 'dev-user-001',
+      plan: 'pro',
+      status: 'trialing',
+      trial_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: new Date().toISOString(),
+    })
+    setScreen('app')
+  }
+
   const handleOAuth = async (provider: string) => {
     setLoading(true)
     setError(null)
@@ -169,6 +191,34 @@ export function AuthScreen() {
           >
             {error}
           </div>
+        )}
+
+        {/* Dev bypass */}
+        {isDev && (
+          <button
+            onClick={handleDevBypass}
+            style={{
+              padding: '8px 16px',
+              fontSize: 12,
+              color: 'var(--text-dim)',
+              background: 'transparent',
+              border: '1px dashed var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+              transition: 'all 150ms',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--text-muted)'
+              e.currentTarget.style.color = 'var(--text-muted)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border)'
+              e.currentTarget.style.color = 'var(--text-dim)'
+            }}
+          >
+            Continue as Dev User
+          </button>
         )}
 
         {/* Footer */}
