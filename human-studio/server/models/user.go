@@ -7,6 +7,8 @@ type User struct {
 	Email            string    `json:"email"`
 	Name             string    `json:"name"`
 	PasswordHash     string    `json:"-"`
+	AuthProvider     string    `json:"auth_provider"`
+	AuthProviderID   *string   `json:"-"`
 	StripeCustomerID *string   `json:"-"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
@@ -19,6 +21,7 @@ type Subscription struct {
 	Plan                 string     `json:"plan"`
 	Status               string     `json:"status"`
 	CurrentPeriodEnd     *time.Time `json:"current_period_end,omitempty"`
+	TrialEnd             *time.Time `json:"trial_end,omitempty"`
 	CreatedAt            time.Time  `json:"created_at"`
 }
 
@@ -65,4 +68,15 @@ type ProfileUpdate struct {
 type PasswordChange struct {
 	CurrentPassword string `json:"current_password"`
 	NewPassword     string `json:"new_password"`
+}
+
+type OAuthResult struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	User         User   `json:"user"`
+	IsNewUser    bool   `json:"is_new_user"`
+}
+
+type SelectPlanRequest struct {
+	Plan string `json:"plan"`
 }

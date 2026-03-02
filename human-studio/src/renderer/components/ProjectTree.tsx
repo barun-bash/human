@@ -4,6 +4,7 @@ import { useProjectStore } from '../stores/project'
 import { useBuildStore } from '../stores/build'
 import { FileTree } from './FileTree'
 import { Badge } from './ui/Badge'
+import { Button } from './ui/Button'
 import { api } from '../lib/ipc'
 
 interface ProjectTreeProps {
@@ -46,38 +47,43 @@ export function ProjectTree({ onPopOut }: ProjectTreeProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border)]">
-        <span className="text-[10px] font-semibold tracking-wider text-[var(--text-muted)] uppercase">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 12px',
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+          }}
+        >
           Project
         </span>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={handleLinkFolder}
-            className="p-1 text-[var(--text-dim)] hover:text-[var(--text)] rounded transition-colors"
-            title="Link folder"
-          >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <IconBtn onClick={handleLinkFolder} title="Link folder">
             <Link size={12} />
-          </button>
-          <button
-            className="p-1 text-[var(--text-dim)] hover:text-[var(--text)] rounded transition-colors"
-            title="New project"
-          >
+          </IconBtn>
+          <IconBtn title="New project">
             <FolderPlus size={12} />
-          </button>
-          <button
-            onClick={onPopOut}
-            className="p-1 text-[var(--text-dim)] hover:text-[var(--text)] rounded transition-colors"
-            title="Pop out"
-          >
+          </IconBtn>
+          <IconBtn onClick={onPopOut} title="Pop out">
             <ExternalLink size={12} />
-          </button>
+          </IconBtn>
         </div>
       </div>
 
       {/* Tree */}
-      <div className="flex-1 overflow-y-auto py-1">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
         {projectDir ? (
           <FileTree
             files={files}
@@ -86,26 +92,65 @@ export function ProjectTree({ onPopOut }: ProjectTreeProps) {
             onToggle={toggleFolder}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-3 px-4 text-center">
-            <p className="text-xs text-[var(--text-muted)]">
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              gap: 12,
+              padding: '0 16px',
+              textAlign: 'center',
+            }}
+          >
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               Open a project or create a new one
             </p>
-            <button
-              onClick={handleLinkFolder}
-              className="text-xs text-[var(--accent)] hover:underline"
-            >
+            <Button variant="primary" size="sm" onClick={handleLinkFolder}>
+              <FolderPlus size={13} />
               Open folder...
-            </button>
+            </Button>
           </div>
         )}
       </div>
 
       {/* Footer: build status */}
-      <div className="flex items-center px-3 py-1.5 border-t border-[var(--border)]">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '6px 12px',
+          borderTop: '1px solid var(--border)',
+        }}
+      >
         <Badge variant={statusVariant[buildStatus] || 'default'}>
           {statusLabel[buildStatus] || 'Idle'}
         </Badge>
       </div>
     </div>
+  )
+}
+
+function IconBtn({ children, onClick, title }: { children: React.ReactNode; onClick?: () => void; title?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        padding: 4,
+        color: 'var(--text-dim)',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: 'var(--radius-sm)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-dim)' }}
+    >
+      {children}
+    </button>
   )
 }

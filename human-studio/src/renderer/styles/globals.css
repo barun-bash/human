@@ -1,46 +1,5 @@
 @import 'tailwindcss';
 
-/* ── Fonts ── */
-@font-face {
-  font-family: 'Nunito';
-  src: url('../../resources/fonts/Nunito-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Nunito Sans';
-  src: url('../../resources/fonts/NunitoSans-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Nunito Sans';
-  src: url('../../resources/fonts/NunitoSans-SemiBold.woff2') format('woff2');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Nunito Sans';
-  src: url('../../resources/fonts/NunitoSans-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'JetBrains Mono';
-  src: url('../../resources/fonts/JetBrainsMono-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
 /* ── Theme Tokens ── */
 :root {
   /* Core brand */
@@ -91,8 +50,6 @@
   --space-md: 16px;
   --space-lg: 24px;
   --space-xl: 32px;
-  --space-2xl: 48px;
-  --space-3xl: 64px;
 
   /* Radii */
   --radius-sm: 8px;
@@ -100,10 +57,10 @@
   --radius-lg: 24px;
 
   /* Typography */
-  --font-logo: 'Nunito', 'Rounded Mplus 1c', sans-serif;
+  --font-logo: 'Nunito', system-ui, sans-serif;
   --font-heading: 'Nunito Sans', system-ui, sans-serif;
   --font-body: 'Nunito Sans', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
 }
 
 /* Light theme */
@@ -139,36 +96,21 @@ html, body, #root {
   font-size: 13px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 /* macOS title bar drag area */
 .titlebar-drag {
   -webkit-app-region: drag;
 }
-
 .titlebar-no-drag {
   -webkit-app-region: no-drag;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--text-dim);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* Focus ring */
 :focus-visible {
@@ -176,28 +118,16 @@ html, body, #root {
   outline-offset: 2px;
 }
 
-/* Selection */
-::selection {
-  background: var(--accent-dim);
-  color: var(--text-bright);
-}
-
-/* Blinking cursor animation for logo */
+/* Blinking cursor for logo */
 @keyframes blink {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0; }
 }
-
 .cursor-blink {
   animation: blink 1.2s step-end infinite;
 }
 
-/* Transitions */
-.transition-colors {
-  transition: color 150ms, background-color 150ms, border-color 150ms;
-}
-
-/* Panel resize handle */
+/* Resize handle */
 .resize-handle {
   width: 1px;
   cursor: col-resize;
@@ -206,17 +136,12 @@ html, body, #root {
   flex-shrink: 0;
   position: relative;
 }
-
 .resize-handle::after {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -3px;
-  right: -3px;
+  top: 0; bottom: 0;
+  left: -3px; right: -3px;
 }
-
-.resize-handle:hover,
-.resize-handle.active {
+.resize-handle:hover, .resize-handle.active {
   background: var(--accent);
 }

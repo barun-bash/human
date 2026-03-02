@@ -36,14 +36,29 @@ export function BuildPanel() {
   }, [output])
 
   return (
-    <div className="border-t border-[var(--border)]">
+    <div style={{ borderTop: '1px solid var(--border)' }}>
       {/* Toggle header */}
       <button
         onClick={toggleBuildPanel}
-        className="w-full flex items-center gap-2 px-4 py-1.5 hover:bg-[var(--bg-hover)] transition-colors"
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '6px 16px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--text-muted)',
+          fontFamily: 'var(--font-body)',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
       >
         {buildPanelOpen ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
-        <span className="text-xs font-medium text-[var(--text-muted)]">Build Output</span>
+        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)' }}>
+          Build Output
+        </span>
         <Badge variant={statusVariant[status] || 'default'}>
           {statusLabel[status] || 'Ready'}
         </Badge>
@@ -51,17 +66,34 @@ export function BuildPanel() {
 
       {/* Terminal output */}
       {buildPanelOpen && (
-        <div className="h-48 bg-[var(--bg)] overflow-hidden">
+        <div style={{ height: 192, background: 'var(--bg)', overflow: 'hidden' }}>
           {output ? (
             <pre
               ref={outputRef}
-              className="h-full overflow-auto p-3 text-xs leading-relaxed text-[var(--text-muted)]"
-              style={{ fontFamily: 'var(--font-mono)' }}
+              style={{
+                height: '100%',
+                overflow: 'auto',
+                padding: 12,
+                fontSize: 12,
+                lineHeight: 1.6,
+                color: 'var(--text-muted)',
+                fontFamily: 'var(--font-mono)',
+                margin: 0,
+              }}
             >
               {output}
             </pre>
           ) : (
-            <div className="h-full flex items-center justify-center text-xs text-[var(--text-dim)]">
+            <div
+              style={{
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 12,
+                color: 'var(--text-dim)',
+              }}
+            >
               Check, Build, or Run your project
             </div>
           )}

@@ -21,49 +21,77 @@ export function OutputViewer({ onPopOut }: OutputViewerProps) {
   const totalFiles = Object.values(fileCounts).reduce((a, b) => a + b, 0)
 
   return (
-    <div className="flex flex-col h-full">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border)]">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-semibold tracking-wider text-[var(--text-muted)] uppercase">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 12px',
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+            }}
+          >
             Generated Output
           </span>
           {totalFiles > 0 && (
             <Badge variant="default">{totalFiles} files</Badge>
           )}
         </div>
-        <button
-          onClick={onPopOut}
-          className="p-1 text-[var(--text-dim)] hover:text-[var(--text)] rounded transition-colors"
-          title="Pop out"
-        >
+        <IconBtn onClick={onPopOut} title="Pop out">
           <ExternalLink size={12} />
-        </button>
+        </IconBtn>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div style={{ flex: 1, overflowY: 'auto' }}>
         {selectedOutputFile && selectedOutputContent !== null ? (
-          <div className="flex flex-col h-full">
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             {/* File preview header */}
-            <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--border)]">
-              <button
-                onClick={() => setSelectedOutputFile(null)}
-                className="p-0.5 text-[var(--text-dim)] hover:text-[var(--text)] rounded transition-colors"
-              >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 12px',
+                borderBottom: '1px solid var(--border)',
+              }}
+            >
+              <IconBtn onClick={() => setSelectedOutputFile(null)}>
                 <ArrowLeft size={12} />
-              </button>
-              <span className="text-xs text-[var(--text)]">
+              </IconBtn>
+              <span style={{ fontSize: 12, color: 'var(--text)' }}>
                 {selectedOutputFile.split('/').pop()}
               </span>
             </div>
             {/* Code preview */}
-            <pre className="flex-1 overflow-auto p-3 text-xs leading-relaxed" style={{ fontFamily: 'var(--font-mono)' }}>
+            <pre
+              style={{
+                flex: 1,
+                overflow: 'auto',
+                padding: 12,
+                fontSize: 12,
+                lineHeight: 1.6,
+                fontFamily: 'var(--font-mono)',
+                margin: 0,
+                color: 'var(--text)',
+              }}
+            >
               {selectedOutputContent}
             </pre>
           </div>
         ) : outputFiles.length > 0 ? (
-          <div className="py-1">
+          <div style={{ padding: '4px 0' }}>
             <FileTree
               files={outputFiles.map((f) => ({
                 ...f,
@@ -72,15 +100,25 @@ export function OutputViewer({ onPopOut }: OutputViewerProps) {
               }))}
               activeFile={null}
               onSelect={async (path) => {
-                // TODO: read file content and show preview
                 setSelectedOutputFile(path, '// Loading...')
               }}
               onToggle={(path) => toggleOutputFolder(path)}
             />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-4">
-            <p className="text-xs text-[var(--text-muted)]">
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              gap: 8,
+              textAlign: 'center',
+              padding: '0 16px',
+            }}
+          >
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               Run a build to see generated code
             </p>
           </div>
@@ -89,7 +127,15 @@ export function OutputViewer({ onPopOut }: OutputViewerProps) {
 
       {/* Footer: stack badges */}
       {Object.keys(fileCounts).length > 0 && (
-        <div className="flex flex-wrap gap-1.5 px-3 py-1.5 border-t border-[var(--border)]">
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 6,
+            padding: '6px 12px',
+            borderTop: '1px solid var(--border)',
+          }}
+        >
           {Object.entries(fileCounts).map(([stack, count]) => (
             <Badge key={stack} variant="default">
               {stack} {count}
@@ -98,5 +144,28 @@ export function OutputViewer({ onPopOut }: OutputViewerProps) {
         </div>
       )}
     </div>
+  )
+}
+
+function IconBtn({ children, onClick, title }: { children: React.ReactNode; onClick?: () => void; title?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        padding: 4,
+        color: 'var(--text-dim)',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: 'var(--radius-sm)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-dim)' }}
+    >
+      {children}
+    </button>
   )
 }

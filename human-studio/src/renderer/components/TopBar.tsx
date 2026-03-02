@@ -1,7 +1,6 @@
 import React from 'react'
 import {
   GitBranch,
-  Bot,
   Play,
   Square,
   Hammer,
@@ -9,26 +8,15 @@ import {
   Rocket,
   Sun,
   Moon,
+  ChevronDown,
 } from 'lucide-react'
 import { Button } from './ui/Button'
 import { Badge } from './ui/Badge'
-import { Dropdown } from './ui/Dropdown'
 import { Avatar } from './ui/Avatar'
 import { useProjectStore } from '../stores/project'
 import { useSettingsStore } from '../stores/settings'
 import { useBuildStore } from '../stores/build'
-
-const LLM_PROVIDERS = [
-  { label: 'Anthropic Claude', value: 'anthropic' },
-  { label: 'OpenAI GPT-4', value: 'openai' },
-  { label: 'Google Gemini', value: 'gemini' },
-  { label: 'Ollama (Local)', value: 'ollama' },
-  { label: 'Groq', value: 'groq' },
-  { label: 'OpenRouter', value: 'openrouter' },
-  { label: 'Custom', value: 'custom' },
-  { label: '', value: '', divider: true },
-  { label: 'Configure API Keys...', value: '__configure__' },
-]
+import { useAuthStore } from '../stores/auth'
 
 interface TopBarProps {
   onCheck: () => void
@@ -52,119 +40,123 @@ export function TopBar({
   const projectName = useProjectStore((s) => s.projectName)
   const { llmProvider, setLLMProvider, theme, toggleTheme } = useSettingsStore()
   const buildStatus = useBuildStore((s) => s.status)
+  const userName = useAuthStore((s) => s.user?.name)
 
   const isRunning = buildStatus === 'checking' || buildStatus === 'building' || buildStatus === 'running' || buildStatus === 'deploying'
 
+  const isMac = navigator.platform.includes('Mac')
+
   return (
     <div
-      className="h-12 flex items-center px-4 gap-3 border-b border-[var(--border)] bg-[var(--bg-raised)] titlebar-drag"
-      style={{ flexShrink: 0 }}
+      className="titlebar-drag"
+      style={{
+        height: 48,
+        display: 'flex',
+        alignItems: 'center',
+        paddingLeft: isMac ? 80 : 16, // Leave space for macOS traffic lights
+        paddingRight: 16,
+        gap: 12,
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--bg-raised)',
+        flexShrink: 0,
+      }}
     >
       {/* Left: Logo + Project */}
-      <div className="flex items-center gap-3 titlebar-no-drag">
+      <div className="titlebar-no-drag" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {/* Logo */}
-        <div className="flex items-center gap-1.5">
-          <svg width="28" height="28" viewBox="0 0 120 120">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <svg width="24" height="24" viewBox="0 0 120 120">
             <rect width="120" height="120" rx="24" fill="#0D0D0D" />
-            <text
-              x="24"
-              y="84"
-              fontFamily="Nunito, sans-serif"
-              fontWeight="700"
-              fontSize="72"
-              letterSpacing="-1"
-            >
+            <text x="24" y="84" fontFamily="Nunito, sans-serif" fontWeight="700" fontSize="72" letterSpacing="-1">
               <tspan fill="#F5F5F3">h</tspan>
               <tspan fill="#E85D3A" className="cursor-blink">_</tspan>
             </text>
           </svg>
-          <span
-            className="text-[15px] font-bold text-[var(--text-bright)]"
-            style={{ fontFamily: 'var(--font-logo)' }}
-          >
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-bright)', fontFamily: 'var(--font-logo)' }}>
             Human
           </span>
           <Badge variant="default">v0.1</Badge>
         </div>
 
         {/* Divider */}
-        <div className="w-px h-5 bg-[var(--border)]" />
+        <div style={{ width: 1, height: 20, background: 'var(--border)' }} />
 
         {/* Project name */}
-        <span className="text-xs text-[var(--text-muted)] truncate max-w-[150px]">
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {projectName || 'No project'}
         </span>
       </div>
 
-      {/* Center: spacer */}
-      <div className="flex-1" />
+      {/* Center spacer */}
+      <div style={{ flex: 1 }} />
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-2 titlebar-no-drag">
+      <div className="titlebar-no-drag" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {/* Git */}
         <Button variant="ghost" size="sm">
           <GitBranch size={14} />
-          <span className="text-xs">main</span>
+          main
         </Button>
 
         {/* LLM Provider */}
-        <Dropdown
-          items={LLM_PROVIDERS}
-          value={llmProvider}
-          onChange={(v) => {
-            if (v === '__configure__') {
-              onConfigureKeys()
-            } else {
-              setLLMProvider(v)
-            }
-          }}
-          align="right"
-        />
+        <Button variant="ghost" size="sm">
+          {llmProvider === 'anthropic' ? 'Anthropic Claude' : llmProvider}
+          <ChevronDown size={12} />
+        </Button>
 
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text)] rounded-[var(--radius-sm)] hover:bg-[var(--bg-hover)] transition-colors"
+          style={{
+            padding: 6,
+            color: 'var(--text-muted)',
+            background: 'transparent',
+            border: 'none',
+            borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+          }}
           title="Toggle theme"
         >
-          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
         </button>
 
         {/* Divider */}
-        <div className="w-px h-5 bg-[var(--border)]" />
+        <div style={{ width: 1, height: 20, background: 'var(--border)' }} />
 
         {/* Check / Build / Run / Deploy / Stop */}
         {isRunning ? (
           <Button variant="danger" size="sm" onClick={onStop}>
-            <Square size={12} />
+            <Square size={13} />
             Stop
           </Button>
         ) : (
           <>
             <Button variant="info" size="sm" onClick={onCheck}>
-              <CheckCircle size={12} />
+              <CheckCircle size={13} />
               Check
             </Button>
             <Button variant="primary" size="sm" onClick={onBuild}>
-              <Hammer size={12} />
+              <Hammer size={13} />
               Build
             </Button>
             <Button variant="success" size="sm" onClick={onRun}>
-              <Play size={12} />
+              <Play size={13} />
               Run
             </Button>
             <Button variant="ghost" size="sm" onClick={onDeploy} title="Deploy with Docker">
-              <Rocket size={12} />
+              <Rocket size={13} />
             </Button>
           </>
         )}
 
         {/* Divider */}
-        <div className="w-px h-5 bg-[var(--border)]" />
+        <div style={{ width: 1, height: 20, background: 'var(--border)' }} />
 
         {/* Avatar */}
-        <button onClick={onOpenProfile} className="titlebar-no-drag">
-          <Avatar name="User" size={28} />
+        <button onClick={onOpenProfile} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+          <Avatar name={userName || 'User'} size={28} />
         </button>
       </div>
     </div>

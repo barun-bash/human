@@ -4,6 +4,7 @@ import { ProjectService } from './services/project'
 import { GitService } from './services/git'
 import { LLMService } from './services/llm'
 import { DockerService } from './services/docker'
+import { AuthService } from './services/auth'
 import { createPopOutWindow } from './window'
 
 export function registerIpcHandlers(mainWindow: BrowserWindow) {
@@ -12,6 +13,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   const git = new GitService()
   const llm = new LLMService()
   const docker = new DockerService()
+  const authService = new AuthService()
+  authService.setMainWindow(mainWindow)
 
   // ── Project ──
   ipcMain.handle('project:open-dialog', async () => {
@@ -169,5 +172,38 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
   ipcMain.handle('shell:open-path', async (_e, path: string) => {
     return shell.openPath(path)
+  })
+
+  // ── Auth ──
+  ipcMain.handle('auth:get-stored', async () => {
+    return authService.getStoredAuth()
+  })
+
+  ipcMain.handle('auth:oauth', async (_e, provider: string) => {
+    return authService.startOAuth(provider)
+  })
+
+  ipcMain.handle('auth:validate', async () => {
+    return authService.validateSession()
+  })
+
+  ipcMain.handle('auth:refresh', async () => {
+    return authService.refreshTokens()
+  })
+
+  ipcMain.handle('auth:get-profile', async () => {
+    return authService.getProfile()
+  })
+
+  ipcMain.handle('auth:get-subscription', async () => {
+    return authService.getSubscription()
+  })
+
+  ipcMain.handle('auth:select-plan', async (_e, plan: string) => {
+    return authService.selectPlan(plan)
+  })
+
+  ipcMain.handle('auth:logout', async () => {
+    return authService.logout()
   })
 }

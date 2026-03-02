@@ -3,10 +3,9 @@ import React from 'react'
 interface AvatarProps {
   name?: string
   size?: number
-  className?: string
 }
 
-export function Avatar({ name = '', size = 28, className = '' }: AvatarProps) {
+export function Avatar({ name = '', size = 28 }: AvatarProps) {
   const initials = name
     .split(' ')
     .map((w) => w[0])
@@ -16,8 +15,14 @@ export function Avatar({ name = '', size = 28, className = '' }: AvatarProps) {
 
   return (
     <div
-      className={`inline-flex items-center justify-center rounded-full bg-[var(--accent)] text-white font-semibold ${className}`}
       style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '50%',
+        background: 'var(--accent)',
+        color: '#fff',
+        fontWeight: 600,
         width: size,
         height: size,
         fontSize: size * 0.4,

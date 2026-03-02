@@ -2,6 +2,8 @@ import React from 'react'
 import { X, User, Key, Plug, CreditCard, LogOut, Trash2 } from 'lucide-react'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
+import { useAuthStore } from '../stores/auth'
+import { api } from '../lib/ipc'
 
 interface ProfilePanelProps {
   open: boolean
@@ -17,76 +19,125 @@ const MCP_SERVICES = [
 ]
 
 export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
+  const { user, subscription, logout } = useAuthStore()
+
+  const handleLogout = () => {
+    api.auth.logout()
+    logout()
+    onClose()
+  }
+
   if (!open) return null
 
   return (
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 z-40 bg-black/30"
         onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 40,
+          background: 'rgba(0,0,0,0.3)',
+        }}
       />
 
       {/* Panel */}
-      <div className="fixed top-0 right-0 bottom-0 z-50 w-[360px] bg-[var(--bg-raised)] border-l border-[var(--border)] shadow-[0_0_48px_rgba(0,0,0,0.3)] overflow-y-auto">
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 50,
+          width: 360,
+          background: 'var(--bg-raised)',
+          borderLeft: '1px solid var(--border)',
+          boxShadow: '0 0 48px rgba(0,0,0,0.3)',
+          overflowY: 'auto',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 24px',
+            borderBottom: '1px solid var(--border)',
+          }}
+        >
           <h2
-            className="text-base font-semibold text-[var(--text-bright)]"
-            style={{ fontFamily: 'var(--font-heading)' }}
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: 'var(--text-bright)',
+              fontFamily: 'var(--font-heading)',
+              margin: 0,
+            }}
           >
             Profile
           </h2>
           <button
             onClick={onClose}
-            className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] rounded transition-colors"
+            style={{
+              padding: 4,
+              color: 'var(--text-muted)',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: 'var(--radius-sm)',
+              cursor: 'pointer',
+              display: 'flex',
+            }}
           >
             <X size={16} />
           </button>
         </div>
 
-        <div className="p-6 space-y-8">
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 32 }}>
           {/* User Profile */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-bright)]">
-              <User size={14} />
-              User Profile
-            </div>
-            <Input label="Name" placeholder="Your name" />
-            <Input label="Email" type="email" placeholder="you@example.com" />
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <SectionHeader icon={<User size={14} />} title="User Profile" />
+            <Input label="Name" placeholder="Your name" defaultValue={user?.name || ''} />
+            <Input label="Email" type="email" placeholder="you@example.com" defaultValue={user?.email || ''} />
             <Button variant="primary" size="sm">Save changes</Button>
           </section>
 
           {/* Password */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-bright)]">
-              <Key size={14} />
-              Password
-            </div>
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <SectionHeader icon={<Key size={14} />} title="Password" />
             <Input label="Current password" type="password" />
             <Input label="New password" type="password" />
             <Button variant="secondary" size="sm">Reset password</Button>
           </section>
 
           {/* MCP Connections */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-bright)]">
-              <Plug size={14} />
-              MCP Connections
-            </div>
-            <div className="space-y-2">
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <SectionHeader icon={<Plug size={14} />} title="MCP Connections" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {MCP_SERVICES.map((svc) => (
                 <div
                   key={svc.name}
-                  className="flex items-center justify-between py-2 px-3 bg-[var(--bg-surface)] rounded-[var(--radius-sm)] border border-[var(--border)]"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    background: 'var(--bg-surface)',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border)',
+                  }}
                 >
-                  <div className="flex items-center gap-2">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span
-                      className={`w-2 h-2 rounded-full ${
-                        svc.connected ? 'bg-[var(--success)]' : 'bg-[var(--text-dim)]'
-                      }`}
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: svc.connected ? 'var(--success)' : 'var(--text-dim)',
+                      }}
                     />
-                    <span className="text-xs text-[var(--text)]">{svc.name}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text)' }}>{svc.name}</span>
                   </div>
                   <Button variant="ghost" size="sm">
                     {svc.connected ? 'Disconnect' : 'Connect'}
@@ -97,37 +148,101 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
           </section>
 
           {/* Subscription */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-bright)]">
-              <CreditCard size={14} />
-              Subscription
-            </div>
-            <div className="p-3 bg-[var(--bg-surface)] rounded-[var(--radius-sm)] border border-[var(--border)]">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-[var(--text)]">Free Plan</span>
-                <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-[var(--success)] text-white rounded">
-                  Active
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <SectionHeader icon={<CreditCard size={14} />} title="Subscription" />
+            <div
+              style={{
+                padding: 12,
+                background: 'var(--bg-surface)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)' }}>
+                  {subscription?.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                </span>
+                <span
+                  style={{
+                    padding: '2px 6px',
+                    fontSize: 9,
+                    fontWeight: 600,
+                    background: subscription?.status === 'trialing' ? 'var(--info)' : 'var(--success)',
+                    color: '#fff',
+                    borderRadius: 4,
+                  }}
+                >
+                  {subscription?.status === 'trialing' ? 'Trial' : 'Active'}
                 </span>
               </div>
-              <p className="text-[10px] text-[var(--text-dim)] mt-1">
-                Upgrade for team features and cloud deployments
+              <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 4 }}>
+                {subscription?.plan === 'pro'
+                  ? subscription?.status === 'trialing' && subscription?.trial_end
+                    ? `Trial ends ${new Date(subscription.trial_end).toLocaleDateString()}`
+                    : 'Pro plan active'
+                  : 'Upgrade for team features and cloud deployments'}
               </p>
             </div>
           </section>
 
           {/* Danger zone */}
-          <section className="space-y-3 pt-4 border-t border-[var(--border)]">
-            <button className="flex items-center gap-2 text-xs text-[var(--text-muted)] hover:text-[var(--error)] transition-colors">
-              <LogOut size={12} />
-              Logout
-            </button>
-            <button className="flex items-center gap-2 text-xs text-[var(--text-dim)] hover:text-[var(--error)] transition-colors">
-              <Trash2 size={12} />
-              Delete account
-            </button>
+          <section
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+              paddingTop: 16,
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            <DangerButton icon={<LogOut size={12} />} label="Logout" onClick={handleLogout} />
+            <DangerButton icon={<Trash2 size={12} />} label="Delete account" />
           </section>
         </div>
       </div>
     </>
+  )
+}
+
+function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        fontSize: 13,
+        fontWeight: 600,
+        color: 'var(--text-bright)',
+      }}
+    >
+      {icon}
+      {title}
+    </div>
+  )
+}
+
+function DangerButton({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        fontSize: 12,
+        color: 'var(--text-muted)',
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        padding: 0,
+        fontFamily: 'var(--font-body)',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--error)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
+    >
+      {icon}
+      {label}
+    </button>
   )
 }

@@ -38,8 +38,21 @@ func main() {
 	}
 
 	// Services
-	authService := auth.NewService(db, os.Getenv("JWT_SECRET"))
-	billingService := billing.NewService(os.Getenv("STRIPE_SECRET_KEY"))
+	oauthConfig := auth.OAuthConfig{
+		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		SlackClientID:      os.Getenv("SLACK_CLIENT_ID"),
+		SlackClientSecret:  os.Getenv("SLACK_CLIENT_SECRET"),
+		OutlookClientID:    os.Getenv("OUTLOOK_CLIENT_ID"),
+		OutlookClientSecret: os.Getenv("OUTLOOK_CLIENT_SECRET"),
+		RedirectBaseURL:    os.Getenv("OAUTH_REDIRECT_BASE_URL"),
+	}
+	if oauthConfig.RedirectBaseURL == "" {
+		oauthConfig.RedirectBaseURL = "http://localhost:8080"
+	}
+
+	authService := auth.NewService(db, os.Getenv("JWT_SECRET"), oauthConfig)
+	billingService := billing.NewService(db, os.Getenv("STRIPE_SECRET_KEY"))
 
 	// Router
 	mux := http.NewServeMux()
@@ -56,6 +69,10 @@ func main() {
 	mux.HandleFunc("POST /api/auth/refresh", handlers.RefreshToken(authService))
 	mux.HandleFunc("POST /api/auth/reset-password", handlers.ResetPassword(authService))
 
+	// OAuth routes (public)
+	mux.HandleFunc("GET /api/auth/oauth/{provider}/start", handlers.OAuthStart(authService))
+	mux.HandleFunc("GET /api/auth/oauth/{provider}/callback", handlers.OAuthCallback(authService))
+
 	// Protected routes
 	protected := middleware.Auth(authService)
 
@@ -67,6 +84,7 @@ func main() {
 	// Billing routes (protected)
 	mux.Handle("GET /api/billing/subscription", protected(http.HandlerFunc(handlers.GetSubscription(billingService))))
 	mux.Handle("POST /api/billing/checkout", protected(http.HandlerFunc(handlers.CreateCheckout(billingService))))
+	mux.Handle("POST /api/billing/select-plan", protected(http.HandlerFunc(handlers.SelectPlan(billingService))))
 	mux.Handle("GET /api/billing/history", protected(http.HandlerFunc(handlers.GetBillingHistory(billingService))))
 	mux.Handle("PUT /api/billing/payment-method", protected(http.HandlerFunc(handlers.UpdatePaymentMethod(billingService))))
 
@@ -139,6 +157,12 @@ func runMigrations(db *sql.DB) error {
 			expires_at TIMESTAMPTZ NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		)`,
+
+		// OAuth support migrations
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider TEXT NOT NULL DEFAULT 'email'`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider_id TEXT`,
+		`DO $$ BEGIN ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL; EXCEPTION WHEN others THEN NULL; END $$`,
+		`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS trial_end TIMESTAMPTZ`,
 	}
 
 	for _, m := range migrations {

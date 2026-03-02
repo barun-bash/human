@@ -6,6 +6,8 @@ import { HumanEditor } from './components/HumanEditor'
 import { OutputViewer } from './components/OutputViewer'
 import { BuildPanel } from './components/BuildPanel'
 import { ProfilePanel } from './components/ProfilePanel'
+import { AuthScreen } from './components/AuthScreen'
+import { PlanSelector } from './components/PlanSelector'
 import { ResizeHandle } from './components/ResizeHandle'
 import { ToastContainer, showToast } from './components/ui/Toast'
 import { useResize } from './hooks/useResize'
@@ -14,11 +16,55 @@ import { useSettingsStore } from './stores/settings'
 import { useProjectStore } from './stores/project'
 import { useBuildStore } from './stores/build'
 import { useEditorStore } from './stores/editor'
+import { useAuthStore } from './stores/auth'
 import { api } from './lib/ipc'
 
 export function App() {
   const [profileOpen, setProfileOpen] = useState(false)
+  const { screen, setScreen, setUser, setSubscription, logout } = useAuthStore()
   useTheme()
+
+  // Auth: check stored tokens on startup
+  useEffect(() => {
+    if (!api) return
+    ;(async () => {
+      try {
+        const stored = await api.auth.getStored()
+        if (stored?.auth?.accessToken) {
+          // Validate tokens
+          const valid = await api.auth.validate()
+          if (valid) {
+            setUser(stored.auth.user)
+            if (stored.subscription) {
+              setSubscription(stored.subscription)
+            } else {
+              try {
+                const sub = await api.auth.getSubscription()
+                setSubscription(sub)
+              } catch {
+                // Non-fatal
+              }
+            }
+            setScreen('app')
+            return
+          }
+        }
+      } catch {
+        // No stored auth or validation failed
+      }
+      setScreen('auth')
+    })()
+  }, [])
+
+  // Listen for session expiry from main process
+  useEffect(() => {
+    if (!api) return
+    const cleanup = api.on('auth:session-expired', () => {
+      logout()
+      showToast('warning', 'Session expired. Please log in again.')
+    })
+    return cleanup
+  }, [logout])
 
   const { columnWidths, setColumnWidth, sidebarVisible } = useSettingsStore()
   const projectDir = useProjectStore((s) => s.projectDir)
@@ -214,8 +260,44 @@ export function App() {
     })
   })
 
+  // Auth gating
+  if (screen === 'loading') {
+    return (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <svg width="48" height="48" viewBox="0 0 120 120">
+            <rect width="120" height="120" rx="24" fill="#0D0D0D" />
+            <text x="24" y="84" fontFamily="Nunito, sans-serif" fontWeight="700" fontSize="72" letterSpacing="-1">
+              <tspan fill="#F5F5F3">h</tspan>
+              <tspan fill="#E85D3A">_</tspan>
+            </text>
+          </svg>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (screen === 'auth') {
+    return (
+      <>
+        <AuthScreen />
+        <ToastContainer />
+      </>
+    )
+  }
+
+  if (screen === 'plan-select') {
+    return (
+      <>
+        <PlanSelector />
+        <ToastContainer />
+      </>
+    )
+  }
+
   return (
-    <div className="h-full flex flex-col bg-[var(--bg)]">
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
       {/* Top Bar */}
       <TopBar
         onCheck={handleCheck}
@@ -228,11 +310,18 @@ export function App() {
       />
 
       {/* Main content area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {/* Column 1: Project Tree */}
         {sidebarVisible && (
           <>
-            <div style={{ width: columnWidths.project, flexShrink: 0 }} className="bg-[var(--bg-raised)] overflow-hidden">
+            <div
+              style={{
+                width: columnWidths.project,
+                flexShrink: 0,
+                background: 'var(--bg-raised)',
+                overflow: 'hidden',
+              }}
+            >
               <ProjectTree onPopOut={() => handlePopOut('project')} />
             </div>
             <ResizeHandle
@@ -243,7 +332,14 @@ export function App() {
         )}
 
         {/* Column 2: Prompt Chat */}
-        <div style={{ width: columnWidths.prompt, flexShrink: 0 }} className="bg-[var(--bg-raised)] overflow-hidden">
+        <div
+          style={{
+            width: columnWidths.prompt,
+            flexShrink: 0,
+            background: 'var(--bg-raised)',
+            overflow: 'hidden',
+          }}
+        >
           <PromptChat onPopOut={() => handlePopOut('prompt')} />
         </div>
         <ResizeHandle
@@ -252,7 +348,14 @@ export function App() {
         />
 
         {/* Column 3: Editor (flex) */}
-        <div className="flex-1 min-w-[280px] overflow-hidden bg-[var(--bg)]">
+        <div
+          style={{
+            flex: 1,
+            minWidth: 280,
+            overflow: 'hidden',
+            background: 'var(--bg)',
+          }}
+        >
           <HumanEditor onPopOut={() => handlePopOut('editor')} />
         </div>
         <ResizeHandle
@@ -261,7 +364,14 @@ export function App() {
         />
 
         {/* Column 4: Output */}
-        <div style={{ width: columnWidths.output, flexShrink: 0 }} className="bg-[var(--bg-raised)] overflow-hidden">
+        <div
+          style={{
+            width: columnWidths.output,
+            flexShrink: 0,
+            background: 'var(--bg-raised)',
+            overflow: 'hidden',
+          }}
+        >
           <OutputViewer onPopOut={() => handlePopOut('output')} />
         </div>
       </div>

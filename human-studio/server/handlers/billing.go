@@ -53,6 +53,31 @@ func GetBillingHistory(svc *billing.Service) http.HandlerFunc {
 	}
 }
 
+func SelectPlan(svc *billing.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := middleware.GetUserID(r)
+		var body struct {
+			Plan string `json:"plan"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			jsonError(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if body.Plan == "" {
+			jsonError(w, "plan is required", http.StatusBadRequest)
+			return
+		}
+
+		sub, err := svc.SelectPlan(userID, body.Plan)
+		if err != nil {
+			jsonError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		jsonResponse(w, sub, http.StatusOK)
+	}
+}
+
 func UpdatePaymentMethod(svc *billing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// TODO: Update payment method via Stripe

@@ -6,36 +6,55 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode
 }
 
-const variantStyles: Record<string, string> = {
-  primary: 'bg-[var(--accent)] text-white hover:bg-[var(--accent-dark)]',
-  secondary: 'bg-[var(--bg-surface)] text-[var(--text)] border border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]',
-  ghost: 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)]',
-  danger: 'bg-[var(--error)] text-white hover:opacity-90',
-  success: 'bg-[var(--success)] text-white hover:opacity-90',
-  info: 'bg-[var(--info)] text-white hover:opacity-90',
+const variantStyles: Record<string, React.CSSProperties> = {
+  primary: { background: 'var(--accent)', color: '#fff' },
+  secondary: { background: 'var(--bg-surface)', color: 'var(--text)', border: '1px solid var(--border)' },
+  ghost: { background: 'transparent', color: 'var(--text-muted)' },
+  danger: { background: 'var(--error)', color: '#fff' },
+  success: { background: 'var(--success)', color: '#fff' },
+  info: { background: 'var(--info)', color: '#fff' },
 }
 
-const sizeStyles: Record<string, string> = {
-  sm: 'px-2 py-1 text-xs gap-1',
-  md: 'px-3 py-1.5 text-sm gap-1.5',
-  lg: 'px-4 py-2 text-sm gap-2',
+const sizeStyles: Record<string, React.CSSProperties> = {
+  sm: { padding: '4px 10px', fontSize: '12px', gap: '5px' },
+  md: { padding: '6px 14px', fontSize: '13px', gap: '6px' },
+  lg: { padding: '8px 18px', fontSize: '13px', gap: '8px' },
 }
 
 export function Button({
   variant = 'secondary',
   size = 'md',
-  className = '',
+  style,
   children,
+  disabled,
   ...props
 }: ButtonProps) {
   return (
     <button
-      className={`
-        inline-flex items-center justify-center font-medium
-        rounded-[var(--radius-sm)] transition-colors duration-150
-        disabled:opacity-50 disabled:pointer-events-none
-        ${variantStyles[variant]} ${sizeStyles[size]} ${className}
-      `}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 600,
+        borderRadius: 'var(--radius-sm)',
+        border: 'none',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        transition: 'opacity 150ms, filter 150ms',
+        fontFamily: 'var(--font-body)',
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+        ...variantStyles[variant],
+        ...sizeStyles[size],
+        ...style,
+      }}
+      disabled={disabled}
+      onMouseEnter={(e) => {
+        if (!disabled) (e.currentTarget.style.filter = 'brightness(1.1)')
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget.style.filter = '')
+      }}
       {...props}
     >
       {children}

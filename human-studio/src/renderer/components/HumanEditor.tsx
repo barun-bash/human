@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection } from '@codemirror/view'
 import { EditorState, Compartment } from '@codemirror/state'
@@ -139,83 +139,85 @@ export function HumanEditor({ onPopOut }: HumanEditorProps) {
   }, [])
 
   return (
-    <div className="flex flex-col h-full">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Tab bar for open files */}
-      <div className="flex items-center border-b border-[var(--border)] bg-[var(--bg-raised)]">
-        <div className="flex-1 flex items-center overflow-x-auto">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--bg-raised)',
+        }}
+      >
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', overflowX: 'auto' }}>
           {openFiles.map((filePath) => {
             const name = filePath.split('/').pop() || filePath.split('\\').pop() || filePath
             const isActive = filePath === activeFile
             const isUnsaved = unsavedFiles.has(filePath)
 
             return (
-              <button
+              <FileTabButton
                 key={filePath}
+                name={name}
+                isActive={isActive}
+                isUnsaved={isUnsaved}
+                isHuman={name.endsWith('.human')}
                 onClick={() => setActiveFile(filePath)}
-                className={`
-                  flex items-center gap-1.5 px-3 py-1.5 text-xs border-r border-[var(--border)]
-                  transition-colors shrink-0
-                  ${isActive
-                    ? 'bg-[var(--bg)] text-[var(--text-bright)]'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)]'
-                  }
-                `}
-                style={isActive ? { borderBottom: '2px solid var(--accent)' } : undefined}
-              >
-                <span style={{ color: name.endsWith('.human') ? 'var(--accent)' : undefined }}>
-                  {name}
-                </span>
-                {isUnsaved && <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]" />}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    closeFile(filePath)
-                  }}
-                  className="ml-1 text-[var(--text-dim)] hover:text-[var(--text)] text-xs"
-                >
-                  &times;
-                </button>
-              </button>
+                onClose={() => closeFile(filePath)}
+              />
             )
           })}
         </div>
 
         {/* Editor/IR/Changes tabs */}
-        <div className="flex items-center gap-px px-2 shrink-0">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 1, padding: '0 8px', flexShrink: 0 }}>
           {TABS.map((tab) => (
-            <button
+            <EditorTabButton
               key={tab.id}
+              label={tab.label}
+              isActive={activeTab === tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`
-                px-2 py-1 text-[10px] rounded-[var(--radius-sm)] transition-colors
-                ${activeTab === tab.id
-                  ? 'bg-[var(--bg-surface)] text-[var(--text-bright)]'
-                  : 'text-[var(--text-dim)] hover:text-[var(--text-muted)]'
-                }
-              `}
-            >
-              {tab.label}
-            </button>
+            />
           ))}
         </div>
 
         <button
           onClick={onPopOut}
-          className="p-1.5 text-[var(--text-dim)] hover:text-[var(--text)] rounded transition-colors mr-2"
           title="Pop out"
+          style={{
+            padding: 6,
+            color: 'var(--text-dim)',
+            background: 'transparent',
+            border: 'none',
+            borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer',
+            display: 'flex',
+            marginRight: 8,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-dim)' }}
         >
           <ExternalLink size={12} />
         </button>
       </div>
 
       {/* Editor content */}
-      <div className="flex-1 overflow-hidden">
+      <div style={{ flex: 1, overflow: 'hidden' }}>
         {activeTab === 'editor' && (
-          <div className="h-full w-full">
+          <div style={{ height: '100%', width: '100%' }}>
             {activeFile ? (
-              <div ref={editorContainerRef} className="h-full w-full" />
+              <div ref={editorContainerRef} style={{ height: '100%', width: '100%' }} />
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-[var(--text-muted)]">
+              <div
+                style={{
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 12,
+                  color: 'var(--text-muted)',
+                }}
+              >
                 Open a file to start editing
               </div>
             )}
@@ -223,16 +225,29 @@ export function HumanEditor({ onPopOut }: HumanEditorProps) {
         )}
 
         {activeTab === 'ir' && (
-          <div className="h-full overflow-auto p-4">
+          <div style={{ height: '100%', overflow: 'auto', padding: 16 }}>
             {irContent ? (
               <pre
-                className="text-xs text-[var(--syn-type)]"
-                style={{ fontFamily: 'var(--font-mono)' }}
+                style={{
+                  fontSize: 12,
+                  color: 'var(--syn-type)',
+                  fontFamily: 'var(--font-mono)',
+                  margin: 0,
+                }}
               >
                 {irContent}
               </pre>
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-[var(--text-muted)]">
+              <div
+                style={{
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 12,
+                  color: 'var(--text-muted)',
+                }}
+              >
                 Check or build your project to see the IR
               </div>
             )}
@@ -240,14 +255,33 @@ export function HumanEditor({ onPopOut }: HumanEditorProps) {
         )}
 
         {activeTab === 'changes' && (
-          <div className="h-full flex items-center justify-center text-xs text-[var(--text-muted)]">
+          <div
+            style={{
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 12,
+              color: 'var(--text-muted)',
+            }}
+          >
             No changes yet
           </div>
         )}
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-end px-3 py-0.5 border-t border-[var(--border)] text-[10px] text-[var(--text-dim)]">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          padding: '2px 12px',
+          borderTop: '1px solid var(--border)',
+          fontSize: 10,
+          color: 'var(--text-dim)',
+        }}
+      >
         {activeFile && (
           <span>
             Ln {cursorLine}, Col {cursorCol}
@@ -255,5 +289,111 @@ export function HumanEditor({ onPopOut }: HumanEditorProps) {
         )}
       </div>
     </div>
+  )
+}
+
+function FileTabButton({
+  name,
+  isActive,
+  isUnsaved,
+  isHuman,
+  onClick,
+  onClose,
+}: {
+  name: string
+  isActive: boolean
+  isUnsaved: boolean
+  isHuman: boolean
+  onClick: () => void
+  onClose: () => void
+}) {
+  const [hovered, setHovered] = useState(false)
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '6px 12px',
+        fontSize: 12,
+        flexShrink: 0,
+        background: isActive ? 'var(--bg)' : hovered ? 'var(--bg-hover)' : 'transparent',
+        color: isActive ? 'var(--text-bright)' : 'var(--text-muted)',
+        borderTop: 'none',
+        borderLeft: 'none',
+        borderRight: '1px solid var(--border)',
+        borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+        cursor: 'pointer',
+        fontFamily: 'var(--font-body)',
+      }}
+    >
+      <span style={{ color: isHuman ? 'var(--accent)' : undefined }}>
+        {name}
+      </span>
+      {isUnsaved && (
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: 'var(--text-muted)',
+          }}
+        />
+      )}
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onClose()
+        }}
+        style={{
+          marginLeft: 4,
+          color: 'var(--text-dim)',
+          fontSize: 12,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 0,
+          lineHeight: 1,
+        }}
+      >
+        &times;
+      </button>
+    </button>
+  )
+}
+
+function EditorTabButton({
+  label,
+  isActive,
+  onClick,
+}: {
+  label: string
+  isActive: boolean
+  onClick: () => void
+}) {
+  const [hovered, setHovered] = useState(false)
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        padding: '4px 8px',
+        fontSize: 10,
+        borderRadius: 'var(--radius-sm)',
+        background: isActive ? 'var(--bg-surface)' : 'transparent',
+        color: isActive ? 'var(--text-bright)' : hovered ? 'var(--text-muted)' : 'var(--text-dim)',
+        border: 'none',
+        cursor: 'pointer',
+        fontFamily: 'var(--font-body)',
+      }}
+    >
+      {label}
+    </button>
   )
 }

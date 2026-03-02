@@ -21,16 +21,27 @@ var (
 	ErrInvalidToken       = errors.New("invalid or expired token")
 )
 
+type OAuthConfig struct {
+	GoogleClientID      string
+	GoogleClientSecret  string
+	SlackClientID       string
+	SlackClientSecret   string
+	OutlookClientID     string
+	OutlookClientSecret string
+	RedirectBaseURL     string
+}
+
 type Service struct {
 	db        *sql.DB
 	jwtSecret []byte
+	OAuth     OAuthConfig
 }
 
-func NewService(db *sql.DB, jwtSecret string) *Service {
+func NewService(db *sql.DB, jwtSecret string, oauth OAuthConfig) *Service {
 	if jwtSecret == "" {
 		jwtSecret = "dev-secret-change-in-production"
 	}
-	return &Service{db: db, jwtSecret: []byte(jwtSecret)}
+	return &Service{db: db, jwtSecret: []byte(jwtSecret), OAuth: oauth}
 }
 
 func (s *Service) Signup(req models.SignupRequest) (*models.LoginResponse, error) {

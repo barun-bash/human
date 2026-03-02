@@ -9,11 +9,11 @@ interface ToastItem {
   message: string
 }
 
-const typeStyles: Record<ToastType, string> = {
-  info: 'bg-[var(--accent)] text-white',
-  success: 'bg-[var(--success)] text-white',
-  error: 'bg-[var(--error)] text-white',
-  warning: 'bg-[var(--warning)] text-white',
+const typeStyles: Record<ToastType, React.CSSProperties> = {
+  info: { background: 'var(--accent)', color: '#fff' },
+  success: { background: 'var(--success)', color: '#fff' },
+  error: { background: 'var(--error)', color: '#fff' },
+  warning: { background: 'var(--warning)', color: '#fff' },
 }
 
 // Global toast state
@@ -53,20 +53,45 @@ export function ToastContainer() {
   if (items.length === 0) return null
 
   return (
-    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2">
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 80,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 50,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}
+    >
       {items.map((toast) => (
         <div
           key={toast.id}
-          className={`
-            flex items-center gap-3 px-4 py-3 rounded-[var(--radius-sm)]
-            shadow-[0_8px_32px_rgba(0,0,0,0.3)] min-w-[300px] max-w-[500px]
-            animate-[slideUp_150ms_ease-out] ${typeStyles[toast.type]}
-          `}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '12px 16px',
+            borderRadius: 'var(--radius-sm)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            minWidth: 300,
+            maxWidth: 500,
+            ...typeStyles[toast.type],
+          }}
         >
-          <span className="flex-1 text-sm font-medium">{toast.message}</span>
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{toast.message}</span>
           <button
             onClick={() => dismiss(toast.id)}
-            className="opacity-70 hover:opacity-100 transition-opacity"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'inherit',
+              opacity: 0.7,
+              cursor: 'pointer',
+              padding: 0,
+              display: 'flex',
+            }}
           >
             <X size={14} />
           </button>

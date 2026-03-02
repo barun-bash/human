@@ -65,6 +65,18 @@ const api = {
     openPath: (path: string) => ipcRenderer.invoke('shell:open-path', path),
   },
 
+  // ── Auth ──
+  auth: {
+    getStored: () => ipcRenderer.invoke('auth:get-stored'),
+    oauth: (provider: string) => ipcRenderer.invoke('auth:oauth', provider),
+    validate: () => ipcRenderer.invoke('auth:validate'),
+    refresh: () => ipcRenderer.invoke('auth:refresh'),
+    getProfile: () => ipcRenderer.invoke('auth:get-profile'),
+    getSubscription: () => ipcRenderer.invoke('auth:get-subscription'),
+    selectPlan: (plan: string) => ipcRenderer.invoke('auth:select-plan', plan),
+    logout: () => ipcRenderer.invoke('auth:logout'),
+  },
+
   // ── Event Listeners ──
   on: (channel: string, callback: (...args: any[]) => void) => {
     const validChannels = [
@@ -73,6 +85,7 @@ const api = {
       'project:file-changed',
       'popout:closed',
       'theme:system-changed',
+      'auth:session-expired',
       'menu:new-project',
       'menu:open-project',
       'menu:link-folder',

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   ChevronRight,
   ChevronDown,
@@ -54,32 +54,15 @@ export function FileTree({ files, activeFile, onSelect, onToggle, depth = 0 }: F
 
         return (
           <div key={entry.path}>
-            <button
-              onClick={() =>
-                entry.isDirectory ? onToggle(entry.path) : onSelect(entry.path)
-              }
-              className={`
-                w-full flex items-center gap-1.5 px-2 py-0.5 text-left text-xs
-                transition-colors duration-100 truncate
-                ${isActive
-                  ? 'bg-[var(--accent-dim)] text-[var(--accent)]'
-                  : 'text-[var(--text)] hover:bg-[var(--bg-hover)]'
-                }
-              `}
-              style={{ paddingLeft: depth * 16 + 8 }}
-            >
-              {entry.isDirectory && (
-                <span className="text-[var(--text-dim)] shrink-0">
-                  {entry.expanded ? (
-                    <ChevronDown size={12} />
-                  ) : (
-                    <ChevronRight size={12} />
-                  )}
-                </span>
-              )}
-              <Icon size={13} style={{ color, flexShrink: 0 }} />
-              <span className="truncate">{entry.name}</span>
-            </button>
+            <FileTreeItem
+              entry={entry}
+              Icon={Icon}
+              color={color}
+              isActive={isActive}
+              depth={depth}
+              onSelect={onSelect}
+              onToggle={onToggle}
+            />
             {entry.isDirectory && entry.expanded && entry.children && (
               <FileTree
                 files={entry.children}
@@ -93,5 +76,69 @@ export function FileTree({ files, activeFile, onSelect, onToggle, depth = 0 }: F
         )
       })}
     </div>
+  )
+}
+
+function FileTreeItem({
+  entry,
+  Icon,
+  color,
+  isActive,
+  depth,
+  onSelect,
+  onToggle,
+}: {
+  entry: FileEntry
+  Icon: React.ElementType
+  color: string
+  isActive: boolean
+  depth: number
+  onSelect: (path: string) => void
+  onToggle: (path: string) => void
+}) {
+  const [hovered, setHovered] = useState(false)
+
+  return (
+    <button
+      onClick={() =>
+        entry.isDirectory ? onToggle(entry.path) : onSelect(entry.path)
+      }
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        paddingLeft: depth * 16 + 8,
+        paddingRight: 8,
+        paddingTop: 2,
+        paddingBottom: 2,
+        textAlign: 'left',
+        fontSize: 12,
+        border: 'none',
+        cursor: 'pointer',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        background: isActive
+          ? 'var(--accent-dim)'
+          : hovered
+            ? 'var(--bg-hover)'
+            : 'transparent',
+        color: isActive ? 'var(--accent)' : 'var(--text)',
+        fontFamily: 'var(--font-body)',
+      }}
+    >
+      {entry.isDirectory && (
+        <span style={{ color: 'var(--text-dim)', flexShrink: 0, display: 'flex' }}>
+          {entry.expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        </span>
+      )}
+      <Icon size={13} style={{ color, flexShrink: 0 }} />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {entry.name}
+      </span>
+    </button>
   )
 }

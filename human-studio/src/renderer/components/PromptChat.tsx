@@ -33,8 +33,6 @@ export function PromptChat({ onPopOut }: PromptChatProps) {
 
     setInput('')
     useChatStore.getState().clearAttachments()
-
-    // TODO: Phase 5 — send to LLM and handle streaming response
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -50,59 +48,102 @@ export function PromptChat({ onPopOut }: PromptChatProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border)]">
-        <div className="flex items-center gap-1.5">
-          <Bot size={13} className="text-[var(--accent)]" />
-          <span className="text-[10px] font-semibold tracking-wider text-[var(--text-muted)] uppercase">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 12px',
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Bot size={13} style={{ color: 'var(--accent)' }} />
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+            }}
+          >
             Prompt
           </span>
         </div>
-        <button
-          onClick={onPopOut}
-          className="p-1 text-[var(--text-dim)] hover:text-[var(--text)] rounded transition-colors"
-          title="Pop out"
-        >
+        <IconBtn onClick={onPopOut} title="Pop out">
           <ExternalLink size={12} />
-        </button>
+        </IconBtn>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 py-3">
+      <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-            <Bot size={32} className="text-[var(--text-dim)]" />
-            <p className="text-xs text-[var(--text-muted)]">
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              gap: 12,
+              textAlign: 'center',
+            }}
+          >
+            <Bot size={32} style={{ color: 'var(--text-dim)' }} />
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               Describe what you want to build...
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {messages.map((msg) => (
-              <div key={msg.id} className="flex flex-col gap-1">
+              <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <span
-                  className={`text-[10px] font-semibold ${
-                    msg.role === 'user' ? 'text-[var(--info)]' : 'text-[var(--accent)]'
-                  }`}
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: msg.role === 'user' ? 'var(--info)' : 'var(--accent)',
+                  }}
                 >
                   {msg.role === 'user' ? 'You' : 'Human AI'}
                 </span>
                 <div
-                  className={`
-                    px-3 py-2 rounded-[var(--radius-sm)] text-xs leading-relaxed
-                    ${msg.role === 'user'
-                      ? 'bg-[var(--bg-surface)] border border-[var(--border)]'
-                      : 'bg-[var(--accent-dim)] border border-[var(--accent-border)]'
-                    }
-                  `}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                    ...(msg.role === 'user'
+                      ? {
+                          background: 'var(--bg-surface)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--text)',
+                        }
+                      : {
+                          background: 'var(--accent-dim)',
+                          border: '1px solid var(--accent-border)',
+                          color: 'var(--text)',
+                        }),
+                  }}
                 >
                   {msg.content}
                 </div>
                 {msg.attachments && msg.attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
                     {msg.attachments.map((a) => (
-                      <span key={a.name} className="text-[10px] text-[var(--text-dim)] bg-[var(--bg-surface)] px-1.5 py-0.5 rounded">
+                      <span
+                        key={a.name}
+                        style={{
+                          fontSize: 10,
+                          color: 'var(--text-dim)',
+                          background: 'var(--bg-surface)',
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                        }}
+                      >
                         {a.name}
                       </span>
                     ))}
@@ -111,9 +152,8 @@ export function PromptChat({ onPopOut }: PromptChatProps) {
               </div>
             ))}
             {isLoading && (
-              <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-                <span className="animate-pulse">Human AI is thinking</span>
-                <span className="animate-bounce">...</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+                <span>Human AI is thinking...</span>
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -122,30 +162,43 @@ export function PromptChat({ onPopOut }: PromptChatProps) {
       </div>
 
       {/* Quick chips */}
-      <div className="flex flex-wrap gap-1.5 px-3 py-1.5">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '6px 12px' }}>
         {QUICK_CHIPS.map((chip) => (
-          <button
-            key={chip}
-            onClick={() => handleChipClick(chip)}
-            className="px-2 py-0.5 text-[10px] text-[var(--text-muted)] bg-[var(--bg-surface)] border border-[var(--border)] rounded-full hover:border-[var(--border-hover)] hover:text-[var(--text)] transition-colors"
-          >
+          <ChipButton key={chip} onClick={() => handleChipClick(chip)}>
             {chip}
-          </button>
+          </ChipButton>
         ))}
       </div>
 
       {/* Attachments */}
       {pendingAttachments.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 px-3 py-1">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '4px 12px' }}>
           {pendingAttachments.map((a) => (
             <span
               key={a.name}
-              className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-[var(--bg-surface)] border border-[var(--border)] rounded-full text-[var(--text-muted)]"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '2px 8px',
+                fontSize: 10,
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 99,
+                color: 'var(--text-muted)',
+              }}
             >
               {a.name} ({(a.size / 1024 / 1024).toFixed(1)}MB)
               <button
                 onClick={() => removeAttachment(a.name)}
-                className="text-[var(--text-dim)] hover:text-[var(--error)]"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-dim)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: 12,
+                }}
               >
                 &times;
               </button>
@@ -155,10 +208,18 @@ export function PromptChat({ onPopOut }: PromptChatProps) {
       )}
 
       {/* Input */}
-      <div className="flex items-end gap-2 px-3 py-2 border-t border-[var(--border)]">
-        <button className="p-1.5 text-[var(--text-dim)] hover:text-[var(--text)] rounded transition-colors shrink-0">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 8,
+          padding: '8px 12px',
+          borderTop: '1px solid var(--border)',
+        }}
+      >
+        <IconBtn title="Attach file">
           <Paperclip size={14} />
-        </button>
+        </IconBtn>
         <textarea
           ref={textareaRef}
           value={input}
@@ -166,19 +227,80 @@ export function PromptChat({ onPopOut }: PromptChatProps) {
           onKeyDown={handleKeyDown}
           placeholder="Describe what you want to build..."
           rows={1}
-          className="flex-1 resize-none bg-transparent text-xs text-[var(--text)] placeholder:text-[var(--text-dim)] outline-none"
-          style={{ maxHeight: 120, fontFamily: 'var(--font-body)' }}
+          style={{
+            flex: 1,
+            resize: 'none',
+            background: 'transparent',
+            fontSize: 12,
+            color: 'var(--text)',
+            border: 'none',
+            outline: 'none',
+            maxHeight: 120,
+            fontFamily: 'var(--font-body)',
+            lineHeight: 1.5,
+          }}
         />
         <Button
           variant="primary"
           size="sm"
           onClick={handleSend}
           disabled={!input.trim() && pendingAttachments.length === 0}
-          className="shrink-0"
         >
           <Send size={12} />
         </Button>
       </div>
     </div>
+  )
+}
+
+function IconBtn({ children, onClick, title }: { children: React.ReactNode; onClick?: () => void; title?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        padding: 4,
+        color: 'var(--text-dim)',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: 'var(--radius-sm)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        flexShrink: 0,
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-dim)' }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function ChipButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '2px 8px',
+        fontSize: 10,
+        color: 'var(--text-muted)',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 99,
+        cursor: 'pointer',
+        fontFamily: 'var(--font-body)',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = 'var(--border-hover)'
+        e.currentTarget.style.color = 'var(--text)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'var(--border)'
+        e.currentTarget.style.color = 'var(--text-muted)'
+      }}
+    >
+      {children}
+    </button>
   )
 }
