@@ -1502,3 +1502,104 @@ func TestFullIntegration(t *testing.T) {
 	totalFiles := len(coreFiles) + len(expectedRoutes) + len(policyFiles)
 	t.Logf("Generated %d files to %s", totalFiles, dir)
 }
+
+// ── Data Flow & Integration Wiring Tests ──
+
+func TestSendStepWiresToEmailService(t *testing.T) {
+	app := &ir.Application{
+		Name: "TestApp",
+		Integrations: []*ir.Integration{
+			{Service: "SendGrid", Type: "email"},
+		},
+		APIs: []*ir.Endpoint{
+			{Name: "SignUp", Params: []*ir.Param{{Name: "email"}, {Name: "password"}},
+				Steps: []*ir.Action{
+					{Type: "create", Text: "create a User"},
+					{Type: "send", Text: "send a welcome email"},
+					{Type: "respond", Text: "respond with the created user"},
+				},
+			},
+		},
+	}
+
+	ep := app.APIs[0]
+	output := generateRoute(ep, app)
+
+	if !strings.Contains(output, "sendEmail") {
+		t.Error("send step should call sendEmail when email integration exists")
+	}
+	if !strings.Contains(output, "../services/email") {
+		t.Error("should import email service")
+	}
+	if strings.Contains(output, "TODO: implement notification") {
+		t.Error("should not have TODO when integration is configured")
+	}
+}
+
+func TestSendStepFallsBackWithoutIntegration(t *testing.T) {
+	app := &ir.Application{
+		Name: "TestApp",
+		APIs: []*ir.Endpoint{
+			{Name: "SignUp", Steps: []*ir.Action{
+				{Type: "send", Text: "send a welcome email"},
+			}},
+		},
+	}
+
+	ep := app.APIs[0]
+	output := generateRoute(ep, app)
+
+	if !strings.Contains(output, "TODO: no matching integration") {
+		t.Error("should have TODO comment when no integration configured")
+	}
+}
+
+func TestWebhookRouteGenerated(t *testing.T) {
+	app := &ir.Application{
+		Name: "TestApp",
+		Integrations: []*ir.Integration{
+			{Service: "Stripe", Type: "payment",
+				Config: map[string]string{"webhook_endpoint": "/webhooks/stripe"},
+				Credentials: map[string]string{"api key": "STRIPE_SECRET_KEY"},
+			},
+		},
+	}
+
+	if !hasWebhookIntegration(app) {
+		t.Error("should detect webhook integration")
+	}
+
+	output := generateWebhookRoutes(app)
+	if !strings.Contains(output, "stripe-signature") {
+		t.Error("webhook route should verify stripe signature")
+	}
+	if !strings.Contains(output, "checkout.session.completed") {
+		t.Error("webhook route should handle checkout events")
+	}
+}
+
+func TestOAuthCallbackRoutes(t *testing.T) {
+	app := &ir.Application{
+		Name: "TestApp",
+		Integrations: []*ir.Integration{
+			{Service: "Google", Type: "oauth",
+				Credentials: map[string]string{"client id": "GOOGLE_CLIENT_ID", "secret": "GOOGLE_CLIENT_SECRET"},
+			},
+		},
+	}
+
+	if !hasOAuthIntegration(app) {
+		t.Error("should detect OAuth integration")
+	}
+
+	output := generateOAuthRoutes(app)
+	if !strings.Contains(output, "/google") {
+		t.Error("should generate Google OAuth route")
+	}
+	if !strings.Contains(output, "/google/callback") {
+		t.Error("should generate Google callback route")
+	}
+	if !strings.Contains(output, "signToken") {
+		t.Error("callback should sign a JWT token")
+	}
+}

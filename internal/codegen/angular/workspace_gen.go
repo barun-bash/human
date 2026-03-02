@@ -191,9 +191,16 @@ func generatePackageJson(app *ir.Application) string {
 }
 
 func generateRoutes(app *ir.Application) string {
+	hasAuth := app.Auth != nil
+
 	var b strings.Builder
-	b.WriteString("import { Routes } from '@angular/router';\n\n")
-	b.WriteString("export const routes: Routes = [\n")
+	b.WriteString("import { Routes } from '@angular/router';\n")
+
+	if hasAuth {
+		b.WriteString("import { authGuard } from './guards/auth.guard';\n")
+	}
+
+	b.WriteString("\nexport const routes: Routes = [\n")
 
 	for _, page := range app.Pages {
 		routePath := ""
@@ -202,7 +209,12 @@ func generateRoutes(app *ir.Application) string {
 		}
 		fileName := toKebabCase(page.Name)
 		compName := toPascalCase(page.Name) + "Component"
-		b.WriteString(fmt.Sprintf("  { path: '%s', loadComponent: () => import('./pages/%s/%s.component').then(m => m.%s) },\n", routePath, fileName, fileName, compName))
+
+		if hasAuth && !isPublicPage(page.Name) {
+			b.WriteString(fmt.Sprintf("  { path: '%s', loadComponent: () => import('./pages/%s/%s.component').then(m => m.%s), canActivate: [authGuard] },\n", routePath, fileName, fileName, compName))
+		} else {
+			b.WriteString(fmt.Sprintf("  { path: '%s', loadComponent: () => import('./pages/%s/%s.component').then(m => m.%s) },\n", routePath, fileName, fileName, compName))
+		}
 	}
 	b.WriteString("  { path: '**', loadComponent: () => import('./pages/not-found/not-found.component').then(m => m.NotFoundComponent) },\n")
 

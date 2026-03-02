@@ -303,3 +303,138 @@ func TestFullIntegration(t *testing.T) {
 		t.Error("routes.py: missing expected route functions")
 	}
 }
+
+func TestPythonWebhookRouteGenerated(t *testing.T) {
+	app := &ir.Application{
+		Name:     "PaymentApp",
+		Platform: "web",
+		Database: &ir.DatabaseConfig{Engine: "PostgreSQL"},
+		Data: []*ir.DataModel{
+			{Name: "User", Fields: []*ir.DataField{{Name: "email", Type: "email", Required: true}}},
+		},
+		Integrations: []*ir.Integration{
+			{
+				Service:     "Stripe",
+				Type:        "payment",
+				Credentials: map[string]string{"api key": "STRIPE_SECRET_KEY"},
+				Config:      map[string]string{"webhook_endpoint": "/api/webhooks/stripe"},
+			},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Verify webhook_routes.py exists
+	webhookPath := filepath.Join(dir, "webhook_routes.py")
+	if _, err := os.Stat(webhookPath); os.IsNotExist(err) {
+		t.Fatal("expected webhook_routes.py to exist")
+	}
+
+	content, err := os.ReadFile(webhookPath)
+	if err != nil {
+		t.Fatalf("reading webhook_routes.py: %v", err)
+	}
+	contentStr := string(content)
+
+	checks := []string{
+		"stripe.Webhook.construct_event",
+		"stripe-signature",
+		"checkout.session.completed",
+		"payment_intent.succeeded",
+		"/api/webhooks/stripe",
+	}
+	for _, check := range checks {
+		if !strings.Contains(contentStr, check) {
+			t.Errorf("webhook_routes.py missing %q", check)
+		}
+	}
+
+	// Verify main.py mounts the webhook router
+	mainContent, err := os.ReadFile(filepath.Join(dir, "main.py"))
+	if err != nil {
+		t.Fatalf("reading main.py: %v", err)
+	}
+	mainStr := string(mainContent)
+	if !strings.Contains(mainStr, "from webhook_routes import router as webhook_router") {
+		t.Error("main.py should import webhook_routes router")
+	}
+	if !strings.Contains(mainStr, "app.include_router(webhook_router)") {
+		t.Error("main.py should mount webhook_router")
+	}
+}
+
+func TestPythonOAuthRoutesGenerated(t *testing.T) {
+	app := &ir.Application{
+		Name:     "OAuthApp",
+		Platform: "web",
+		Database: &ir.DatabaseConfig{Engine: "PostgreSQL"},
+		Data: []*ir.DataModel{
+			{Name: "User", Fields: []*ir.DataField{{Name: "email", Type: "email", Required: true}}},
+		},
+		Integrations: []*ir.Integration{
+			{
+				Service:     "Google",
+				Type:        "oauth",
+				Credentials: map[string]string{"client_id": "GOOGLE_CLIENT_ID", "client_secret": "GOOGLE_CLIENT_SECRET"},
+			},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Verify oauth_routes.py exists
+	oauthPath := filepath.Join(dir, "oauth_routes.py")
+	if _, err := os.Stat(oauthPath); os.IsNotExist(err) {
+		t.Fatal("expected oauth_routes.py to exist")
+	}
+
+	content, err := os.ReadFile(oauthPath)
+	if err != nil {
+		t.Fatalf("reading oauth_routes.py: %v", err)
+	}
+	contentStr := string(content)
+
+	checks := []string{
+		"authorize_redirect",
+		"oauth_callback",
+		"authorize_access_token",
+		"oauth.create_client(provider)",
+		"/auth/{provider}",
+		"/auth/{provider}/callback",
+	}
+	for _, check := range checks {
+		if !strings.Contains(contentStr, check) {
+			t.Errorf("oauth_routes.py missing %q", check)
+		}
+	}
+
+	// Verify main.py mounts the OAuth router
+	mainContent, err := os.ReadFile(filepath.Join(dir, "main.py"))
+	if err != nil {
+		t.Fatalf("reading main.py: %v", err)
+	}
+	mainStr := string(mainContent)
+	if !strings.Contains(mainStr, "from oauth_routes import router as oauth_router") {
+		t.Error("main.py should import oauth_routes router")
+	}
+	if !strings.Contains(mainStr, "app.include_router(oauth_router)") {
+		t.Error("main.py should mount oauth_router")
+	}
+
+	// Verify requirements include authlib
+	reqsContent, err := os.ReadFile(filepath.Join(dir, "requirements.txt"))
+	if err != nil {
+		t.Fatalf("reading requirements.txt: %v", err)
+	}
+	if !strings.Contains(string(reqsContent), "authlib") {
+		t.Error("requirements.txt should include authlib for OAuth")
+	}
+}

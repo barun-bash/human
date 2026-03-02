@@ -51,6 +51,21 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		files[filepath.Join(outputDir, relPath)] = content
 	}
 
+	// Generate webhook routes if a payment integration has webhook_endpoint configured
+	if hasWebhookIntegration(app) {
+		files[filepath.Join(outputDir, "webhook_routes.py")] = generateWebhookRoutes(app)
+	}
+
+	// Generate OAuth routes if an OAuth integration is configured
+	if hasOAuthIntegration(app) {
+		files[filepath.Join(outputDir, "oauth_routes.py")] = generateOAuthRoutes(app)
+	}
+
+	// Generate file upload route when storage integration exists
+	if hasStorageIntegration(app) {
+		files[filepath.Join(outputDir, "upload_routes.py")] = generateUploadRoutes(app)
+	}
+
 	for path, content := range files {
 		if err := writeFile(path, content); err != nil {
 			return err
@@ -501,11 +516,27 @@ app.add_middleware(
 )
 
 app.include_router(router, prefix="/api")
+`, appName))
 
+	if hasWebhookIntegration(app) {
+		sb.WriteString(`
+from webhook_routes import router as webhook_router
+app.include_router(webhook_router)
+`)
+	}
+
+	if hasOAuthIntegration(app) {
+		sb.WriteString(`
+from oauth_routes import router as oauth_router
+app.include_router(oauth_router)
+`)
+	}
+
+	sb.WriteString(`
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
-`, appName))
+`)
 
 	if app.ErrorHandlers != nil && len(app.ErrorHandlers) > 0 {
 		sb.WriteString(`

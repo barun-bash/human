@@ -142,6 +142,140 @@ func TestGenerateComponent(t *testing.T) {
 	}
 }
 
+func TestAuthStoreGenerated(t *testing.T) {
+	app := &ir.Application{
+		Name: "AuthApp",
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{{Type: "display", Text: "welcome"}}},
+			{Name: "Dashboard", Content: []*ir.Action{{Type: "display", Text: "stats"}}},
+		},
+		Auth: &ir.Auth{
+			Methods: []*ir.AuthMethod{
+				{Type: "jwt", Config: map[string]string{"expiration": "24h"}},
+			},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Verify auth.ts exists
+	authPath := filepath.Join(dir, "src", "lib", "auth.ts")
+	content, err := os.ReadFile(authPath)
+	if err != nil {
+		t.Fatalf("expected src/lib/auth.ts to exist: %v", err)
+	}
+
+	output := string(content)
+	if !strings.Contains(output, "isAuthenticated") {
+		t.Error("auth.ts should contain isAuthenticated getter")
+	}
+	if !strings.Contains(output, "localStorage") {
+		t.Error("auth.ts should use localStorage")
+	}
+	if !strings.Contains(output, "login(token: string)") {
+		t.Error("auth.ts should contain login method")
+	}
+	if !strings.Contains(output, "logout()") {
+		t.Error("auth.ts should contain logout method")
+	}
+}
+
+func TestLayoutGuardGenerated(t *testing.T) {
+	app := &ir.Application{
+		Name: "AuthApp",
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{{Type: "display", Text: "welcome"}}},
+			{Name: "Login", Content: []*ir.Action{{Type: "display", Text: "login form"}}},
+			{Name: "Dashboard", Content: []*ir.Action{{Type: "display", Text: "stats"}}},
+		},
+		Auth: &ir.Auth{
+			Methods: []*ir.AuthMethod{
+				{Type: "jwt"},
+			},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Verify +layout.ts exists
+	layoutPath := filepath.Join(dir, "src", "routes", "+layout.ts")
+	content, err := os.ReadFile(layoutPath)
+	if err != nil {
+		t.Fatalf("expected src/routes/+layout.ts to exist: %v", err)
+	}
+
+	output := string(content)
+	if !strings.Contains(output, "redirect") {
+		t.Error("+layout.ts should contain redirect")
+	}
+	if !strings.Contains(output, "browser") {
+		t.Error("+layout.ts should check browser environment")
+	}
+	if !strings.Contains(output, "publicPaths") {
+		t.Error("+layout.ts should define publicPaths")
+	}
+	if !strings.Contains(output, "'/login'") {
+		t.Error("+layout.ts should include /login in publicPaths")
+	}
+	if !strings.Contains(output, "localStorage.getItem('token')") {
+		t.Error("+layout.ts should check token in localStorage")
+	}
+	if !strings.Contains(output, "LayoutLoad") {
+		t.Error("+layout.ts should use LayoutLoad type")
+	}
+}
+
+func TestNoAuthDoesNotGenerateAuthFiles(t *testing.T) {
+	app := &ir.Application{
+		Name: "NoAuthApp",
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{{Type: "display", Text: "welcome"}}},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// auth.ts should NOT exist
+	authPath := filepath.Join(dir, "src", "lib", "auth.ts")
+	if _, err := os.Stat(authPath); !os.IsNotExist(err) {
+		t.Error("auth.ts should not exist when app.Auth is nil")
+	}
+
+	// +layout.ts should NOT exist
+	layoutTsPath := filepath.Join(dir, "src", "routes", "+layout.ts")
+	if _, err := os.Stat(layoutTsPath); !os.IsNotExist(err) {
+		t.Error("+layout.ts should not exist when app.Auth is nil")
+	}
+}
+
+func TestIsPublicPage(t *testing.T) {
+	publicPages := []string{"home", "Home", "login", "Login", "signup", "SignUp", "sign-up", "register", "Register", "landing", "Landing"}
+	for _, name := range publicPages {
+		if !isPublicPage(name) {
+			t.Errorf("expected %q to be a public page", name)
+		}
+	}
+
+	privatPages := []string{"dashboard", "settings", "profile", "admin"}
+	for _, name := range privatPages {
+		if isPublicPage(name) {
+			t.Errorf("expected %q to NOT be a public page", name)
+		}
+	}
+}
+
 func TestFullIntegration(t *testing.T) {
 	_, thisFile, _, _ := runtime.Caller(0)
 	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")

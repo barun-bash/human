@@ -53,6 +53,15 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		files[path] = generateComponent(comp, app)
 	}
 
+	// Generate auth files
+	if app.Auth != nil {
+		if err := os.MkdirAll(filepath.Join(outputDir, "src", "contexts"), 0755); err != nil {
+			return fmt.Errorf("creating contexts directory: %w", err)
+		}
+		files[filepath.Join(outputDir, "src", "contexts", "AuthContext.tsx")] = generateAuthContext(app)
+		files[filepath.Join(outputDir, "src", "components", "ProtectedRoute.tsx")] = generateProtectedRoute()
+	}
+
 	// Generate theme files
 	if app.Theme != nil {
 		themeFiles := themes.GenerateReactTheme(app.Theme)

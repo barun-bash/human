@@ -55,6 +55,9 @@ func generateServer(app *ir.Application) string {
 	if hasOAuthIntegration(app) {
 		b.WriteString("app.use('/auth', require('./routes/auth').router);\n")
 	}
+	if hasStorageIntegration(app) {
+		b.WriteString("app.use('/api', require('./routes/upload').router);\n")
+	}
 
 	b.WriteString("\n")
 

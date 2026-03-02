@@ -50,6 +50,15 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		files[path] = generateComponent(comp, app)
 	}
 
+	// Generate auth composable
+	if app.Auth != nil {
+		composablesDir := filepath.Join(outputDir, "src", "composables")
+		if err := os.MkdirAll(composablesDir, 0755); err != nil {
+			return fmt.Errorf("creating directory %s: %w", composablesDir, err)
+		}
+		files[filepath.Join(outputDir, "src", "composables", "useAuth.ts")] = generateAuthComposable(app)
+	}
+
 	// Generate theme files
 	if app.Theme != nil {
 		themeFiles := themes.GenerateVueTheme(app.Theme)

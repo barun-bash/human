@@ -1174,3 +1174,207 @@ func TestFileUploadWiring(t *testing.T) {
 		t.Error("file upload should use FormData")
 	}
 }
+
+// ── Auth Context Generation ──
+
+func TestAuthContextGenerated(t *testing.T) {
+	app := &ir.Application{
+		Name: "AuthApp",
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{{Type: "display", Text: "welcome"}}},
+			{Name: "Dashboard", Content: []*ir.Action{{Type: "display", Text: "stats"}}},
+		},
+		Auth: &ir.Auth{
+			Methods: []*ir.AuthMethod{
+				{Type: "jwt", Config: map[string]string{"expiration": "24h"}},
+			},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Verify AuthContext.tsx exists
+	authCtxPath := filepath.Join(dir, "src", "contexts", "AuthContext.tsx")
+	if _, err := os.Stat(authCtxPath); os.IsNotExist(err) {
+		t.Fatal("expected src/contexts/AuthContext.tsx to exist")
+	}
+
+	// Read and verify content
+	content, err := os.ReadFile(authCtxPath)
+	if err != nil {
+		t.Fatalf("reading AuthContext.tsx: %v", err)
+	}
+	authCtx := string(content)
+
+	if !strings.Contains(authCtx, "useAuth") {
+		t.Error("AuthContext.tsx should export useAuth hook")
+	}
+	if !strings.Contains(authCtx, "AuthProvider") {
+		t.Error("AuthContext.tsx should export AuthProvider component")
+	}
+	if !strings.Contains(authCtx, "createContext") {
+		t.Error("AuthContext.tsx should use createContext")
+	}
+	if !strings.Contains(authCtx, "isAuthenticated") {
+		t.Error("AuthContext.tsx should track isAuthenticated state")
+	}
+	if !strings.Contains(authCtx, "localStorage.getItem('token')") {
+		t.Error("AuthContext.tsx should read token from localStorage")
+	}
+
+	// Verify ProtectedRoute.tsx exists
+	protectedPath := filepath.Join(dir, "src", "components", "ProtectedRoute.tsx")
+	if _, err := os.Stat(protectedPath); os.IsNotExist(err) {
+		t.Fatal("expected src/components/ProtectedRoute.tsx to exist")
+	}
+
+	protectedContent, err := os.ReadFile(protectedPath)
+	if err != nil {
+		t.Fatalf("reading ProtectedRoute.tsx: %v", err)
+	}
+	protected := string(protectedContent)
+
+	if !strings.Contains(protected, "useAuth") {
+		t.Error("ProtectedRoute.tsx should use useAuth hook")
+	}
+	if !strings.Contains(protected, "Navigate") {
+		t.Error("ProtectedRoute.tsx should use Navigate for redirect")
+	}
+	if !strings.Contains(protected, "/login") {
+		t.Error("ProtectedRoute.tsx should redirect to /login")
+	}
+}
+
+func TestProtectedRoutes(t *testing.T) {
+	app := &ir.Application{
+		Name: "AuthApp",
+		Pages: []*ir.Page{
+			{Name: "Home"},
+			{Name: "Login"},
+			{Name: "SignUp"},
+			{Name: "Dashboard"},
+			{Name: "Profile"},
+			{Name: "Settings"},
+		},
+		Auth: &ir.Auth{
+			Methods: []*ir.AuthMethod{
+				{Type: "jwt"},
+			},
+		},
+	}
+
+	output := generateApp(app)
+
+	// AuthProvider should wrap the router
+	if !strings.Contains(output, "<AuthProvider>") {
+		t.Error("App.tsx should wrap routes in AuthProvider when auth is configured")
+	}
+	if !strings.Contains(output, "</AuthProvider>") {
+		t.Error("App.tsx should close AuthProvider")
+	}
+
+	// ProtectedRoute import
+	if !strings.Contains(output, "import ProtectedRoute from './components/ProtectedRoute'") {
+		t.Error("App.tsx should import ProtectedRoute")
+	}
+	if !strings.Contains(output, "import { AuthProvider } from './contexts/AuthContext'") {
+		t.Error("App.tsx should import AuthProvider")
+	}
+
+	// Public pages should NOT be wrapped with ProtectedRoute
+	if strings.Contains(output, "<ProtectedRoute><HomePage /></ProtectedRoute>") {
+		t.Error("Home page should NOT be wrapped with ProtectedRoute")
+	}
+	if strings.Contains(output, "<ProtectedRoute><LoginPage /></ProtectedRoute>") {
+		t.Error("Login page should NOT be wrapped with ProtectedRoute")
+	}
+	if strings.Contains(output, "<ProtectedRoute><SignUpPage /></ProtectedRoute>") {
+		t.Error("SignUp page should NOT be wrapped with ProtectedRoute")
+	}
+
+	// Protected pages SHOULD be wrapped with ProtectedRoute
+	if !strings.Contains(output, "<ProtectedRoute><DashboardPage /></ProtectedRoute>") {
+		t.Error("Dashboard page should be wrapped with ProtectedRoute")
+	}
+	if !strings.Contains(output, "<ProtectedRoute><ProfilePage /></ProtectedRoute>") {
+		t.Error("Profile page should be wrapped with ProtectedRoute")
+	}
+	if !strings.Contains(output, "<ProtectedRoute><SettingsPage /></ProtectedRoute>") {
+		t.Error("Settings page should be wrapped with ProtectedRoute")
+	}
+}
+
+func TestNoAuthDoesNotGenerateAuthFiles(t *testing.T) {
+	app := &ir.Application{
+		Name: "NoAuthApp",
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{{Type: "display", Text: "welcome"}}},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// AuthContext.tsx should NOT exist
+	authCtxPath := filepath.Join(dir, "src", "contexts", "AuthContext.tsx")
+	if _, err := os.Stat(authCtxPath); !os.IsNotExist(err) {
+		t.Error("AuthContext.tsx should not exist when app.Auth is nil")
+	}
+
+	// ProtectedRoute.tsx should NOT exist
+	protectedPath := filepath.Join(dir, "src", "components", "ProtectedRoute.tsx")
+	if _, err := os.Stat(protectedPath); !os.IsNotExist(err) {
+		t.Error("ProtectedRoute.tsx should not exist when app.Auth is nil")
+	}
+
+	// App.tsx should not reference auth
+	appContent, err := os.ReadFile(filepath.Join(dir, "src", "App.tsx"))
+	if err != nil {
+		t.Fatalf("reading App.tsx: %v", err)
+	}
+	appTsx := string(appContent)
+	if strings.Contains(appTsx, "AuthProvider") {
+		t.Error("App.tsx should not reference AuthProvider when auth is nil")
+	}
+	if strings.Contains(appTsx, "ProtectedRoute") {
+		t.Error("App.tsx should not reference ProtectedRoute when auth is nil")
+	}
+}
+
+func TestIsPublicPage(t *testing.T) {
+	tests := []struct {
+		name string
+		want bool
+	}{
+		{"Home", true},
+		{"home", true},
+		{"Login", true},
+		{"login", true},
+		{"SignUp", true},
+		{"signup", true},
+		{"Sign-Up", true},
+		{"sign-up", true},
+		{"Register", true},
+		{"register", true},
+		{"Landing", true},
+		{"landing", true},
+		{"Dashboard", false},
+		{"Profile", false},
+		{"Settings", false},
+		{"Admin", false},
+	}
+
+	for _, tt := range tests {
+		got := isPublicPage(tt.name)
+		if got != tt.want {
+			t.Errorf("isPublicPage(%q): got %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}

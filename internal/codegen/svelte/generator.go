@@ -58,6 +58,12 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		files[path] = generateComponent(comp, app)
 	}
 
+	// Generate auth files
+	if app.Auth != nil {
+		files[filepath.Join(outputDir, "src", "lib", "auth.ts")] = generateAuthStore()
+		files[filepath.Join(outputDir, "src", "routes", "+layout.ts")] = generateLayoutGuard(app)
+	}
+
 	// Generate theme files
 	if app.Theme != nil {
 		themeFiles := themes.GenerateSvelteTheme(app.Theme)

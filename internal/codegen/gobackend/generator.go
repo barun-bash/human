@@ -72,6 +72,11 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		files[filepath.Join(outputDir, "handlers", "oauth.go")] = generateOAuthHandlers(moduleName, app)
 	}
 
+	// Generate file upload handler when storage integration exists
+	if hasStorageIntegration(app) {
+		files[filepath.Join(outputDir, "handlers", "upload.go")] = generateUploadHandler(moduleName, app)
+	}
+
 	for path, content := range files {
 		if err := writeFile(path, content); err != nil {
 			return err

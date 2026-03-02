@@ -68,6 +68,11 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 		files[filepath.Join(outputDir, "src", "routes", "auth.ts")] = generateOAuthRoutes(app)
 	}
 
+	// Generate file upload route when storage integration exists
+	if hasStorageIntegration(app) {
+		files[filepath.Join(outputDir, "src", "routes", "upload.ts")] = generateUploadRoute(app)
+	}
+
 	for path, content := range files {
 		if err := writeFile(path, content); err != nil {
 			return err

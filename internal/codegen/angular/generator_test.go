@@ -132,6 +132,183 @@ func TestGenerateComponent(t *testing.T) {
 	}
 }
 
+func TestAuthServiceGenerated(t *testing.T) {
+	app := &ir.Application{
+		Name: "AuthApp",
+		Auth: &ir.Auth{
+			Methods: []*ir.AuthMethod{{Type: "jwt"}},
+		},
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{{Type: "display", Text: "welcome"}}},
+			{Name: "Dashboard", Content: []*ir.Action{{Type: "display", Text: "dashboard"}}},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// auth.service.ts should exist
+	authPath := filepath.Join(dir, "src", "app", "services", "auth.service.ts")
+	content, err := os.ReadFile(authPath)
+	if err != nil {
+		t.Fatalf("auth.service.ts not generated: %v", err)
+	}
+
+	src := string(content)
+	if !strings.Contains(src, "signal(!!localStorage.getItem('token'))") {
+		t.Error("auth.service.ts missing signal with localStorage")
+	}
+	if !strings.Contains(src, "localStorage.setItem('token', token)") {
+		t.Error("auth.service.ts missing localStorage.setItem in login")
+	}
+	if !strings.Contains(src, "login(token: string)") {
+		t.Error("auth.service.ts missing login method")
+	}
+	if !strings.Contains(src, "logout()") {
+		t.Error("auth.service.ts missing logout method")
+	}
+	if !strings.Contains(src, "localStorage.removeItem('token')") {
+		t.Error("auth.service.ts missing localStorage.removeItem in logout")
+	}
+}
+
+func TestAuthGuardGenerated(t *testing.T) {
+	app := &ir.Application{
+		Name: "AuthApp",
+		Auth: &ir.Auth{
+			Methods: []*ir.AuthMethod{{Type: "jwt"}},
+		},
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{{Type: "display", Text: "welcome"}}},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// auth.guard.ts should exist
+	guardPath := filepath.Join(dir, "src", "app", "guards", "auth.guard.ts")
+	content, err := os.ReadFile(guardPath)
+	if err != nil {
+		t.Fatalf("auth.guard.ts not generated: %v", err)
+	}
+
+	src := string(content)
+	if !strings.Contains(src, "CanActivateFn") {
+		t.Error("auth.guard.ts missing CanActivateFn type")
+	}
+	if !strings.Contains(src, "Router") {
+		t.Error("auth.guard.ts missing Router import")
+	}
+	if !strings.Contains(src, "auth.service") {
+		t.Error("auth.guard.ts missing auth.service import")
+	}
+	if !strings.Contains(src, "createUrlTree") {
+		t.Error("auth.guard.ts missing createUrlTree redirect")
+	}
+}
+
+func TestAngularProtectedRoutes(t *testing.T) {
+	app := &ir.Application{
+		Name: "AuthApp",
+		Auth: &ir.Auth{
+			Methods: []*ir.AuthMethod{{Type: "jwt"}},
+		},
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{{Type: "display", Text: "welcome"}}},
+			{Name: "Login", Content: []*ir.Action{{Type: "display", Text: "login form"}}},
+			{Name: "Dashboard", Content: []*ir.Action{{Type: "display", Text: "dashboard"}}},
+			{Name: "Profile", Content: []*ir.Action{{Type: "display", Text: "profile"}}},
+			{Name: "SignUp", Content: []*ir.Action{{Type: "display", Text: "sign up form"}}},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	routesContent, err := os.ReadFile(filepath.Join(dir, "src", "app", "app.routes.ts"))
+	if err != nil {
+		t.Fatalf("reading app.routes.ts: %v", err)
+	}
+	routes := string(routesContent)
+
+	// Should import authGuard
+	if !strings.Contains(routes, "import { authGuard } from './guards/auth.guard'") {
+		t.Error("routes missing authGuard import")
+	}
+
+	// Protected pages should have canActivate
+	if !strings.Contains(routes, "path: 'dashboard'") {
+		t.Error("routes missing dashboard path")
+	}
+	if !strings.Contains(routes, "path: 'profile'") {
+		t.Error("routes missing profile path")
+	}
+
+	// Split into lines for per-route checking
+	lines := strings.Split(routes, "\n")
+	for _, line := range lines {
+		// Dashboard and Profile should have canActivate
+		if strings.Contains(line, "path: 'dashboard'") && !strings.Contains(line, "canActivate: [authGuard]") {
+			t.Error("dashboard route missing canActivate: [authGuard]")
+		}
+		if strings.Contains(line, "path: 'profile'") && !strings.Contains(line, "canActivate: [authGuard]") {
+			t.Error("profile route missing canActivate: [authGuard]")
+		}
+
+		// Public pages should NOT have canActivate
+		if strings.Contains(line, "path: ''") && strings.Contains(line, "canActivate") {
+			t.Error("home route should NOT have canActivate")
+		}
+		if strings.Contains(line, "path: 'login'") && strings.Contains(line, "canActivate") {
+			t.Error("login route should NOT have canActivate")
+		}
+		if strings.Contains(line, "path: 'sign-up'") && strings.Contains(line, "canActivate") {
+			t.Error("signup route should NOT have canActivate")
+		}
+	}
+}
+
+func TestIsPublicPage(t *testing.T) {
+	tests := []struct {
+		name string
+		want bool
+	}{
+		{"Home", true},
+		{"home", true},
+		{"Login", true},
+		{"login", true},
+		{"SignUp", true},
+		{"signup", true},
+		{"Sign-Up", true},
+		{"sign-up", true},
+		{"Register", true},
+		{"register", true},
+		{"Landing", true},
+		{"landing", true},
+		{"Dashboard", false},
+		{"Profile", false},
+		{"Settings", false},
+		{"Admin", false},
+	}
+
+	for _, tt := range tests {
+		got := isPublicPage(tt.name)
+		if got != tt.want {
+			t.Errorf("isPublicPage(%q): got %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
+
 func TestFullIntegration(t *testing.T) {
 	_, thisFile, _, _ := runtime.Caller(0)
 	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")

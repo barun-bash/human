@@ -367,6 +367,154 @@ func TestGenerateWritesFiles(t *testing.T) {
 	}
 }
 
+// ── Auth Composable ──
+
+func TestAuthComposableGenerated(t *testing.T) {
+	app := &ir.Application{
+		Name: "AuthApp",
+		Auth: &ir.Auth{
+			Methods: []*ir.AuthMethod{{Type: "jwt"}},
+		},
+		Pages: []*ir.Page{
+			{Name: "Home", Content: []*ir.Action{{Type: "display", Text: "welcome"}}},
+			{Name: "Dashboard", Content: []*ir.Action{{Type: "display", Text: "dashboard"}}},
+		},
+	}
+
+	dir := t.TempDir()
+	g := Generator{}
+	if err := g.Generate(app, dir); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	// Check file exists
+	authPath := filepath.Join(dir, "src", "composables", "useAuth.ts")
+	content, err := os.ReadFile(authPath)
+	if err != nil {
+		t.Fatalf("expected useAuth.ts to exist: %v", err)
+	}
+
+	output := string(content)
+	if !strings.Contains(output, "useAuth") {
+		t.Error("useAuth.ts should contain useAuth function")
+	}
+	if !strings.Contains(output, "isAuthenticated") {
+		t.Error("useAuth.ts should contain isAuthenticated ref")
+	}
+	if !strings.Contains(output, "localStorage") {
+		t.Error("useAuth.ts should use localStorage")
+	}
+	if !strings.Contains(output, "import { ref, computed } from 'vue'") {
+		t.Error("useAuth.ts should import ref and computed from vue")
+	}
+	if !strings.Contains(output, "login(token: string)") {
+		t.Error("useAuth.ts should have login function")
+	}
+	if !strings.Contains(output, "logout()") {
+		t.Error("useAuth.ts should have logout function")
+	}
+}
+
+// ── Route Guards ──
+
+func TestVueRouteGuards(t *testing.T) {
+	app := &ir.Application{
+		Name: "GuardApp",
+		Auth: &ir.Auth{
+			Methods: []*ir.AuthMethod{{Type: "jwt"}},
+		},
+		Pages: []*ir.Page{
+			{Name: "Home"},
+			{Name: "Login"},
+			{Name: "Dashboard"},
+			{Name: "Profile"},
+		},
+	}
+
+	output := generateRouter(app)
+
+	// Should import useAuth
+	if !strings.Contains(output, "import { useAuth } from './composables/useAuth'") {
+		t.Error("router.ts should import useAuth composable")
+	}
+
+	// Non-public pages should have requiresAuth meta
+	if !strings.Contains(output, "requiresAuth: true") {
+		t.Error("router.ts should contain requiresAuth meta for protected routes")
+	}
+
+	// Public pages (Home, Login) should NOT have requiresAuth
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "name: 'HomePage'") && strings.Contains(line, "requiresAuth") {
+			t.Error("Home page should not have requiresAuth")
+		}
+		if strings.Contains(line, "name: 'LoginPage'") && strings.Contains(line, "requiresAuth") {
+			t.Error("Login page should not have requiresAuth")
+		}
+	}
+
+	// Dashboard and Profile should have requiresAuth
+	for _, line := range lines {
+		if strings.Contains(line, "name: 'DashboardPage'") && !strings.Contains(line, "requiresAuth") {
+			t.Error("Dashboard page should have requiresAuth")
+		}
+		if strings.Contains(line, "name: 'ProfilePage'") && !strings.Contains(line, "requiresAuth") {
+			t.Error("Profile page should have requiresAuth")
+		}
+	}
+
+	// Should have beforeEach guard
+	if !strings.Contains(output, "router.beforeEach") {
+		t.Error("router.ts should contain beforeEach navigation guard")
+	}
+	if !strings.Contains(output, "to.meta.requiresAuth") {
+		t.Error("router.ts beforeEach should check to.meta.requiresAuth")
+	}
+	if !strings.Contains(output, "return { path: '/login' }") {
+		t.Error("router.ts beforeEach should redirect to /login")
+	}
+}
+
+func TestIsPublicPage(t *testing.T) {
+	publicPages := []string{"Home", "Login", "Signup", "Sign-Up", "Register", "Landing",
+		"home", "login", "signup", "sign-up", "register", "landing"}
+	for _, name := range publicPages {
+		if !isPublicPage(name) {
+			t.Errorf("isPublicPage(%q) should be true", name)
+		}
+	}
+
+	privatPages := []string{"Dashboard", "Profile", "Settings", "Admin"}
+	for _, name := range privatPages {
+		if isPublicPage(name) {
+			t.Errorf("isPublicPage(%q) should be false", name)
+		}
+	}
+}
+
+func TestRouterWithoutAuth(t *testing.T) {
+	app := &ir.Application{
+		Pages: []*ir.Page{
+			{Name: "Home"},
+			{Name: "Dashboard"},
+		},
+	}
+
+	output := generateRouter(app)
+
+	// Should NOT have auth-related content
+	if strings.Contains(output, "useAuth") {
+		t.Error("router without auth should not import useAuth")
+	}
+	if strings.Contains(output, "requiresAuth") {
+		t.Error("router without auth should not have requiresAuth meta")
+	}
+	if strings.Contains(output, "beforeEach") {
+		t.Error("router without auth should not have beforeEach guard")
+	}
+}
+
 // ── Full Integration Test ──
 
 func TestFullIntegration(t *testing.T) {
@@ -437,8 +585,8 @@ func TestFullIntegration(t *testing.T) {
 	}
 	routerTs := string(routerContent)
 	routeCount := strings.Count(routerTs, "path: ")
-	if routeCount != 4 { // 3 pages + 404 catch-all
-		t.Errorf("router.ts: expected 4 routes, got %d", routeCount)
+	if routeCount != 5 { // 3 pages + 404 catch-all + beforeEach redirect (app has auth)
+		t.Errorf("router.ts: expected 5 routes, got %d", routeCount)
 	}
 	if !strings.Contains(routerTs, `path: '/'`) {
 		t.Error("router.ts: Home should route to /")

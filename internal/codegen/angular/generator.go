@@ -54,6 +54,16 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	// 404 not-found page
 	files[filepath.Join(outputDir, "src", "app", "pages", "not-found", "not-found.component.ts")] = generateNotFoundComponent()
 
+	// Generate auth files
+	if app.Auth != nil {
+		guardsDir := filepath.Join(outputDir, "src", "app", "guards")
+		if err := os.MkdirAll(guardsDir, 0755); err != nil {
+			return fmt.Errorf("creating guards directory: %w", err)
+		}
+		files[filepath.Join(outputDir, "src", "app", "services", "auth.service.ts")] = generateAuthService()
+		files[filepath.Join(outputDir, "src", "app", "guards", "auth.guard.ts")] = generateAuthGuard()
+	}
+
 	// Generate theme files
 	if app.Theme != nil {
 		themeFiles := themes.GenerateAngularTheme(app.Theme)

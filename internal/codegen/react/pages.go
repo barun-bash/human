@@ -37,6 +37,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	needsEffect := false
 	needsAuth := false
 	needsFormState := false
+	needsCreateImport := false // inline form that calls a create endpoint
 	needsSuccess := false
 	needsError := false
 	hasLoadingCondition := false // whether the page explicitly references loading state
@@ -65,6 +66,10 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 			// FAB button uses setShowForm
 			if strings.Contains(lower, "floating button") || strings.Contains(lower, "fab") {
 				needsFormState = true
+			}
+			// Inline form that calls a create/login endpoint needs the import
+			if strings.Contains(lower, "form to") {
+				needsCreateImport = true
 			}
 		case "condition":
 			if strings.Contains(lower, "logged in") {
@@ -120,8 +125,18 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 	if needsEffect && modelName != "" {
 		listEp = findListEndpoint(app, modelName)
 	}
-	if needsFormState && modelName != "" {
+	if (needsFormState || needsCreateImport) && modelName != "" {
 		createEp = findCreateEndpoint(app, modelName)
+	}
+	// Also look for login endpoint when an inline login form exists
+	if needsCreateImport && createEp == nil && app != nil {
+		for i := range app.APIs {
+			ln := strings.ToLower(app.APIs[i].Name)
+			if ln == "login" || strings.Contains(ln, "signin") || strings.Contains(ln, "sign_in") {
+				createEp = app.APIs[i]
+				break
+			}
+		}
 	}
 	var apiImports []string
 	if listEp != nil {
