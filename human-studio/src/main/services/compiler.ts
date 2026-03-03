@@ -1,7 +1,7 @@
 import { spawn, ChildProcess } from 'child_process'
 import { app } from 'electron'
 import { join } from 'path'
-import { existsSync } from 'fs'
+import { existsSync, statSync } from 'fs'
 
 export class CompilerService {
   private process: ChildProcess | null = null
@@ -11,9 +11,10 @@ export class CompilerService {
     const isDevMode = !app.isPackaged
 
     if (isDevMode) {
-      // In development, look for the binary in the repo root
-      const devBinary = join(__dirname, '../../../../human')
-      if (existsSync(devBinary)) return devBinary
+      // In development, look for the built binary in the repo root's build/ dir
+      const repoRoot = join(__dirname, '../../../..')
+      const devBinary = join(repoRoot, 'build', 'human')
+      if (existsSync(devBinary) && statSync(devBinary).isFile()) return devBinary
       // Fallback to PATH
       return 'human'
     }

@@ -202,7 +202,7 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
               {subscription?.plan === 'pro' && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    Visa \u2022\u2022\u2022\u2022 4242
+                    Visa {'\u2022\u2022\u2022\u2022'} 4242
                   </span>
                   <Button variant="ghost" size="sm">Change</Button>
                 </div>
