@@ -59,8 +59,11 @@ func generateStartScript(app *ir.Application) string {
 
 	// Check PostgreSQL is reachable (only if using Postgres)
 	if hasPostgres {
-		b.WriteString("# Check PostgreSQL is reachable\n")
+		b.WriteString("# Export .env variables for subprocesses (Prisma, etc.)\n")
+		b.WriteString("set -a\n")
 		b.WriteString("source .env 2>/dev/null || true\n")
+		b.WriteString("set +a\n\n")
+		b.WriteString("# Check PostgreSQL is reachable\n")
 		b.WriteString("if command -v pg_isready &>/dev/null; then\n")
 		b.WriteString("  if ! pg_isready -q 2>/dev/null; then\n")
 		b.WriteString("    echo \"Error: PostgreSQL is not running.\"\n")

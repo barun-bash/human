@@ -64,7 +64,7 @@ func CollectEnvVars(app *ir.Application) []EnvVar {
 		dbSuffix = "?sslmode=disable"
 	}
 	vars := []EnvVar{
-		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@db:" + dbPort + "/" + DbName(app) + dbSuffix, Comment: "PostgreSQL connection string — use @localhost:" + dbPort + " for local dev, @db:" + dbPort + " for Docker"},
+		{Name: "DATABASE_URL", Example: "postgresql://postgres:postgres@localhost:" + dbPort + "/" + DbName(app) + dbSuffix, Comment: "PostgreSQL connection string — use @db:" + dbPort + " inside Docker Compose"},
 		{Name: "JWT_SECRET", Example: "change-me-to-a-random-secret", Comment: "Secret for signing JWT tokens"},
 		{Name: "PORT", Example: port, Comment: "Backend server port"},
 	}

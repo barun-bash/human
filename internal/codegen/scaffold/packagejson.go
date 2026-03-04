@@ -227,6 +227,8 @@ func integrationDependencies(integrationType string) (deps, devDeps map[string]s
 	case "storage":
 		deps["@aws-sdk/client-s3"] = "^3.700.0"
 		deps["@aws-sdk/s3-request-presigner"] = "^3.700.0"
+		deps["multer"] = "^1.4.5-lts.1"
+		devDeps["@types/multer"] = "^1.4.12"
 	case "payment":
 		deps["stripe"] = "^17.0.0"
 	case "messaging":
