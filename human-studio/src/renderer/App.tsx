@@ -10,6 +10,7 @@ import { AuthScreen } from './components/AuthScreen'
 import { PlanSelector } from './components/PlanSelector'
 import { ResizeHandle } from './components/ResizeHandle'
 import { ToastContainer, showToast } from './components/ui/Toast'
+import { KeyboardShortcuts } from './components/KeyboardShortcuts'
 import { useResize } from './hooks/useResize'
 import { useTheme } from './hooks/useTheme'
 import { useSettingsStore } from './stores/settings'
@@ -73,6 +74,7 @@ function countFiles(entries: FileEntry[]): number {
 
 export function App() {
   const [profileOpen, setProfileOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const { screen, setScreen, setUser, setSubscription, logout } = useAuthStore()
   useTheme()
 
@@ -255,6 +257,7 @@ export function App() {
       api.on('menu:toggle-sidebar', () => useSettingsStore.getState().toggleSidebar()),
       api.on('menu:toggle-theme', () => useSettingsStore.getState().toggleTheme()),
       api.on('menu:settings', () => setProfileOpen(true)),
+      api.on('menu:keyboard-shortcuts', () => setShortcutsOpen(true)),
       api.on('menu:save', async () => {
         const { activeFile } = useProjectStore.getState()
         const { fileContents } = useEditorStore.getState()
@@ -263,6 +266,40 @@ export function App() {
           useProjectStore.getState().markSaved(activeFile)
           useEditorStore.getState().setSavedContent(activeFile, fileContents[activeFile])
           showToast('success', 'File saved')
+        }
+      }),
+      api.on('menu:save-all', async () => {
+        const { openFiles } = useProjectStore.getState()
+        const { fileContents } = useEditorStore.getState()
+        let saved = 0
+        for (const filePath of openFiles) {
+          if (fileContents[filePath] !== undefined && useProjectStore.getState().unsavedFiles.has(filePath)) {
+            await api.project.writeFile(filePath, fileContents[filePath])
+            useProjectStore.getState().markSaved(filePath)
+            useEditorStore.getState().setSavedContent(filePath, fileContents[filePath])
+            saved++
+          }
+        }
+        if (saved > 0) showToast('success', `Saved ${saved} file${saved > 1 ? 's' : ''}`)
+      }),
+      api.on('menu:new-project', async () => {
+        const dir = await api.project.openDialog()
+        if (!dir) return
+        const name = prompt('Project name:')
+        if (!name) return
+        try {
+          await api.project.createDir(dir + '/' + name)
+          const projectDir = dir + '/' + name
+          // Create a starter .human file
+          await api.project.createFile(projectDir + '/app.human', `app "${name}"\n\ndescribe:\n  A new Human project.\n\nbuild with:\n  frontend: react\n  backend: node\n  database: postgres\n`)
+          const files = await api.project.open(projectDir)
+          useProjectStore.getState().setProject(projectDir, name)
+          useProjectStore.getState().setFiles(files)
+          useSettingsStore.getState().addRecentProject(projectDir)
+          api.project.watch(projectDir)
+          showToast('success', `Created project "${name}"`)
+        } catch (err: any) {
+          showToast('error', err.message || 'Failed to create project')
         }
       }),
       api.on('menu:open-project', async () => {
@@ -289,6 +326,22 @@ export function App() {
     ]
     return () => cleanups.forEach((fn) => fn())
   }, [handleCheck, handleBuild, handleRun, handleStop])
+
+  // Refresh project tree when files change externally
+  useEffect(() => {
+    if (!api) return
+    const cleanup = api.on('project:file-changed', async () => {
+      const dir = useProjectStore.getState().projectDir
+      if (!dir) return
+      try {
+        const files = await api.project.open(dir)
+        useProjectStore.getState().setFiles(files)
+      } catch {
+        // ignore
+      }
+    })
+    return cleanup
+  }, [])
 
   // Load file content when active file changes
   const activeFile = useProjectStore((s) => s.activeFile)
@@ -424,6 +477,9 @@ export function App() {
 
       {/* Profile slide-in */}
       <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+
+      {/* Keyboard shortcuts overlay */}
+      <KeyboardShortcuts open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       {/* Toast notifications */}
       <ToastContainer />

@@ -2,6 +2,8 @@ import React from 'react'
 import { FolderPlus, Link, ExternalLink } from 'lucide-react'
 import { useProjectStore } from '../stores/project'
 import { useBuildStore } from '../stores/build'
+import { useSettingsStore } from '../stores/settings'
+import { showToast } from './ui/Toast'
 import { FileTree } from './FileTree'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
@@ -34,6 +36,29 @@ const statusLabel: Record<string, string> = {
 export function ProjectTree({ onPopOut }: ProjectTreeProps) {
   const { projectDir, files, activeFile, openFile, toggleFolder } = useProjectStore()
   const buildStatus = useBuildStore((s) => s.status)
+
+  const handleNewProject = async () => {
+    const dir = await api.project.openDialog()
+    if (!dir) return
+    const name = prompt('Project name:')
+    if (!name) return
+    try {
+      const projectDir = dir + '/' + name
+      await api.project.createDir(projectDir)
+      await api.project.createFile(
+        projectDir + '/app.human',
+        `app "${name}"\n\ndescribe:\n  A new Human project.\n\nbuild with:\n  frontend: react\n  backend: node\n  database: postgres\n`
+      )
+      const newFiles = await api.project.open(projectDir)
+      useProjectStore.getState().setProject(projectDir, name)
+      useProjectStore.getState().setFiles(newFiles)
+      useSettingsStore.getState().addRecentProject(projectDir)
+      api.project.watch(projectDir)
+      showToast('success', `Created project "${name}"`)
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to create project')
+    }
+  }
 
   const handleLinkFolder = async () => {
     const dir = await api.project.openDialog()
@@ -73,7 +98,7 @@ export function ProjectTree({ onPopOut }: ProjectTreeProps) {
           <IconBtn onClick={handleLinkFolder} title="Link folder">
             <Link size={12} />
           </IconBtn>
-          <IconBtn title="New project">
+          <IconBtn onClick={handleNewProject} title="New project">
             <FolderPlus size={12} />
           </IconBtn>
           <IconBtn onClick={onPopOut} title="Pop out">

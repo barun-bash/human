@@ -4,7 +4,7 @@ import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLi
 import { EditorState, Compartment } from '@codemirror/state'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { bracketMatching, indentOnInput, foldGutter } from '@codemirror/language'
-import { searchKeymap, highlightSelectionMatches } from '@codemirror/search'
+import { searchKeymap, highlightSelectionMatches, openSearchPanel } from '@codemirror/search'
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { javascript } from '@codemirror/lang-javascript'
 import { json } from '@codemirror/lang-json'
@@ -16,6 +16,7 @@ import { humanLanguage } from '../lib/human-lang'
 import { humanEditorTheme, humanSyntaxHighlighting } from '../lib/editor-theme'
 import { useProjectStore } from '../stores/project'
 import { useEditorStore, EditorTab } from '../stores/editor'
+import { api } from '../lib/ipc'
 
 interface HumanEditorProps {
   onPopOut: () => void
@@ -139,6 +140,25 @@ export function HumanEditor({ onPopOut }: HumanEditorProps) {
         editorViewRef.current = null
       }
     }
+  }, [])
+
+  // Wire menu:find and menu:replace to CodeMirror search
+  useEffect(() => {
+    if (!api) return
+    const cleanups = [
+      api.on('menu:find', () => {
+        if (editorViewRef.current) {
+          openSearchPanel(editorViewRef.current)
+        }
+      }),
+      api.on('menu:replace', () => {
+        if (editorViewRef.current) {
+          // openSearchPanel with replace mode — CM6 toggles replace via the panel
+          openSearchPanel(editorViewRef.current)
+        }
+      }),
+    ]
+    return () => cleanups.forEach((fn) => fn())
   }, [])
 
   return (
