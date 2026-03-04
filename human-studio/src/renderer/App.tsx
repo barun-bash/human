@@ -25,7 +25,7 @@ import type { FileEntry } from './stores/project'
 /** Scan output dir after build, populate output tree + stack badges + refresh project tree */
 async function loadOutputFiles(projectDir: string) {
   try {
-    const outputDir = projectDir + '/output'
+    const outputDir = projectDir + '/.human/output'
     const entries: FileEntry[] = await api.project.listFiles(outputDir)
 
     // Convert FileEntry[] → OutputFile[] with auto-expand for top 2 levels

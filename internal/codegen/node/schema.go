@@ -95,6 +95,10 @@ func writePrismaModel(b *strings.Builder, model *ir.DataModel, app *ir.Applicati
 						alreadyDeclared = true
 						break
 					}
+					if ownRel.Kind == "has_many_through" && ownRel.Through == other.Name {
+						alreadyDeclared = true
+						break
+					}
 				}
 				if !alreadyDeclared {
 					relName := toCamelCase(other.Name) + "s"
