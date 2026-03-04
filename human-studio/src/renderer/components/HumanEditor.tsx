@@ -47,7 +47,7 @@ export function HumanEditor({ onPopOut }: HumanEditorProps) {
   const currentFileRef = useRef<string | null>(null)
 
   const { activeFile, openFiles, unsavedFiles, closeFile, setActiveFile } = useProjectStore()
-  const { activeTab, setActiveTab, cursorLine, cursorCol, irContent, fileContents, setFileContent, setCursor } = useEditorStore()
+  const { activeTab, setActiveTab, cursorLine, cursorCol, irContent, fileContents, savedContents, setFileContent, setCursor } = useEditorStore()
 
   // Create/update CodeMirror editor
   useEffect(() => {
@@ -64,7 +64,10 @@ export function HumanEditor({ onPopOut }: HumanEditorProps) {
 
     if (!activeFile) return
 
-    const content = fileContents[activeFile] || ''
+    // Wait for content to load before creating editor
+    const content = fileContents[activeFile]
+    if (content === undefined) return
+
     const filename = activeFile.split('/').pop() || activeFile.split('\\').pop() || ''
 
     const view = new EditorView({
@@ -114,7 +117,7 @@ export function HumanEditor({ onPopOut }: HumanEditorProps) {
     return () => {
       // Don't destroy here — we handle it on re-render
     }
-  }, [activeFile, activeTab, fileContents, setFileContent, setCursor])
+  }, [activeFile, activeTab, activeFile ? fileContents[activeFile] !== undefined : false])
 
   // Sync content when file changes externally
   useEffect(() => {
@@ -255,17 +258,26 @@ export function HumanEditor({ onPopOut }: HumanEditorProps) {
         )}
 
         {activeTab === 'changes' && (
-          <div
-            style={{
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 12,
-              color: 'var(--text-muted)',
-            }}
-          >
-            No changes yet
+          <div style={{ height: '100%', overflow: 'auto' }}>
+            {activeFile && fileContents[activeFile] !== undefined && savedContents[activeFile] !== undefined && fileContents[activeFile] !== savedContents[activeFile] ? (
+              <DiffView
+                original={savedContents[activeFile]}
+                modified={fileContents[activeFile]}
+              />
+            ) : (
+              <div
+                style={{
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 12,
+                  color: 'var(--text-muted)',
+                }}
+              >
+                No changes yet
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -395,6 +407,42 @@ function FileTabButton({
         &times;
       </button>
     </button>
+  )
+}
+
+function DiffView({ original, modified }: { original: string; modified: string }) {
+  const origLines = original.split('\n')
+  const modLines = modified.split('\n')
+
+  // Simple line-by-line diff using LCS-like approach
+  const diff: { type: 'same' | 'add' | 'remove'; text: string }[] = []
+  let oi = 0, mi = 0
+  while (oi < origLines.length || mi < modLines.length) {
+    if (oi < origLines.length && mi < modLines.length && origLines[oi] === modLines[mi]) {
+      diff.push({ type: 'same', text: origLines[oi] })
+      oi++; mi++
+    } else if (mi < modLines.length && (oi >= origLines.length || modLines.indexOf(origLines[oi], mi) > mi)) {
+      diff.push({ type: 'add', text: modLines[mi] })
+      mi++
+    } else if (oi < origLines.length) {
+      diff.push({ type: 'remove', text: origLines[oi] })
+      oi++
+    }
+  }
+
+  return (
+    <pre style={{ margin: 0, padding: 12, fontSize: 12, lineHeight: 1.6, fontFamily: 'var(--font-mono)' }}>
+      {diff.map((line, i) => {
+        const color = line.type === 'add' ? '#34D399' : line.type === 'remove' ? '#F87171' : 'var(--text-muted)'
+        const bg = line.type === 'add' ? 'rgba(52,211,153,0.1)' : line.type === 'remove' ? 'rgba(248,113,113,0.1)' : 'transparent'
+        const prefix = line.type === 'add' ? '+ ' : line.type === 'remove' ? '- ' : '  '
+        return (
+          <div key={i} style={{ color, background: bg, padding: '0 4px' }}>
+            {prefix}{line.text}
+          </div>
+        )
+      })}
+    </pre>
   )
 }
 

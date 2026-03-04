@@ -18,6 +18,58 @@ import { useBuildStore } from './stores/build'
 import { useEditorStore } from './stores/editor'
 import { useAuthStore } from './stores/auth'
 import { api } from './lib/ipc'
+import type { OutputFile } from './stores/build'
+import type { FileEntry } from './stores/project'
+
+/** Scan output dir after build, populate output tree + stack badges + refresh project tree */
+async function loadOutputFiles(projectDir: string) {
+  try {
+    const outputDir = projectDir + '/output'
+    const entries: FileEntry[] = await api.project.listFiles(outputDir)
+
+    // Convert FileEntry[] → OutputFile[] with auto-expand for top 2 levels
+    function toOutputFiles(files: FileEntry[], depth: number): OutputFile[] {
+      return files.map((f) => ({
+        name: f.name,
+        path: f.path,
+        isDirectory: f.isDirectory,
+        expanded: depth < 2,
+        children: f.children ? toOutputFiles(f.children, depth + 1) : undefined,
+      }))
+    }
+    const outputFiles = toOutputFiles(entries, 0)
+
+    // Count files by top-level directory
+    const counts: Record<string, number> = {}
+    for (const entry of entries) {
+      if (entry.isDirectory && entry.children) {
+        counts[entry.name] = countFiles(entry.children)
+      }
+    }
+
+    useBuildStore.getState().setOutputFiles(outputFiles)
+    useBuildStore.getState().setFileCounts(counts)
+  } catch {
+    // output/ dir might not exist yet — ignore
+  }
+
+  // Refresh project tree
+  try {
+    const files = await api.project.open(projectDir)
+    useProjectStore.getState().setFiles(files)
+  } catch {
+    // ignore
+  }
+}
+
+function countFiles(entries: FileEntry[]): number {
+  let count = 0
+  for (const e of entries) {
+    if (e.isDirectory && e.children) count += countFiles(e.children)
+    else count++
+  }
+  return count
+}
 
 export function App() {
   const [profileOpen, setProfileOpen] = useState(false)
@@ -107,8 +159,12 @@ export function App() {
     try {
       const result = await api.compiler.check(projectDir)
       useBuildStore.getState().setStatus(result.code === 0 ? 'success' : 'error')
-      if (result.code === 0) showToast('success', 'Check passed')
-      else showToast('error', 'Check failed')
+      if (result.code === 0) {
+        showToast('success', 'Check passed')
+        useEditorStore.getState().setIRContent(result.stdout || useBuildStore.getState().output)
+      } else {
+        showToast('error', 'Check failed')
+      }
     } catch (err: any) {
       useBuildStore.getState().setStatus('error')
       showToast('error', err.message || 'Check failed')
@@ -131,8 +187,13 @@ export function App() {
     try {
       const result = await api.compiler.build(projectDir)
       useBuildStore.getState().setStatus(result.code === 0 ? 'success' : 'error')
-      if (result.code === 0) showToast('success', 'Build complete')
-      else showToast('error', 'Build failed')
+      if (result.code === 0) {
+        showToast('success', 'Build complete')
+        useEditorStore.getState().setIRContent(result.stdout || useBuildStore.getState().output)
+        await loadOutputFiles(projectDir)
+      } else {
+        showToast('error', 'Build failed')
+      }
     } catch (err: any) {
       useBuildStore.getState().setStatus('error')
       showToast('error', err.message || 'Build failed')
@@ -150,6 +211,9 @@ export function App() {
     try {
       const result = await api.compiler.run(projectDir)
       useBuildStore.getState().setStatus(result.code === 0 ? 'success' : 'error')
+      if (result.code === 0) {
+        await loadOutputFiles(projectDir)
+      }
     } catch (err: any) {
       useBuildStore.getState().setStatus('error')
       showToast('error', err.message || 'Run failed')
@@ -227,8 +291,8 @@ export function App() {
   }, [handleCheck, handleBuild, handleRun, handleStop])
 
   // Load file content when active file changes
+  const activeFile = useProjectStore((s) => s.activeFile)
   useEffect(() => {
-    const activeFile = useProjectStore.getState().activeFile
     if (!activeFile || !api) return
     const { fileContents } = useEditorStore.getState()
     if (fileContents[activeFile] !== undefined) return // already loaded
@@ -238,7 +302,7 @@ export function App() {
     }).catch(() => {
       showToast('error', `Failed to read ${activeFile.split('/').pop()}`)
     })
-  })
+  }, [activeFile])
 
   // Auth gating
   if (screen === 'loading') {

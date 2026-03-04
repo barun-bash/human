@@ -3,6 +3,17 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useBuildStore } from '../stores/build'
 import { useSettingsStore } from '../stores/settings'
 import { Badge } from './ui/Badge'
+import { api } from '../lib/ipc'
+
+const URL_REGEX = /https?:\/\/localhost:\d+[^\s]*/g
+
+function getLineColor(line: string): string {
+  if (/✓|complete|passed|ready|success/i.test(line)) return '#34D399'
+  if (/error|Error|failed|FAIL/i.test(line)) return '#F87171'
+  if (/warning|Warning/i.test(line)) return '#FBBF24'
+  if (/^(\s*\.{3}|.*Building|.*Starting|.*Generating)/i.test(line)) return 'var(--text-dim)'
+  return 'var(--text-muted)'
+}
 
 const statusVariant: Record<string, 'default' | 'accent' | 'success' | 'error' | 'info'> = {
   idle: 'default',
@@ -79,7 +90,31 @@ export function BuildPanel() {
                 margin: 0,
               }}
             >
-              {output}
+              {output.split('\n').map((line, i) => {
+                const urls = line.match(URL_REGEX)
+                if (urls) {
+                  // Render line with clickable URLs
+                  const parts: React.ReactNode[] = []
+                  let rest = line
+                  urls.forEach((url, j) => {
+                    const idx = rest.indexOf(url)
+                    if (idx > 0) parts.push(rest.slice(0, idx))
+                    parts.push(
+                      <a
+                        key={j}
+                        onClick={(e) => { e.preventDefault(); api?.shell.openExternal(url) }}
+                        style={{ color: '#60A5FA', textDecoration: 'underline', cursor: 'pointer' }}
+                      >
+                        {url}
+                      </a>
+                    )
+                    rest = rest.slice(idx + url.length)
+                  })
+                  if (rest) parts.push(rest)
+                  return <div key={i} style={{ color: getLineColor(line) }}>{parts}</div>
+                }
+                return <div key={i} style={{ color: getLineColor(line) }}>{line}</div>
+              })}
             </pre>
           ) : (
             <div
