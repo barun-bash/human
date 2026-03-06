@@ -1,8 +1,0 @@
-node_modules/
-dist/
-release/
-*.log
-.env
-.env.local
-resources/bin/
-resources/fonts/*.woff2
