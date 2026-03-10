@@ -201,7 +201,17 @@ func writeLoginBody(b *strings.Builder, ep *ir.Endpoint, app *ir.Application) {
 
 // writeValidationCheck writes a validation guard for a single rule.
 func writeValidationCheck(b *strings.Builder, v *ir.ValidationRule, ep *ir.Endpoint, app *ir.Application) {
+	// Look up the actual destructured param name. The validation field
+	// (e.g. "input") may be a prefix of the full param name (e.g. "input as text"
+	// → "inputAsText"), so match by prefix.
 	field := sanitizeParamName(v.Field)
+	for _, p := range ep.Params {
+		sanitized := sanitizeParamName(p.Name)
+		if strings.HasPrefix(strings.ToLower(p.Name), strings.ToLower(v.Field)) {
+			field = sanitized
+			break
+		}
+	}
 
 	switch v.Rule {
 	case "not_empty":

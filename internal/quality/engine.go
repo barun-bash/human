@@ -50,6 +50,23 @@ func Run(app *ir.Application, outputDir string) (*Result, error) {
 	result := &Result{}
 	testDir := filepath.Join(outputDir, "node", "src", "__tests__")
 
+	// Component tests import page components, so they must live in the
+	// frontend workspace where those components are defined.
+	componentTestDir := testDir // fallback
+	if app.Config != nil {
+		fe := strings.ToLower(app.Config.Frontend)
+		switch {
+		case strings.Contains(fe, "react"):
+			componentTestDir = filepath.Join(outputDir, "react", "src", "__tests__")
+		case strings.Contains(fe, "vue"):
+			componentTestDir = filepath.Join(outputDir, "vue", "src", "__tests__")
+		case strings.Contains(fe, "svelte"):
+			componentTestDir = filepath.Join(outputDir, "svelte", "src", "__tests__")
+		case strings.Contains(fe, "angular"):
+			componentTestDir = filepath.Join(outputDir, "angular", "src", "__tests__")
+		}
+	}
+
 	// Group 1: Generate all test types in parallel (they write to separate files).
 	var mu sync.Mutex
 	var firstErr error
@@ -78,7 +95,7 @@ func Run(app *ir.Application, outputDir string) (*Result, error) {
 	}()
 	go func() {
 		defer wg.Done()
-		compFiles, compCount, err := generateComponentTests(app, testDir)
+		compFiles, compCount, err := generateComponentTests(app, componentTestDir)
 		if err != nil {
 			setErr(fmt.Errorf("component test generation: %w", err))
 			return

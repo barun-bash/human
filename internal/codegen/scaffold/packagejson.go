@@ -80,7 +80,7 @@ func generateRootPackageJSON(app *ir.Application) string {
 			fmt.Sprintf("    \"dev\": \"concurrently \\\"npm run dev --workspace=node\\\" \\\"npm run dev --workspace=%s\\\"\"", frontendWS),
 			fmt.Sprintf("    \"start\": \"concurrently \\\"npm run start --workspace=node\\\" \\\"npm run start --workspace=%s\\\"\"", frontendWS),
 			fmt.Sprintf("    \"build\": \"npm run build --workspace=node && npm run build --workspace=%s\"", frontendWS),
-			"    \"test\": \"npm run test --workspace=node\"",
+			fmt.Sprintf("    \"test\": \"npm run test --workspace=node && npm run test --workspace=%s\"", frontendWS),
 		)
 	} else if strings.Contains(backend, "node") {
 		scripts = append(scripts,
@@ -153,19 +153,18 @@ func generateNodePackageJSON(app *ir.Application) string {
 		"jsonwebtoken":   "^9.0.0",
 	}
 	devDeps := map[string]string{
-		"@types/bcryptjs":      "^2.4.6",
-		"@types/cors":          "^2.8.17",
-		"@types/express":       "^5.0.0",
-		"@types/jest":          "^29.5.0",
-		"jest-environment-jsdom": "^29.7.0",
-		"@types/jsonwebtoken":  "^9.0.7",
-		"@types/supertest":     "^6.0.0",
-		"jest":                 "^29.7.0",
-		"prisma":               "^6.0.0",
-		"supertest":            "^7.0.0",
-		"ts-jest":              "^29.2.0",
-		"ts-node":              "^10.9.0",
-		"typescript":           "^5.7.0",
+		"@types/bcryptjs":     "^2.4.6",
+		"@types/cors":         "^2.8.17",
+		"@types/express":      "^5.0.0",
+		"@types/jest":         "^29.5.0",
+		"@types/jsonwebtoken": "^9.0.7",
+		"@types/supertest":    "^6.0.0",
+		"jest":                "^29.7.0",
+		"prisma":              "^6.0.0",
+		"supertest":           "^7.0.0",
+		"ts-jest":             "^29.2.0",
+		"ts-node":             "^10.9.0",
+		"typescript":          "^5.7.0",
 	}
 
 	// Inject integration-specific dependencies
@@ -260,11 +259,17 @@ func generateReactPackageJSON(app *ir.Application) string {
 		"react-router-dom": "^7.0.0",
 	}
 	devDeps := map[string]string{
-		"@types/react":         "^19.0.0",
-		"@types/react-dom":     "^19.0.0",
-		"@vitejs/plugin-react": "^4.3.0",
-		"typescript":           "^5.7.0",
-		"vite":                 "^6.0.0",
+		"@testing-library/jest-dom": "^6.6.0",
+		"@testing-library/react":   "^16.1.0",
+		"@types/jest":              "^29.5.0",
+		"@types/react":             "^19.0.0",
+		"@types/react-dom":         "^19.0.0",
+		"@vitejs/plugin-react":     "^4.3.0",
+		"jest":                     "^29.7.0",
+		"jest-environment-jsdom":   "^29.7.0",
+		"ts-jest":                  "^29.2.0",
+		"typescript":               "^5.7.0",
+		"vite":                     "^6.0.0",
 	}
 
 	// Inject design system dependencies
@@ -300,7 +305,13 @@ func generateReactPackageJSON(app *ir.Application) string {
 		devDeps[k] = v
 	}
 
-	return writePackageJSONWithExtra(name+"-frontend", "tsc && vite build", deps, devDeps, storybook.Scripts())
+	extraScripts := storybook.Scripts()
+	if extraScripts == nil {
+		extraScripts = make(map[string]string)
+	}
+	extraScripts["test"] = "jest --config jest.config.cjs"
+
+	return writePackageJSONWithExtra(name+"-frontend", "tsc && vite build", deps, devDeps, extraScripts)
 }
 
 // generateVuePackageJSON produces vue/package.json with Vue 3, Vite,

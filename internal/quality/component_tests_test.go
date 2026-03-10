@@ -54,11 +54,11 @@ func TestGeneratePageTests_Display(t *testing.T) {
 	if count < 2 {
 		t.Errorf("expected at least 2 tests (render + display), got %d", count)
 	}
-	if !strings.Contains(content, "screen.getByText") {
-		t.Error("missing screen.getByText assertion for display action")
+	if !strings.Contains(content, "querySelector") {
+		t.Error("missing querySelector assertion for display action")
 	}
-	if !strings.Contains(content, "welcome message") {
-		t.Error("missing display text in test")
+	if !strings.Contains(content, "welcome message") || !strings.Contains(content, "show-welcome-message") {
+		t.Error("missing display class in test")
 	}
 }
 
@@ -77,8 +77,8 @@ func TestGeneratePageTests_Loading(t *testing.T) {
 	if !strings.Contains(content, "loading state") {
 		t.Error("missing loading state test")
 	}
-	if !strings.Contains(content, "/loading/i") {
-		t.Error("missing loading text assertion")
+	if !strings.Contains(content, "loading-spinner") {
+		t.Error("missing loading-spinner class assertion")
 	}
 }
 

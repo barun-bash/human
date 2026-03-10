@@ -83,6 +83,7 @@ func generatePage(page *ir.Page, app *ir.Application) string {
 			}
 			if strings.Contains(lower, "while loading") || strings.Contains(lower, "is loading") {
 				hasLoadingCondition = true
+				needsDataState = true
 			}
 		}
 	}

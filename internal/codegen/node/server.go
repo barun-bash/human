@@ -71,10 +71,12 @@ func generateServer(app *ir.Application) string {
 	b.WriteString("// Error handling (must be registered last)\n")
 	b.WriteString("app.use(errorHandler);\n\n")
 
-	// Start
-	b.WriteString("app.listen(PORT, () => {\n")
-	fmt.Fprintf(&b, "  console.log(`%s server running on port ${PORT}`);\n", appName(app))
-	b.WriteString("});\n\n")
+	// Start only when run directly (not when imported for testing)
+	b.WriteString("if (require.main === module) {\n")
+	b.WriteString("  app.listen(PORT, () => {\n")
+	fmt.Fprintf(&b, "    console.log(`%s server running on port ${PORT}`);\n", appName(app))
+	b.WriteString("  });\n")
+	b.WriteString("}\n\n")
 	b.WriteString("export { app };\n")
 
 	return b.String()

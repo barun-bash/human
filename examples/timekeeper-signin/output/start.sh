@@ -8,8 +8,17 @@ if [ ! -f .env ]; then
   echo "Created .env — edit with your values"
 fi
 
-# Check PostgreSQL is reachable
+set -a
 source .env 2>/dev/null || true
+set +a
+
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "Error: DATABASE_URL is not set."
+  echo "Copy .env.example to .env and set DATABASE_URL before running."
+  exit 1
+fi
+
+# Check PostgreSQL is reachable
 if command -v pg_isready &>/dev/null; then
   if ! pg_isready -q 2>/dev/null; then
     echo "Error: PostgreSQL is not running."

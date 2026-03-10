@@ -37,6 +37,7 @@ Or manually:
 ```bash
 npm install
 cp .env.example .env   # edit with your values
+set -a && source .env && set +a
 cd node && npx prisma generate && npx prisma db push && cd ..
 npm run dev
 ```
