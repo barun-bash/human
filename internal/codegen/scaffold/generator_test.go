@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -501,6 +502,7 @@ func TestReadme(t *testing.T) {
 		{"local dev option", "Option 1: Local development"},
 		{"docker option", "Option 2: Docker"},
 		{"start.sh", "./start.sh"},
+		{"env export", "set -a && source .env && set +a"},
 		{"ports section", "## Ports"},
 		{"backend port", "| Backend | 3000 |"},
 		{"frontend port", "| Frontend (dev) | 5173 |"},
@@ -597,9 +599,14 @@ func TestStartScript(t *testing.T) {
 		{"npm install", "npm install"},
 		{"env copy", "cp .env.example .env"},
 		{"env check", "[ ! -f .env ]"},
+		{"env export start", "set -a"},
+		{"env export source", "source .env"},
+		{"env export end", "set +a"},
+		{"database url guard", "DATABASE_URL is not set"},
 		{"pg_isready check", "pg_isready"},
 		{"docker compose suggestion", "docker compose up db -d"},
-		{"prisma subshell", "(cd node && npx prisma generate && npx prisma db push)"},
+		{"prisma generate", "npx prisma generate --schema=node/prisma/schema.prisma"},
+		{"prisma db push", "npx prisma db push --schema=node/prisma/schema.prisma"},
 		{"npm run dev", "npm run dev"},
 	}
 
@@ -658,6 +665,103 @@ func TestStartScriptPythonBackend(t *testing.T) {
 	}
 }
 
+func TestStartScriptExportsEnvForPrisma(t *testing.T) {
+	app := testApp()
+	dir := t.TempDir()
+
+	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte("DATABASE_URL=postgresql://postgres:postgres@localhost:5432/taskflow?schema=public\n"), 0644); err != nil {
+		t.Fatalf("write .env: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "node"), 0755); err != nil {
+		t.Fatalf("mkdir node: %v", err)
+	}
+
+	startPath := filepath.Join(dir, "start.sh")
+	if err := os.WriteFile(startPath, []byte(generateStartScript(app)), 0755); err != nil {
+		t.Fatalf("write start.sh: %v", err)
+	}
+
+	binDir := filepath.Join(dir, "bin")
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		t.Fatalf("mkdir bin: %v", err)
+	}
+
+	for name, content := range map[string]string{
+		"npm": `#!/bin/sh
+exit 0
+`,
+		"npx": `#!/bin/sh
+if [ -z "$DATABASE_URL" ]; then
+  echo "DATABASE_URL missing" >&2
+  exit 42
+fi
+exit 0
+`,
+		"pg_isready": `#!/bin/sh
+exit 0
+`,
+	} {
+		path := filepath.Join(binDir, name)
+		if err := os.WriteFile(path, []byte(content), 0755); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+
+	cmd := exec.Command("bash", "start.sh")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "PATH="+binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("start.sh failed: %v\n%s", err, output)
+	}
+}
+
+func TestStartScriptFailsFastWithoutDatabaseURL(t *testing.T) {
+	app := testApp()
+	dir := t.TempDir()
+
+	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte("JWT_SECRET=test\n"), 0644); err != nil {
+		t.Fatalf("write .env: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "node"), 0755); err != nil {
+		t.Fatalf("mkdir node: %v", err)
+	}
+
+	startPath := filepath.Join(dir, "start.sh")
+	if err := os.WriteFile(startPath, []byte(generateStartScript(app)), 0755); err != nil {
+		t.Fatalf("write start.sh: %v", err)
+	}
+
+	binDir := filepath.Join(dir, "bin")
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		t.Fatalf("mkdir bin: %v", err)
+	}
+	for name, content := range map[string]string{
+		"npm": `#!/bin/sh
+exit 0
+`,
+		"pg_isready": `#!/bin/sh
+exit 0
+`,
+	} {
+		path := filepath.Join(binDir, name)
+		if err := os.WriteFile(path, []byte(content), 0755); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+
+	cmd := exec.Command("bash", "start.sh")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "PATH="+binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	output, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected start.sh to fail without DATABASE_URL\n%s", output)
+	}
+	if !strings.Contains(string(output), "DATABASE_URL is not set") {
+		t.Fatalf("missing DATABASE_URL error message:\n%s", output)
+	}
+}
+
 // ── matchesGoBackend ──
 
 func TestMatchesGoBackend(t *testing.T) {
@@ -700,8 +804,9 @@ func TestGenerateWritesFiles(t *testing.T) {
 	expectedFiles := []string{
 		"package.json",
 		"node/package.json",
-		"react/package.json",
 		"node/tsconfig.json",
+		"node/jest.config.js",
+		"react/package.json",
 		"react/tsconfig.json",
 		"react/vite.config.ts",
 		"README.md",
@@ -749,6 +854,7 @@ func TestGenerateVuePythonWritesFiles(t *testing.T) {
 		"react/vite.config.ts",
 		"node/package.json",
 		"node/tsconfig.json",
+		"node/jest.config.js",
 	}
 	for _, f := range unexpectedFiles {
 		path := filepath.Join(dir, f)
@@ -788,6 +894,7 @@ func TestGenerateGoBackendWritesFiles(t *testing.T) {
 		"react/vite.config.ts",
 		"node/package.json",
 		"node/tsconfig.json",
+		"node/jest.config.js",
 		"vue/package.json",
 		"vue/tsconfig.json",
 	}
@@ -813,6 +920,7 @@ func TestGenerateAngularNodeWritesFiles(t *testing.T) {
 		"package.json",
 		"node/package.json",
 		"node/tsconfig.json",
+		"node/jest.config.js",
 		"README.md",
 		".env.example",
 		"start.sh",
@@ -893,8 +1001,9 @@ func TestFullIntegration(t *testing.T) {
 	expectedFiles := []string{
 		"package.json",
 		"node/package.json",
-		"react/package.json",
 		"node/tsconfig.json",
+		"node/jest.config.js",
+		"react/package.json",
 		"react/tsconfig.json",
 		"react/vite.config.ts",
 		"README.md",

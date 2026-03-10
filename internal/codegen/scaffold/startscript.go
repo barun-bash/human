@@ -57,12 +57,19 @@ func generateStartScript(app *ir.Application) string {
 	b.WriteString("  echo \"Created .env — edit with your values\"\n")
 	b.WriteString("fi\n\n")
 
+	// Export .env variables so child processes like Prisma inherit them.
+	b.WriteString("# Export .env variables for child processes\n")
+	b.WriteString("set -a\n")
+	b.WriteString("source .env 2>/dev/null || true\n")
+	b.WriteString("set +a\n\n")
+
 	// Check PostgreSQL is reachable (only if using Postgres)
 	if hasPostgres {
-		b.WriteString("# Export .env variables for subprocesses (Prisma, etc.)\n")
-		b.WriteString("set -a\n")
-		b.WriteString("source .env 2>/dev/null || true\n")
-		b.WriteString("set +a\n\n")
+		b.WriteString("if [ -z \"${DATABASE_URL:-}\" ]; then\n")
+		b.WriteString("  echo \"Error: DATABASE_URL is not set.\"\n")
+		b.WriteString("  echo \"Copy .env.example to .env and set DATABASE_URL before running.\"\n")
+		b.WriteString("  exit 1\n")
+		b.WriteString("fi\n\n")
 		b.WriteString("# Check PostgreSQL is reachable\n")
 		b.WriteString("if command -v pg_isready &>/dev/null; then\n")
 		b.WriteString("  if ! pg_isready -q 2>/dev/null; then\n")
@@ -76,9 +83,12 @@ func generateStartScript(app *ir.Application) string {
 		b.WriteString("fi\n\n")
 	}
 
-	// Prisma setup (only for Node backend)
+	// Prisma setup (only for Node backend).
+	// Run from the output root (where .env lives) so Prisma's schema
+	// validator can resolve env("DATABASE_URL") from the .env file.
 	if hasNode {
-		b.WriteString("(cd node && npx prisma generate && npx prisma db push)\n")
+		b.WriteString("npx prisma generate --schema=node/prisma/schema.prisma\n")
+		b.WriteString("npx prisma db push --schema=node/prisma/schema.prisma\n")
 	}
 
 	// Start dev servers

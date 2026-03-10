@@ -107,8 +107,10 @@ func generateReadme(app *ir.Application) string {
 			b.WriteString("cd go && go build -o ../bin/server ./cmd/server && cd ..\n")
 		}
 		b.WriteString("cp .env.example .env   # edit with your values\n")
+		b.WriteString("set -a && source .env && set +a\n")
 		if hasNode {
-			b.WriteString("cd node && npx prisma generate && npx prisma db push && cd ..\n")
+			b.WriteString("npx prisma generate --schema=node/prisma/schema.prisma\n")
+			b.WriteString("npx prisma db push --schema=node/prisma/schema.prisma\n")
 		}
 		if hasJS {
 			b.WriteString("npm run dev\n")

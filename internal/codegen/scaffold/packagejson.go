@@ -157,6 +157,7 @@ func generateNodePackageJSON(app *ir.Application) string {
 		"@types/cors":          "^2.8.17",
 		"@types/express":       "^5.0.0",
 		"@types/jest":          "^29.5.0",
+		"jest-environment-jsdom": "^29.7.0",
 		"@types/jsonwebtoken":  "^9.0.7",
 		"@types/supertest":     "^6.0.0",
 		"jest":                 "^29.7.0",

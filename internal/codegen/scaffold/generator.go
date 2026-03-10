@@ -50,6 +50,7 @@ func (g Generator) Generate(app *ir.Application, outputDir string) error {
 	if strings.Contains(backend, "node") {
 		files[filepath.Join(outputDir, "node", "package.json")] = generateNodePackageJSON(app)
 		files[filepath.Join(outputDir, "node", "tsconfig.json")] = generateNodeTSConfig()
+		files[filepath.Join(outputDir, "node", "jest.config.js")] = generateJestConfig()
 	}
 
 	// Python and Go backends don't need scaffold package.json/tsconfig
